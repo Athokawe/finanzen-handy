@@ -554,7 +554,7 @@
   },
   {
    "modus": "frage",
-   "bestaetigung": "(s=[A-Za-z0-9_-]{22}\\.[A-Za-z0-9_-]{43}\\|)?[^\\x00-\\x1f\\x7f]{1,500}",
+   "bestaetigung": "[^\\x00-\\x1f\\x7f]{1,500}",
    "ja_noetig": false,
    "beispiel": "Warum hat der Coin-Bot heute geparkt?",
    "text": "Frage an die KI (ohne JA, nur erklären – nie Handel; höchstens 10 Fragen je 24 h)",
