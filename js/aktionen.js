@@ -160,12 +160,9 @@ const SPEZ = {
   // 1.2.0: „An die KI“ ersetzt den Hinweis-Dialog – die KI merkt Bot-Relevantes selbst als Hinweis (js/kifrage.js)
   frage: { titel: "An die KI", ohneFrage: true },
   alarme_gelesen: { titel: "Alarme löschen", ohneFrage: true },
-  hinweis_loeschen: {
-    titel: "Hinweis löschen",
-    felder: [{ name: "nr", art: "zahl", label: "Nummer des Hinweises", hilfe: "steht in der Bestätigungs-Mail bzw. in der Laptop-App" }],
-    pruefen: (w) => (/^\d{1,6}$/.test(String(w.nr).trim()) ? null : "Bitte die Nummer eingeben."),
-    bauen: (w) => String(w.nr).trim(),
-  },
+  // 1.2.2: kein Eingabefeld mehr – nur „✕“ in der Liste „Gemerkte Hinweise“ (eigene Bestätigung) und „Rückgängig“, beide mit
+  // genau der Nummer aus handy.json bzw. der Antwort (js/kifrage.js)
+  hinweis_loeschen: { titel: "Hinweis löschen", ohneFrage: true },
   push_abo: { titel: "Benachrichtigungen", ohneFrage: true },
 };
 

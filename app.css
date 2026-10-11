@@ -277,7 +277,15 @@ body.blatt-offen { overflow: hidden; }
   cursor: pointer; text-decoration: underline; text-underline-offset: 3px; min-height: 32px; }
 .knopf.klein { min-height: 36px; font-size: 14px; }
 .alarm-rechts { display: inline-flex; align-items: center; gap: 6px; flex: none; }
-.alarm-weg { background: none; border: 1px solid var(--rand); border-radius: 50%; width: 32px; height: 32px; color: var(--gedimmt);
+.alarm-weg, .hinweis-weg { background: none; border: 1px solid var(--rand); border-radius: 50%; width: 32px; height: 32px; color: var(--gedimmt);
   font-size: 15px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-.alarm-weg:active { color: var(--text); background: var(--karte2); }
+.alarm-weg:active, .hinweis-weg:active { color: var(--text); background: var(--karte2); }
+/* 1.2.2: Liste „Gemerkte Hinweise“ (Karte „An die KI“ und Eingabe-Blatt) */
+.hinweis-liste { margin-top: 14px; }
+.hinweis-liste h3 { margin: 0; font-size: 16px; }
+.hinweis-liste .oben { align-items: center; }
+.hinweis-liste .hinweis-weg { flex: none; }
+.hinweis-text { overflow-wrap: anywhere; }
+.hinweis-eintrag.weg .hinweis-text { color: var(--gedimmt); }
+.hinweis-zitat { padding: 8px 12px; border-left: 3px solid var(--rand); background: var(--karte2); border-radius: 8px; overflow-wrap: anywhere; }
 

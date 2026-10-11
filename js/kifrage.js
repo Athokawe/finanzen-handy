@@ -4,6 +4,9 @@
 // zu (Weiterleitung auf den Artefakt-Speicher, CORS) oder scheitert das Netz, sagt die App das klar („liegt in der Cloud, konnte
 // aber am Handy nicht geladen werden“). Gespeichert wird NICHTS: Fragen und Antworten liegen nur im Arbeitsspeicher.
 // Ob ein Lauf geklappt hat, entscheidet der Job „ki“ (Jobs-API), nicht der ganze Lauf (der Job „aufraeumen“ zählt nicht).
+// 1.2.2: statt des allgemeinen Knopfs „Hinweis löschen“ (Nummer eintippen) die Liste „Gemerkte Hinweise“ aus handy.json →
+// hinweise (nur aktive), je „✕“ mit Bestätigung → Modus hinweis_loeschen mit genau dieser Nummer. Ohne aktive Hinweise: nichts.
+// Die Hinweistexte kommen aus dem privaten Repo und werden nur als Text gezeigt (dom.h).
 
 import { h, $, leeren } from "./dom.js";
 import * as gh from "./github.js";
@@ -14,13 +17,14 @@ import * as F from "./format.js";
 export const MAX_ZEICHEN = 500;
 const AUFBEWAHREN_MS = 24 * 3600 * 1000;
 
-let hooks = { toast: () => {}, entsperrt: () => true, demo: false };
+let hooks = { toast: () => {}, entsperrt: () => true, demo: false, handy: () => null, neuZeichnen: () => {} };
 const antworten = new Map();   // Lauf-ID -> {zustand: "da"|"fehlt"|"rot", daten?, text?, erstellt}
 let laeufe = [];
 let laedt = false;
 let fehlerText = null;
 let geladen = false;
-const rueckgaengig = new Set();  // Hinweis-Nummern, für die „Rückgängig“ geschickt wurde
+const loeschenGeschickt = new Set();  // Hinweis-Nummern, für die „Rückgängig“ bzw. „✕“ (hinweis_loeschen) geschickt wurde
+const loeschAuftraege = new Map();   // Auftrags-Nr. (aktionen.js) -> Hinweis-Nummer: scheitert der Auftrag, gibt es „✕“ wieder
 let demoAntworten = null;
 export const NICHT_LADBAR = "Die Antwort liegt in der Cloud, konnte aber am Handy nicht geladen werden";
 
@@ -102,7 +106,8 @@ export function vergessen() {
   laeufe = [];
   geladen = false;
   fehlerText = null;
-  rueckgaengig.clear();
+  loeschenGeschickt.clear();
+  loeschAuftraege.clear();
   $("ki-feld").value = "";
   $("ki-huelle").hidden = true;
   $("ki-knopf").hidden = true;
@@ -153,6 +158,16 @@ export async function senden() {
 
 /** Aufruf aus aktionen.js, wenn ein Auftrag fertig ist */
 export function auftragFertig(a) {
+  if (a && a.modus === "hinweis_loeschen" && loeschAuftraege.has(a.nr)) {
+    const nr = loeschAuftraege.get(a.nr);
+    loeschAuftraege.delete(a.nr);
+    if (a.status !== "erledigt") {      // nicht geklappt: „✕“ bzw. „Rückgängig“ wieder anbieten
+      loeschenGeschickt.delete(nr);
+      zeichnen();
+      hooks.neuZeichnen();
+    }
+    return;
+  }
   if (!a || a.modus !== "frage") return;
   if (a.status === "erledigt") {
     laden(true);
@@ -264,7 +279,7 @@ function eintragZeigen(id, e) {
   const nr = d.hinweis_nr;
   let hinweis = null;
   if (Number.isInteger(nr)) {
-    const weg = rueckgaengig.has(nr);
+    const weg = loeschenGeschickt.has(nr);
     hinweis = h("div", { class: "ki-hinweis" }, "📌 Als Hinweis gemerkt (" + tageText(d.hinweis_tage) + ") · ",
       weg ? h("span", { class: "gedimmt" }, "Rückgängig geschickt")
         : h("button", { type: "button", class: "knopf-text", "data-rueckgaengig": String(nr), onclick: () => hinweisZurueck(nr) }, "Rückgängig"));
@@ -283,12 +298,88 @@ async function hinweisZurueck(nr) {
     return;
   }
   try {
-    await A.senden("hinweis_loeschen", String(nr));
-    rueckgaengig.add(nr);
+    await loeschenSenden(nr);
   } catch (e) {
     hooks.toast(e && e.message ? e.message : "Nicht gesendet.");
   }
   zeichnen();
+}
+
+/** hinweis_loeschen mit genau dieser Nummer schicken und merken (nur Nummern, nur im Arbeitsspeicher) */
+async function loeschenSenden(nr) {
+  await A.senden("hinweis_loeschen", String(nr));
+  loeschenGeschickt.add(nr);
+  if (!gh.istDemo()) {
+    const a = A.auftragsListe().filter((x) => x.modus === "hinweis_loeschen").sort((x, y) => y.zeit - x.zeit)[0];
+    if (a && a.nr !== undefined) loeschAuftraege.set(a.nr, nr);
+  }
+  zeichnen();
+  hooks.neuZeichnen();
+}
+
+// ------------------------------------------------------------------ Gemerkte Hinweise (1.2.2)
+
+const QUELLE = new Map([["App", "von dir"], ["MCP", "über ein KI-Werkzeug"], ["KI", "von der KI"]]);
+
+/** aktive Hinweise aus handy.json → hinweise; fehlt der Block (ältere Cloud) oder ist er kaputt: leere Liste */
+export function aktiveHinweise(d) {
+  const l = d && Array.isArray(d.hinweise) ? d.hinweise : [];
+  return l.filter((x) => x && typeof x === "object" && Number.isInteger(x.nr) && x.nr >= 0 && x.nr <= 999999
+    && typeof x.text === "string" && x.text.trim() !== "");
+}
+
+function bisText(bis) {
+  if (bis === null || bis === undefined) return "gilt, bis du ihn löschst";
+  return F.datum(bis) ? "gilt bis " + F.zeit(bis) : null;
+}
+
+/** Liste „Gemerkte Hinweise“ (je „✕“) – null, wenn es keine aktiven Hinweise gibt. Fremdtexte nur als Textknoten. */
+export function hinweisListe(d) {
+  const l = aktiveHinweise(d);
+  if (!l.length) return null;
+  const darf = A.erlaubt("hinweis_loeschen");
+  return h("div", { class: "hinweis-liste" },
+    h("h3", null, "Gemerkte Hinweise"),
+    h("ul", { class: "liste" }, l.map((x) => {
+      const weg = loeschenGeschickt.has(x.nr);
+      const info = ["Nr. " + x.nr, QUELLE.get(x.quelle) || null, typeof x.herkunft === "string" && x.herkunft.trim() ? x.herkunft : null, bisText(x.bis)];
+      return h("li", { class: "hinweis-eintrag" + (weg ? " weg" : ""), "data-hinweis": String(x.nr) },
+        h("div", { class: "oben" }, h("span", { class: "hinweis-text" }, x.text),
+          weg ? h("span", { class: "klein gedimmt" }, "Löschen geschickt")
+            : darf ? h("button", { type: "button", class: "hinweis-weg", "aria-label": "Hinweis Nr. " + x.nr + " löschen",
+              "data-hinweis-weg": String(x.nr), onclick: () => hinweisLoeschenFragen(x) }, "✕") : null),
+        h("div", { class: "unter" }, info.filter(Boolean).join(" · ")));
+    })));
+}
+
+/** „✕“ an einem gemerkten Hinweis: Bestätigung wie bei den anderen Aufträgen, dann hinweis_loeschen mit genau dieser Nummer */
+export function hinweisLoeschenFragen(x) {
+  const nr = x && x.nr;
+  const best = String(nr);
+  if (!Number.isInteger(nr) || !A.erlaubt("hinweis_loeschen") || !A.passt("hinweis_loeschen", best)) {
+    hooks.toast("Hinweis löschen ist gerade nicht erlaubt.");
+    return;
+  }
+  const laeuft = () => !gh.istDemo() && A.laufendeAuftraege().some((a) => a.weg === "ki");
+  if (laeuft()) {
+    hooks.toast("Es läuft noch ein Auftrag – bitte warten, bis er fertig ist, dann noch einmal ✕ tippen.");
+    return;
+  }
+  A.dialog({
+    titel: "Hinweis löschen",
+    inhalt: [
+      h("p", null, "Diesen Hinweis löschen? Bot und KI beachten ihn danach nicht mehr. Gekauft oder verkauft wird dabei nichts."),
+      h("p", { class: "hinweis-zitat" }, "Nr. " + nr + ": „", x.text, "“"),
+      h("p", { class: "klein gedimmt" }, "Wird an die Cloud geschickt:"),
+      h("div", { class: "vorschau", id: "dialog-vorschau" }, "modus = hinweis_loeschen\nbestaetigung = " + best + "\nweg = normale Warteschlange (ki.yml)"),
+    ],
+    okText: "Löschen",
+    onOk: async () => {
+      if (laeuft()) throw new Error("Gerade läuft noch ein Auftrag – bitte warten, bis er fertig ist.");
+      await loeschenSenden(nr);
+      return true;
+    },
+  });
 }
 
 export function zeichnen() {
@@ -309,7 +400,7 @@ export function zeichnen() {
   if (!liste.length) box.appendChild(h("p", { class: "leer" }, laedt ? "Antworten werden geholt …" : "Noch keine Antworten in den letzten 24 Stunden."));
   else box.appendChild(h("ul", { class: "liste ki-liste" }, liste.map(([id, e]) => eintragZeigen(id, e))));
   const akt = leeren($("ki-aktionen"));
-  const loeschen = A.knopf("hinweis_loeschen", "Hinweis löschen", "leise klein");
-  if (loeschen) akt.appendChild(loeschen);
+  const gemerkt = hinweisListe(hooks.handy());   // 1.2.2: statt des allgemeinen Knopfs „Hinweis löschen“
+  if (gemerkt) akt.appendChild(gemerkt);
   akt.appendChild(h("p", { class: "klein gedimmt" }, "Fragen und Antworten bleiben nicht am iPhone; in der Cloud verschwinden sie nach 24 Stunden."));
 }

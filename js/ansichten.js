@@ -335,13 +335,14 @@ function alarmKarte(d) {
     AL.wartet() ? h("p", { class: "klein gedimmt" }, "Ausgeblendet – wird an die Cloud geschickt, sobald der laufende Auftrag fertig ist.") : null);
 }
 
-/** Karte „An die KI“ (1.2.0, ersetzt „Hinweis an die KI“): öffnet das Eingabe-Blatt; „Hinweis löschen“ bleibt klein */
-function kiKarte(text) {
+/** Karte „An die KI“ (1.2.0, ersetzt „Hinweis an die KI“): öffnet das Eingabe-Blatt; darunter (1.2.2) die Liste „Gemerkte
+ *  Hinweise“ mit je „✕“ – nur, wenn handy.json aktive Hinweise nennt (kein allgemeiner Knopf „Hinweis löschen“ mehr) */
+function kiKarte(text, d) {
   if (!A.erlaubt("frage") && !A.erlaubt("hinweis_loeschen")) return null;
   return karte("An die KI", null,
     h("p", { class: "klein gedimmt" }, text),
     reihe(A.erlaubt("frage") ? h("button", { type: "button", class: "knopf primaer", "data-ki-oeffnen": "1", onclick: () => K.oeffnen() }, "💬 Frage an die KI") : null),
-    reihe(A.knopf("hinweis_loeschen", "Hinweis löschen", "leise klein")));
+    K.hinweisListe(d));
 }
 
 // ------------------------------------------------------------------ Coin-Bot (Reiter „kern“ – interner Name bleibt)
@@ -440,7 +441,7 @@ export function kern(Z) {
         ["Tage seit Start", F.zahl(b.tage_seit_start, 0)],
       ])));
   }
-  out.push(kiKarte("Frag die KI zu deinem Stand – oder sag ihr etwas, das der Bot wissen soll (z. B. ein Termin): sie merkt es sich dann als Hinweis. Sie erklärt nur und löst nie selbst eine Order aus."));
+  out.push(kiKarte("Frag die KI zu deinem Stand – oder sag ihr etwas, das der Bot wissen soll (z. B. ein Termin): sie merkt es sich dann als Hinweis. Sie erklärt nur und löst nie selbst eine Order aus.", d));
   return out;
 }
 
@@ -645,7 +646,7 @@ export function mehr(Z, ctx) {
   pk.push(h("p", { class: "klein gedimmt" }, "Du bekommst eine Mitteilung, wenn der Coin-Bot parkt oder zurückkauft, die Stufe wechselt, ein Bot geschaltet wird oder handelt, ein Verlustdeckel greift, die KI deine Frage beantwortet hat (ohne den Text), und einmal täglich ein Lebenszeichen. In der Cloud angemeldet: " + abos.length + " Gerät(e)."));
   out.push(karte("Benachrichtigungen", null, ...pk));
 
-  out.push(kiKarte("Fragen an die KI und Hinweise für den Bot – auch über den Knopf 💬 unten rechts. Die KI löst nie selbst eine Order aus."));
+  out.push(kiKarte("Fragen an die KI und Hinweise für den Bot – auch über den Knopf 💬 unten rechts. Die KI löst nie selbst eine Order aus.", d));
 
   const lauf = ok(d.lauf);
   out.push(karte("Verbindung", null,

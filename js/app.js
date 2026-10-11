@@ -11,7 +11,7 @@ import * as F from "./format.js";
 import * as K from "./kifrage.js";
 import * as AL from "./alarme.js";
 
-export const APP_VERSION = "1.2.0";
+export const APP_VERSION = "1.2.2";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -407,7 +407,7 @@ function start() {
   verdrahten();
   A.dialogVerdrahten();
   A.init({ neuLaden: laden, toast, handy: () => Z.handy, entsperrt: () => entsperrt, fertig: (a) => K.auftragFertig(a), geaendert: () => K.zeichnen() });
-  K.init({ toast, entsperrt: () => entsperrt });
+  K.init({ toast, entsperrt: () => entsperrt, handy: () => Z.handy, neuZeichnen: () => { if (entsperrt) zeichnen(); } });
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => { /* ohne Offline-Hülle geht es auch */ });
   }

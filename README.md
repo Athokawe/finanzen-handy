@@ -4,6 +4,16 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.2
+
+* **„Gemerkte Hinweise“ statt „Hinweis löschen“:** der allgemeine Knopf (Nummer eintippen) ist weg – er sah aus, als wäre
+  schon ein Hinweis gemerkt. Stattdessen zeigen die Karte „An die KI“ (Coin-Bot, Einstellungen) und das Eingabe-Blatt eine
+  kleine Liste der **aktiven** Hinweise aus `handy.json` → `hinweise` (Text, Nummer, von wem, gilt bis …), je mit **✕**:
+  Bestätigung wie bei den anderen Aufträgen, dann Modus `hinweis_loeschen` mit genau dieser Nummer (ohne JA). Danach steht
+  „Löschen geschickt“; scheitert der Auftrag, ist das ✕ wieder da. Ohne aktive Hinweise gibt es weder Liste noch Knopf.
+  „Rückgängig“ unter einer Antwort, die einen Hinweis gemerkt hat, bleibt wie bisher. Hinweistexte nur als Text, gemerkt wird
+  nichts (nur die Nummern im Arbeitsspeicher).
+
 ## Neu in 1.2.0
 
 * **„An die KI“:** schwebender Knopf 💬 rechts unten (auf jedem Reiter mit dem Daumen erreichbar) öffnet ein Eingabe-Blatt:
