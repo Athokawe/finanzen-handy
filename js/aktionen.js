@@ -1,6 +1,8 @@
 // Aufträge an die Cloud: nur Modi aus handy.json → „modi“; die Bestätigung wird nach dem Muster aus Formularfeldern gebaut, gegen
 // den regulären Ausdruck aus handy.json geprüft und erst dann geschickt. Schalt-Modi mit „ja_noetig“ verlangen ein wörtlich
 // getipptes JA.
+// 1.2.4: Direkt-Umschichten zwischen Trend- und Raster-Bot (Modus bot_umschichten) – ein Modus, zwei Knöpfe; die Richtung kommt
+// fest aus dem Knopf (Vorgabe „von“), nie aus einem Formularfeld.
 // 1.2.0: „An die KI“ (Modus frage, js/kifrage.js) ersetzt den Hinweis-Dialog; Alarme löschen (Modus alarme_gelesen, js/alarme.js).
 // 1.1.0: Brems-Befehle (handy.json: express true – „Alles parken“, „Nur anhalten“, Coin-Bot aus, Stufe → sicher, Raster/Trend
 // pausieren) gehen an express.yml (eigene Warteschlange, sofort), alles andere an ki.yml. Jeder Auftrag wird über die Actions-API
@@ -93,6 +95,61 @@ function betragPruefen(w) {
   return betragText(w.betrag) ? null : "Bitte einen Betrag in Euro eingeben (z. B. 200 oder 150,50; höchstens 99.999).";
 }
 
+// ------------------------------------------------------------------ 1.2.4: zwischen Trend- und Raster-Bot umschichten
+
+const BOT_NAME = { trend: "Trend-Bot", raster: "Raster-Bot" };
+const BOT_TEIL = { trend: "trend_bot", raster: "raster_bot" };
+
+/** Was mit dem empfangenden Bot passiert – nach seinem Status in handy.json (nur bekannte Werte, sonst allgemein). */
+function zielText(nach) {
+  const d = hooks.handy();
+  const b = d && d[BOT_TEIL[nach]];
+  const st = b && typeof b === "object" ? b.status : null;
+  const n = BOT_NAME[nach];
+  if (st === "aus") {
+    return "Der " + n + " ist gerade aus – er wird mit dem Betrag eingeschaltet"
+      + (nach === "trend" ? " (mindestens 150 €)." : " (ab seinem Mindestbetrag und nur mit einer Raster-Recherche jünger als 24 Stunden).");
+  }
+  if (st === "pausiert") return "Der " + n + " ist pausiert – das Geld kommt an, er bleibt pausiert.";
+  if (st === "an") {
+    return nach === "trend" ? "Der Trend-Bot läuft – sein Topf wird größer, er kauft sofort zu gleichen Teilen nach."
+      : "Der Raster-Bot läuft – sein Betrag wird größer, der nächste Lauf legt mehr Stufen.";
+  }
+  return "Ist der " + n + " aus, wird er mit dem Betrag eingeschaltet; ist er pausiert, bleibt er pausiert.";
+}
+
+/** Dialog für eine Richtung („von“ = abgebender Bot) – null bei unbekannter Richtung. */
+function umschichtSpez(vorgaben) {
+  const von = vorgaben.von === "trend" || vorgaben.von === "raster" ? vorgaben.von : null;
+  if (!von) return null;
+  const nach = von === "trend" ? "raster" : "trend";
+  const geber = BOT_NAME[von];
+  const felder = [
+    BETRAG("Betrag in Euro", "Der " + geber + " muss danach über seinem Mindestbetrag bleiben – für den ganzen Topf „Alles umschichten“ wählen."),
+    { name: "alles", art: "schalter", label: "Alles umschichten – der " + geber + " verkauft alles (auch im Minus) und geht danach aus" },
+  ];
+  if (von === "raster") felder.push({ name: "sofort", art: "schalter", label: "Sofort – auch Stufen im Minus verkaufen" });
+  return {
+    titel: "Zum " + BOT_NAME[nach] + " umschichten",
+    text: [
+      "Das Geld geht direkt vom " + geber + " zum " + BOT_NAME[nach] + " – keine Bitcoin-Order, die Umbuchung selbst kostet nichts.",
+      von === "trend"
+        ? "Reicht sein freies EURCV nicht, verkauft der Trend-Bot anteilig aus allen Coins – auch im Minus. Kosten nur für diese Verkäufe (Gebühr + Spread)."
+        : "Reicht sein freies EURCV nicht, verkauft der Raster-Bot überzählige Kauf-Orders und Stufen im Gewinn – Stufen im Minus nur mit „Sofort“. Kosten nur für diese Verkäufe (Gebühr + Spread).",
+      zielText(nach),
+    ],
+    felder,
+    pruefen: (w) => {
+      if (w.alles) return w.sofort ? "„Alles umschichten“ verkauft ohnehin alles – „Sofort“ bitte weglassen." : null;
+      const f = betragPruefen(w);
+      if (f) return f;
+      return parseFloat(betragText(w.betrag)) >= 1 ? null : "Mindestens 1 €.";
+    },
+    bauen: (w) => "JA;von=" + von + ";nach=" + nach + ";" + (w.alles ? "alles=JA" : "betrag=" + (betragText(w.betrag) || ""))
+      + (von === "raster" && w.sofort ? ";sofort=JA" : ""),
+  };
+}
+
 // ------------------------------------------------------------------ was jeder Modus im Dialog zeigt
 
 export const ERKLAERT = {
@@ -156,6 +213,9 @@ const SPEZ = {
   trend_aus: { titel: "Trend-Bot ausschalten", text: "Alles wird verkauft und geht zurück in den Coin-Topf.", bauen: () => "JA" },
   trend_pause: { titel: "Trend-Bot pausieren", text: "Er handelt nicht mehr, sein Bestand bleibt. Geht als Bremse sofort.", bauen: () => "JA" },
   trend_deckel: { titel: "Trend-Bot: Verlustdeckel", felder: [DECKEL], pruefen: deckelPruefen, bauen: (w) => "JA;prozent=" + parseInt(w.prozent, 10) },
+
+  // 1.2.4: Knopf „Zum Raster-Bot umschichten“ (Trend-Ansicht, Vorgabe von: "trend") bzw. „Zum Trend-Bot umschichten“ (Raster-Ansicht)
+  bot_umschichten: { titel: "Zwischen den Bots umschichten", fuer: umschichtSpez },
 
   // 1.2.0: „An die KI“ ersetzt den Hinweis-Dialog – die KI merkt Bot-Relevantes selbst als Hinweis (js/kifrage.js)
   frage: { titel: "An die KI", ohneFrage: true },
@@ -281,7 +341,11 @@ function wegText(w) {
 // ------------------------------------------------------------------ ausführen
 
 export async function ausfuehren(m, vorgaben = {}) {
-  const spez = SPEZ[m];
+  let spez = SPEZ[m];
+  if (spez && spez.fuer) {                     // Dialog hängt von den Vorgaben des Knopfs ab (z. B. Richtung beim Umschichten)
+    const s = spez.fuer(vorgaben);
+    spez = s ? Object.assign({}, spez, s) : null;
+  }
   const e = eintrag(m);
   if (!spez || !e) {
     hooks.toast("Dieser Befehl ist gerade nicht erlaubt.");
@@ -304,7 +368,7 @@ export async function ausfuehren(m, vorgaben = {}) {
     return;
   }
   const inhalt = [];
-  if (spez.text) inhalt.push(h("p", null, spez.text));
+  for (const t of [].concat(spez.text || [])) if (t) inhalt.push(h("p", null, t));
   for (const f of spez.felder || []) inhalt.push(feldBauen(f, vorgaben));
   const vorschau = h("div", { class: "vorschau", id: "dialog-vorschau" });
   let jaFeld = null;

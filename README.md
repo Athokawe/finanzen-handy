@@ -4,6 +4,16 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.4
+
+* **Zwischen den Bots umschichten:** in der Trend-Ansicht „Zum Raster-Bot umschichten“, in der Raster-Ansicht „Zum Trend-Bot
+  umschichten“ – Betrag in Euro oder „Alles umschichten“ (der abgebende Bot geht danach aus), beim Raster-Bot zusätzlich
+  „Sofort“ (auch Stufen im Minus verkaufen). Mit getipptem JA, Auftrag `ki.yml` Modus `bot_umschichten`
+  (`JA;von=trend|raster;nach=…;betrag=…` bzw. `;alles=JA`, `;sofort=JA` nur vom Raster-Bot). Keine Bitcoin-Order: das Geld
+  wird direkt von Topf zu Topf umgebucht. Der Dialog sagt, was mit dem anderen Bot passiert (aus → wird eingeschaltet,
+  pausiert → bleibt pausiert). Die Knöpfe erscheinen nur, wenn die Cloud den Modus in `handy.json` → `modi` anbietet und der
+  abgebende Bot nicht aus ist.
+
 ## Neu in 1.2.3
 
 * **Gesamtvermögen mit allen Töpfen:** Coin-Topf + echter Trend-Topf + echter Raster-Topf + Aktien & ETFs (+ Aktien-Reserve,

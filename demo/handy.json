@@ -564,6 +564,15 @@
    "express_bestaetigung": null
   },
   {
+   "modus": "bot_umschichten",
+   "bestaetigung": "JA;von=(trend|raster);nach=(trend|raster);(?:betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)|(alles)=JA)(;sofort=JA)?",
+   "ja_noetig": true,
+   "beispiel": "JA;von=trend;nach=raster;betrag=100",
+   "text": "Geld direkt zwischen Trend-Bot und Raster-Bot umschichten – keine Bitcoin-Order (;alles=JA statt betrag = ganzer Topf, der abgebende Bot geht aus; ;sofort=JA nur vom Raster-Bot = auch im Minus verkaufen; Ziel aus = wird eingeschaltet, Ziel pausiert = bleibt pausiert)",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
    "modus": "hinweis",
    "bestaetigung": "app:(1|3|7|0)\\|.{1,300}",
    "ja_noetig": false,

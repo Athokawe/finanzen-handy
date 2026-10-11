@@ -536,6 +536,8 @@ export function raster(Z) {
     reihe(st !== "an" ? A.knopf("surfen_ein", st === "pausiert" ? "Wieder einschalten" : "Einschalten", "primaer") : A.knopf("surfen_pause", "Pausieren"),
       st !== "aus" ? A.knopf("surfen_aus", "Ausschalten", "gefahr-rand") : null),
     st !== "aus" ? reihe(A.knopf("surfen_betrag", "Topf ändern"), A.knopf("surfen_zurueck", "Teil zurück")) : null,
+    // 1.2.4: direkt zum Trend-Bot (keine Bitcoin-Order) – nur wenn die Cloud den Modus kennt und der Raster-Bot Geld hat
+    st !== "aus" ? reihe(A.knopf("bot_umschichten", "Zum Trend-Bot umschichten", "umschichten", { von: "raster" })) : null,
     reihe(A.knopf("surfen_deckel", "Verlustdeckel"), A.knopf("surfen_recherchen", "Recherchen/Tag")),
   ));
 
@@ -599,6 +601,8 @@ export function trend(Z) {
     reihe(st !== "an" ? A.knopf("trend_ein", st === "pausiert" ? "Wieder einschalten" : "Einschalten", "primaer") : A.knopf("trend_pause", "Pausieren"),
       st !== "aus" ? A.knopf("trend_aus", "Ausschalten", "gefahr-rand") : null),
     st !== "aus" ? reihe(A.knopf("trend_betrag", "Topf ändern"), A.knopf("trend_zurueck", "Teil zurück")) : null,
+    // 1.2.4: direkt zum Raster-Bot (keine Bitcoin-Order) – nur wenn die Cloud den Modus kennt und der Trend-Bot Geld hat
+    st !== "aus" ? reihe(A.knopf("bot_umschichten", "Zum Raster-Bot umschichten", "umschichten", { von: "trend" })) : null,
     reihe(A.knopf("trend_deckel", "Verlustdeckel")),
   ));
 
