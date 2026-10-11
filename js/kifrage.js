@@ -1,9 +1,9 @@
 // „An die KI“ (1.2.0): schwebender Knopf 💬 → Eingabe-Blatt mit Feld, „Senden“, Live-Status und den Antworten der letzten 24 h.
 // Senden = Auftrag ki.yml Modus „frage“ (ohne JA). Die KI erklärt nur – sie kann nie handeln (das prüft die Cloud selbst).
 // Antworten holt die App aus dem Actions-Artefakt „ki-antwort-<lauf>“ (ZIP, js/zip.js); lässt der Browser den Download nicht zu
-// (Weiterleitung auf den Artefakt-Speicher, CORS), aus dem verschlüsselten Zweig „ki-antwort“ (Schlüssel aus dem Token, js/github.js).
-// Gespeichert wird NICHTS davon: Fragen und Antworten liegen nur im Arbeitsspeicher; in localStorage steht höchstens, welcher
-// der beiden Wege in diesem Browser funktioniert („artefakt“/„zweig“) – nie ein Inhalt.
+// (Weiterleitung auf den Artefakt-Speicher, CORS) bzw. scheitert das Netz, aus der Annotation des Laufs (js/github.js; Token
+// braucht dafür „Checks: Read-only“). Gespeichert wird NICHTS: Fragen und Antworten liegen nur im Arbeitsspeicher, und auch ein
+// gescheiterter Artefakt-Download wird nur für diese Sitzung gemerkt (nie in localStorage).
 
 import { h, $, leeren } from "./dom.js";
 import * as gh from "./github.js";
@@ -11,7 +11,6 @@ import * as A from "./aktionen.js";
 import * as ZIP from "./zip.js";
 import * as F from "./format.js";
 
-const WEG_KEY = "fh_ki_weg";
 export const MAX_ZEICHEN = 500;
 const AUFBEWAHREN_MS = 24 * 3600 * 1000;
 
@@ -23,16 +22,11 @@ let fehlerText = null;
 let geladen = false;
 const rueckgaengig = new Set();  // Hinweis-Nummern, für die „Rückgängig“ geschickt wurde
 let demoAntworten = null;
+let artefaktGehtNicht = false;   // nur diese Sitzung (Arbeitsspeicher): Artefakt-Download scheiterte -> gleich die Annotation
 
-function wegLesen() {
-  try { return localStorage.getItem(WEG_KEY) || ""; } catch { return ""; }
-}
-function wegSetzen(w) {
-  try { localStorage.setItem(WEG_KEY, w); } catch { /* egal */ }
-}
-/** für Einstellungen/Tests: welcher Weg in diesem Browser funktioniert ("artefakt", "zweig" oder "" = noch unbekannt) */
-export function weg() {
-  return wegLesen();
+/** für Tests: wurde in dieser Sitzung auf die Annotation umgestellt? */
+export function nurAnnotation() {
+  return artefaktGehtNicht;
 }
 
 /** Frage als eine Zeile ohne Steuerzeichen, höchstens 500 Zeichen (Code-Punkte – wie die Cloud). */
@@ -114,6 +108,7 @@ export function vergessen() {
   geladen = false;
   fehlerText = null;
   rueckgaengig.clear();
+  artefaktGehtNicht = false;
   $("ki-feld").value = "";
   $("ki-huelle").hidden = true;
   $("ki-knopf").hidden = true;
@@ -147,9 +142,7 @@ export async function senden() {
   const knopf = $("ki-senden");
   knopf.disabled = true;
   try {
-    // Ersatzweg anfordern, solange nicht feststeht, dass dieser Browser Artefakte laden kann
-    const praefix = wegLesen() === "artefakt" ? "" : await gh.frageZweigPraefix();
-    const best = praefix + text;
+    const best = text;
     if (!A.passt("frage", best)) { statusSetzen("Die Frage passt nicht zum erlaubten Muster – nichts geschickt.", "fehler"); return; }
     await A.senden("frage", best);
     $("ki-feld").value = "";
@@ -176,26 +169,22 @@ export function auftragFertig(a) {
 
 // ------------------------------------------------------------------ Antworten holen (nur Arbeitsspeicher)
 
-async function antwortHolen(lauf, zweigCache) {
+async function antwortHolen(lauf) {
   let problem = null;
-  if (wegLesen() !== "zweig") {
+  if (!artefaktGehtNicht) {
     try {
       const d = await gh.frageArtefakt(lauf.id, ZIP.datei);
-      if (d) {
-        wegSetzen("artefakt");
-        return { daten: d };
-      }
+      if (d) return { daten: d };
     } catch (e) {
-      if (e && e.art === "artefakt") wegSetzen("zweig");      // dieser Browser lädt keine Artefakte -> ab jetzt der Zweig
+      if (e && e.art === "artefakt") artefaktGehtNicht = true;    // nur für diese Sitzung (nie dauerhaft)
       else problem = e;
     }
   }
   try {
-    if (!zweigCache.liste) zweigCache.liste = await gh.frageZweig();
-    const e = zweigCache.liste.find((x) => x && String(x.lauf) === String(lauf.id));
-    if (e) return { daten: await gh.frageEntschluesseln(e) };
+    const d = await gh.frageAnnotation(lauf.id);
+    if (d) return { daten: d };
   } catch (e) {
-    problem = problem || e;
+    problem = e && e.art === "checks" ? e : (problem || e);
   }
   return { problem };
 }
@@ -211,7 +200,6 @@ export async function laden(erzwingen) {
   try {
     laeufe = await gh.frageLaeufe();
     fehlerText = null;
-    const zweigCache = { liste: null };
     for (const l of laeufe) {
       const alt = antworten.get(l.id);
       if (l.status !== "completed" || (alt && alt.zustand === "da")) continue;
@@ -219,9 +207,11 @@ export async function laden(erzwingen) {
         antworten.set(l.id, { zustand: "rot", erstellt: l.erstellt, text: "Dieser Lauf ist fehlgeschlagen – keine Antwort. Bitte noch einmal fragen." });
         continue;
       }
-      const r = await antwortHolen(l, zweigCache);
+      const r = await antwortHolen(l);
       antworten.set(l.id, r.daten ? { zustand: "da", daten: sauber(r.daten), erstellt: l.erstellt }
-        : { zustand: "fehlt", erstellt: l.erstellt, text: "Antwort nicht abrufbar" + (r.problem && r.problem.message ? " (" + r.problem.message + ")" : "") + "." });
+        : { zustand: "fehlt", erstellt: l.erstellt, checks: !!(r.problem && r.problem.art === "checks"),
+          text: r.problem && r.problem.art === "checks" ? "Antwort nicht abrufbar. " + r.problem.message
+            : "Antwort nicht abrufbar" + (r.problem && r.problem.message ? " (" + r.problem.message + ")" : "") + "." });
     }
     const ids = new Set(laeufe.map((l) => l.id));
     for (const id of [...antworten.keys()]) if (!ids.has(id)) antworten.delete(id);
@@ -274,7 +264,7 @@ function statusAusAuftrag() {
 
 function eintragZeigen(id, e) {
   if (e.zustand !== "da") {
-    return h("li", { class: "ki-eintrag fehlt", "data-lauf": String(id) },
+    return h("li", { class: "ki-eintrag fehlt" + (e.checks ? " checks" : ""), "data-lauf": String(id) },
       h("div", { class: "ki-antwort-text" }, e.text || "Keine Antwort."), h("div", { class: "unter" }, F.vor(e.erstellt)));
   }
   const d = e.daten;

@@ -43,6 +43,9 @@ async function fehlerAus(r, zweck) {
     if (zweck === "laeufe") {
       return new ApiFehler("Das Token darf den Lauf-Status nicht lesen (Actions).", "rechte", 403);
     }
+    if (zweck === "checks") {
+      return new ApiFehler(CHECKS_ANLEITUNG, "checks", 403);
+    }
     return new ApiFehler("Das Token darf das Repo nicht lesen: „Contents: Read-only“ fehlt oder Athokawe/finanzen ist nicht ausgewählt.", "rechte", 403);
   }
   if (r.status === 404) {
@@ -143,61 +146,43 @@ export async function laeufe(weg) {
 }
 
 // ------------------------------------------------------------------ „An die KI“ (1.2.0): Antworten holen
-// Die Cloud legt die Antwort als Actions-Artefakt „ki-antwort-<lauf>“ ab (1 Tag) und – nur wenn die App es anfordert – zusätzlich
-// verschlüsselt in den Zweig „ki-antwort“ (AES-256-GCM; Schlüssel = HMAC-SHA256(Token, "ki-frage|" + nonce), die Cloud kennt den
-// Token nie). Nichts davon wird hier gespeichert.
+// Die Cloud legt die Antwort als Actions-Artefakt „ki-antwort-<lauf>“ ab (1 Tag) und zusätzlich als Annotation des Laufs
+// („::notice title=ki-antwort i/n::<base64url>“). Beides gehört zum Lauf und verschwindet mit ihm (Aufräumen nach 24 h).
+// Nichts davon wird hier gespeichert.
 
-const enc = new TextEncoder();
+export const CHECKS_ANLEITUNG = "Bitte beim Token zusätzlich „Checks: Read-only“ erlauben: github.com → Profilbild → Settings → "
+  + "Developer settings → Personal access tokens → Fine-grained tokens → „Finanzen Handy“ → Edit → Repository permissions → "
+  + "Checks: Read-only → Update. Der Token bleibt derselbe, in der App ist nichts zu ändern.";
 
-function b64url(bytes) {
-  let s = "";
-  for (const b of bytes) s += String.fromCharCode(b);
-  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-function b64urlBytes(s) {
+function b64urlText(s) {
   const t = String(s);
   const bin = atob(t.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (t.length % 4)) % 4));
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
+  return new TextDecoder("utf-8", { fatal: true }).decode(out);
 }
 
-async function frageSchluesselRoh(nonce) {
-  if (!token) throw new ApiFehler("Nicht verbunden.", "token", 0);
-  const k = await crypto.subtle.importKey("raw", enc.encode(token), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return new Uint8Array(await crypto.subtle.sign("HMAC", k, enc.encode("ki-frage|" + nonce)));
-}
-
-/** Präfix „s=<nonce>.<schlüssel>|“ für den verschlüsselten Ersatzweg (nur mit Token; Demo: ""). */
-export async function frageZweigPraefix() {
-  if (demo || !token) return "";
-  const nonce = b64url(crypto.getRandomValues(new Uint8Array(16)));
-  return "s=" + nonce + "." + b64url(await frageSchluesselRoh(nonce)) + "|";
-}
-
-/** Eintrag {lauf, nonce, iv, daten} aus dem Zweig ki-antwort entschlüsseln -> Antwort-Objekt. */
-export async function frageEntschluesseln(e) {
-  const key = await crypto.subtle.importKey("raw", await frageSchluesselRoh(e.nonce), "AES-GCM", false, ["decrypt"]);
-  const klar = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64urlBytes(e.iv), additionalData: enc.encode("ki-antwort|" + e.lauf) },
-    key, b64urlBytes(e.daten));
-  return JSON.parse(new TextDecoder().decode(klar));
-}
-
-/** ki.yml-Läufe „Hand: frage“ der letzten 24 h: [{id, titel, status, ergebnis, erstellt}] */
+/** ki.yml-Läufe „Hand: frage“ der letzten 24 h (je Seite 100, weiterblättern bis alles abgedeckt): [{id, titel, status, ergebnis, erstellt}] */
 export async function frageLaeufe() {
   if (demo) return [];
   const seit = new Date(Date.now() - 24 * 3600 * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
-  const r = await anfrage("/repos/" + REPO + "/actions/workflows/" + WORKFLOW + "/runs?event=workflow_dispatch&per_page=50&created="
-    + encodeURIComponent(">=" + seit), { headers: { Accept: "application/vnd.github+json" } }, "laeufe");
-  const d = await r.json();
-  return (d.workflow_runs || []).filter((x) => x.display_title === "Hand: frage").map((x) => ({
-    id: x.id, titel: x.display_title, status: x.status, ergebnis: x.conclusion, erstellt: x.created_at,
-  }));
+  const out = [];
+  for (let seite = 1; seite <= 10; seite++) {
+    const r = await anfrage("/repos/" + REPO + "/actions/workflows/" + WORKFLOW + "/runs?event=workflow_dispatch&per_page=100&page=" + seite
+      + "&created=" + encodeURIComponent(">=" + seit), { headers: { Accept: "application/vnd.github+json" } }, "laeufe");
+    const d = await r.json();
+    const runs = Array.isArray(d.workflow_runs) ? d.workflow_runs : [];
+    for (const x of runs) {
+      if (x && x.display_title === "Hand: frage") out.push({ id: x.id, titel: x.display_title, status: x.status, ergebnis: x.conclusion, erstellt: x.created_at });
+    }
+    if (runs.length < 100) break;
+  }
+  return out;
 }
 
 /**
  * Antwort aus dem Artefakt „ki-antwort-<id>“ (ZIP mit antwort.json) lesen. null = kein (gültiges) Artefakt da.
- * Wirft ApiFehler art "artefakt", wenn der Download selbst scheitert (Weiterleitung/CORS/CSP) – dann nimmt die App den Zweig.
+ * Wirft ApiFehler art "artefakt", wenn der Download selbst scheitert (Weiterleitung/CORS/CSP) – dann nimmt die App die Annotation.
  */
 export async function frageArtefakt(id, entpacken) {
   const r = await anfrage("/repos/" + REPO + "/actions/runs/" + encodeURIComponent(id) + "/artifacts?per_page=20",
@@ -232,20 +217,42 @@ export async function frageArtefakt(id, entpacken) {
   return JSON.parse(new TextDecoder().decode(daten));
 }
 
-/** antworten.json im Zweig ki-antwort -> [Eintrag]; [] wenn es den Zweig nicht gibt. */
-export async function frageZweig() {
-  if (demo) return [];
-  let r;
-  try {
-    r = await anfrage("/repos/" + REPO + "/contents/antworten.json?ref=ki-antwort", { headers: { Accept: "application/vnd.github.raw+json" } }, "lesen");
-  } catch (e) {
-    if (e && e.art === "nichtda") return [];
-    throw e;
+/**
+ * Ersatzweg: Antwort aus den Annotationen des Laufs (Job „ki“ -> Check-Run -> annotations, Titel „ki-antwort i/n“).
+ * null = keine (vollständige) Annotation. 403 -> ApiFehler art "checks" mit Anleitung (Token braucht „Checks: Read-only“).
+ */
+export async function frageAnnotation(id) {
+  const r = await anfrage("/repos/" + REPO + "/actions/runs/" + encodeURIComponent(id) + "/jobs?per_page=20",
+    { headers: { Accept: "application/vnd.github+json" } }, "laeufe");
+  const d = await r.json();
+  const jobs = (d.jobs || []).filter((j) => j && typeof j.check_run_url === "string");
+  const job = jobs.find((j) => j.name === "ki") || jobs[0];
+  const m = job ? /\/check-runs\/(\d+)$/.exec(job.check_run_url) : null;
+  if (!m) return null;
+  const a = await anfrage("/repos/" + REPO + "/check-runs/" + m[1] + "/annotations?per_page=50",
+    { headers: { Accept: "application/vnd.github+json" } }, "checks");
+  const liste = await a.json();
+  const teile = {};
+  let n = 0;
+  for (const x of Array.isArray(liste) ? liste : []) {
+    const t = /^ki-antwort (\d+)\/(\d+)$/.exec(String((x && x.title) || ""));
+    if (t) {
+      teile[Number(t[1])] = String(x.message || "");
+      n = Number(t[2]);
+    }
   }
+  if (!n || n > 20) return null;
+  let roh = "";
+  for (let i = 1; i <= n; i++) {
+    if (!(i in teile) || !/^[A-Za-z0-9_-]*$/.test(teile[i])) return null;
+    roh += teile[i];
+  }
+  let antwort;
   try {
-    const d = JSON.parse(await r.text());
-    return d && Array.isArray(d.antworten) ? d.antworten : [];
+    antwort = JSON.parse(b64urlText(roh));
   } catch {
-    throw new ApiFehler("Antwort-Zweig nicht lesbar.", "daten", 0);
+    throw new ApiFehler("Annotation nicht lesbar.", "daten", 0);
   }
+  if (!antwort || String(antwort.lauf) !== String(id)) return null;
+  return antwort;
 }

@@ -15,10 +15,11 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
 * **Antworten nur im Arbeitsspeicher:** gezeigt werden die Antworten der letzten 24 h, geholt aus dem Actions-Artefakt
   `ki-antwort-<lauf>` (ZIP – eigener kleiner Entpacker `js/zip.js`, „gespeichert“ oder „deflate“ über
   `DecompressionStream("deflate-raw")`, mit CRC-Prüfung). Kann der Browser das Artefakt nicht laden (Weiterleitung auf den
-  Artefakt-Speicher, CORS), nimmt die App den Ersatzweg: die Cloud legt die Antwort dann zusätzlich **verschlüsselt** in den
-  Zweig `ki-antwort` (AES-256-GCM; Schlüssel = HMAC-SHA256 des Tokens über eine Zufallszahl – die Cloud kennt den Token nie).
-  Die App fordert den Ersatzweg an, solange sie nicht weiß, dass Artefakte gehen; in `localStorage` steht nur, welcher Weg
-  funktioniert (`fh_ki_weg`), nie eine Frage oder Antwort. In der Cloud verschwinden Läufe, Artefakte und Zweig-Einträge nach 24 h.
+  Artefakt-Speicher, CORS) oder scheitert das Netz, liest die App dieselbe Antwort aus der **Annotation des Laufs**
+  (`ki-antwort i/n`, base64url) über die Check-Run-Schnittstelle – dafür braucht der Token zusätzlich **„Checks: Read-only“**
+  (fehlt das Recht, sagt die App, wie man es ergänzt; der Token bleibt derselbe). Ein gescheiterter Artefakt-Download wird nur
+  für die laufende Sitzung gemerkt, nie gespeichert. Die Cloud löscht die Frage-Läufe (samt Eingabe, Artefakt und Annotation)
+  nach 24 h; im Repo landet von Frage und Antwort nichts.
 * **Alarme löschen:** je Alarm „✕“, oben „Alle löschen“ – sofort ausgeblendet, Auftrag `alarme_gelesen` (ohne JA, Live-Status).
   Die Cloud markiert sie nur als gelesen (nichts wird wirklich gelöscht). Läuft gerade ein anderer Auftrag, geht der Versand
   automatisch danach. Gemerkt werden nur die Alarm-Nummern (`fh_alarme_weg_v1`), bis `handy.json` sie nicht mehr zeigt.
@@ -61,7 +62,7 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
 ## Sicherheit
 
 * **Token nur am Gerät:** Der persönliche GitHub-Token (fine-grained, nur `Athokawe/finanzen`, Contents read-only, Actions read
-  and write) wird nie angezeigt und liegt nur verschlüsselt in `localStorage`: AES-GCM 256, Schlüssel per PBKDF2-SHA-256 mit
+  and write, Checks read-only) wird nie angezeigt und liegt nur verschlüsselt in `localStorage`: AES-GCM 256, Schlüssel per PBKDF2-SHA-256 mit
   310 000 Runden und zufälligem Salz aus der PIN (Web Crypto, Schlüssel nicht exportierbar).
 * **PIN-Sperre** beim Öffnen und nach 5 Minuten im Hintergrund; **5 falsche PINs löschen den Token** (neu verbinden nötig).
   „Abmelden“ löscht Token und PIN.
@@ -84,7 +85,7 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
    **Fine-grained tokens** → **Generate new token**
    * Name `Finanzen Handy`, Ablauf 1 Jahr
    * Repository access: **Only select repositories** → `Athokawe/finanzen`
-   * Permissions: **Contents: Read-only**, **Actions: Read and write**, **Metadata: Read-only**
+   * Permissions: **Contents: Read-only**, **Actions: Read and write**, **Checks: Read-only** (für „An die KI“), **Metadata: Read-only**
 3. Token kopieren, in der App einfügen → **Verbinden** (die App testet den Abruf) → PIN mit 4–6 Ziffern festlegen.
 4. Optional: Einstellungen (Zahnrad) → **Benachrichtigungen erlauben**.
 
@@ -109,7 +110,7 @@ Lokal: `python -m http.server` in einem Ordner, der dieses Repo als Unterordner 
 | `js/github.js` | GitHub-API (lesen, Aufträge, Lauf-Status), Demo-Modus |
 | `js/aktionen.js` | erlaubte Modi, JA-Dialog, Bestätigung bauen/prüfen, Weg (Express/ki.yml), Live-Rückmeldung und Neu-Senden |
 | `js/ansichten.js` | die Reiter |
-| `js/kifrage.js` | „An die KI“: schwebender Knopf, Eingabe-Blatt, Senden, Live-Status, Antworten (Artefakt bzw. verschlüsselter Zweig), Rückgängig |
+| `js/kifrage.js` | „An die KI“: schwebender Knopf, Eingabe-Blatt, Senden, Live-Status, Antworten (Artefakt bzw. Annotation), Rückgängig |
 | `js/zip.js` | ZIP-Leser für genau eine Datei (gespeichert/deflate, CRC-Prüfung) |
 | `js/alarme.js` | Alarme ausblenden und als gelesen melden (`alarme_gelesen`) |
 | `js/diagramm.js` | Statistik-Diagramme (SVG, Zeiträume, Antippen, Kennzahlen) |
