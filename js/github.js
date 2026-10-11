@@ -43,9 +43,6 @@ async function fehlerAus(r, zweck) {
     if (zweck === "laeufe") {
       return new ApiFehler("Das Token darf den Lauf-Status nicht lesen (Actions).", "rechte", 403);
     }
-    if (zweck === "checks") {
-      return new ApiFehler(CHECKS_ANLEITUNG, "checks", 403);
-    }
     return new ApiFehler("Das Token darf das Repo nicht lesen: „Contents: Read-only“ fehlt oder Athokawe/finanzen ist nicht ausgewählt.", "rechte", 403);
   }
   if (r.status === 404) {
@@ -146,21 +143,8 @@ export async function laeufe(weg) {
 }
 
 // ------------------------------------------------------------------ „An die KI“ (1.2.0): Antworten holen
-// Die Cloud legt die Antwort als Actions-Artefakt „ki-antwort-<lauf>“ ab (1 Tag) und zusätzlich als Annotation des Laufs
-// („::notice title=ki-antwort i/n::<base64url>“). Beides gehört zum Lauf und verschwindet mit ihm (Aufräumen nach 24 h).
-// Nichts davon wird hier gespeichert.
-
-export const CHECKS_ANLEITUNG = "Bitte beim Token zusätzlich „Checks: Read-only“ erlauben: github.com → Profilbild → Settings → "
-  + "Developer settings → Personal access tokens → Fine-grained tokens → „Finanzen Handy“ → Edit → Repository permissions → "
-  + "Checks: Read-only → Update. Der Token bleibt derselbe, in der App ist nichts zu ändern.";
-
-function b64urlText(s) {
-  const t = String(s);
-  const bin = atob(t.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (t.length % 4)) % 4));
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return new TextDecoder("utf-8", { fatal: true }).decode(out);
-}
+// Die Cloud legt die Antwort NUR als Actions-Artefakt „ki-antwort-<lauf>“ ab (1 Tag); es gehört zum Lauf und verschwindet mit
+// ihm (Aufräumen nach 24 h). Nichts davon wird hier gespeichert.
 
 /** ki.yml-Läufe „Hand: frage“ der letzten 24 h (je Seite 100, weiterblättern bis alles abgedeckt): [{id, titel, status, ergebnis, erstellt}] */
 export async function frageLaeufe() {
@@ -182,7 +166,7 @@ export async function frageLaeufe() {
 
 /**
  * Antwort aus dem Artefakt „ki-antwort-<id>“ (ZIP mit antwort.json) lesen. null = kein (gültiges) Artefakt da.
- * Wirft ApiFehler art "artefakt", wenn der Download selbst scheitert (Weiterleitung/CORS/CSP) – dann nimmt die App die Annotation.
+ * Wirft ApiFehler art "artefakt", wenn der Download selbst scheitert (Weiterleitung/CORS/CSP/Netz).
  */
 export async function frageArtefakt(id, entpacken) {
   const r = await anfrage("/repos/" + REPO + "/actions/runs/" + encodeURIComponent(id) + "/artifacts?per_page=20",
@@ -218,41 +202,14 @@ export async function frageArtefakt(id, entpacken) {
 }
 
 /**
- * Ersatzweg: Antwort aus den Annotationen des Laufs (Job „ki“ -> Check-Run -> annotations, Titel „ki-antwort i/n“).
- * null = keine (vollständige) Annotation. 403 -> ApiFehler art "checks" mit Anleitung (Token braucht „Checks: Read-only“).
+ * Ergebnis des Jobs „ki“ eines ki.yml-Laufs (Jobs-API): "success" | "failure" | … | null (unbekannt/noch nicht fertig).
+ * Ein Lauf kann zusätzlich den Job „aufraeumen“ haben – ob ein Auftrag geklappt hat, entscheidet nur der Job „ki“.
  */
-export async function frageAnnotation(id) {
+export async function jobErgebnis(id, name = "ki") {
+  if (demo) return null;
   const r = await anfrage("/repos/" + REPO + "/actions/runs/" + encodeURIComponent(id) + "/jobs?per_page=20",
     { headers: { Accept: "application/vnd.github+json" } }, "laeufe");
   const d = await r.json();
-  const jobs = (d.jobs || []).filter((j) => j && typeof j.check_run_url === "string");
-  const job = jobs.find((j) => j.name === "ki") || jobs[0];
-  const m = job ? /\/check-runs\/(\d+)$/.exec(job.check_run_url) : null;
-  if (!m) return null;
-  const a = await anfrage("/repos/" + REPO + "/check-runs/" + m[1] + "/annotations?per_page=50",
-    { headers: { Accept: "application/vnd.github+json" } }, "checks");
-  const liste = await a.json();
-  const teile = {};
-  let n = 0;
-  for (const x of Array.isArray(liste) ? liste : []) {
-    const t = /^ki-antwort (\d+)\/(\d+)$/.exec(String((x && x.title) || ""));
-    if (t) {
-      teile[Number(t[1])] = String(x.message || "");
-      n = Number(t[2]);
-    }
-  }
-  if (!n || n > 20) return null;
-  let roh = "";
-  for (let i = 1; i <= n; i++) {
-    if (!(i in teile) || !/^[A-Za-z0-9_-]*$/.test(teile[i])) return null;
-    roh += teile[i];
-  }
-  let antwort;
-  try {
-    antwort = JSON.parse(b64urlText(roh));
-  } catch {
-    throw new ApiFehler("Annotation nicht lesbar.", "daten", 0);
-  }
-  if (!antwort || String(antwort.lauf) !== String(id)) return null;
-  return antwort;
+  const j = (d.jobs || []).find((x) => x && x.name === name);
+  return j && j.status === "completed" && typeof j.conclusion === "string" ? j.conclusion : null;
 }

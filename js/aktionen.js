@@ -513,6 +513,11 @@ export async function pruefen(handy) {
         continue;
       }
       if (lauf.status === "completed") {
+        // 1.2.0: ein ki.yml-Lauf kann zusätzlich den Job „aufraeumen“ haben – ob der Auftrag geklappt hat, sagt der Job „ki“
+        if (a.weg === "ki" && lauf.ergebnis !== "success") {
+          const jk = await gh.jobErgebnis(lauf.id).catch(() => null);
+          if (jk) lauf = Object.assign({}, lauf, { ergebnis: jk });
+        }
         if (lauf.ergebnis === "success") abschliessen(a, "erledigt");
         else if (lauf.ergebnis === "cancelled" || lauf.ergebnis === "skipped") {
           if (a.versuche - 1 < a.max) await neuSenden(a, "wurde abgebrochen");
