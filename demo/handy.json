@@ -1,0 +1,479 @@
+{
+ "_hinweis": "BEISPIEL-DATEN – alle Werte sind erfunden und gehören zu keinem echten Depot",
+ "format": 1,
+ "stand": "2026-10-11T06:38:34+00:00",
+ "version": "V1.2 beta",
+ "lauf": {
+  "modus": "autopilot",
+  "ausloeser": "wecker",
+  "ergebnis": "success"
+ },
+ "kern_bot": {
+  "name": "Kern-Bot",
+  "an": true,
+  "regelwerk_an": true,
+  "euro_automatik": true,
+  "stufe": "normal",
+  "stufe_automatik": true,
+  "stufe_geaendert": "2026-09-26T15:00:00+00:00",
+  "stufe_quelle": "Nutzer",
+  "position": "BTC",
+  "geparkt": false,
+  "topf_name": "Kern-Topf",
+  "wert_eur": 1234.56,
+  "wert_zeit": "2026-10-11T06:20:00+00:00",
+  "bitcoin_kurs_eur": 70000.0,
+  "ampel": "gruen",
+  "ki": {
+   "zeit": "2026-10-11T04:31:00+00:00",
+   "entscheidung": "halten",
+   "zuversicht": 66,
+   "einfach_erklaert": "Beispiel: Bitcoin bewegt sich seit Tagen seitwärts. Es gibt keinen guten Grund zu wechseln, also bleibt der Kern-Topf in Bitcoin.",
+   "lage": "Beispiel-Lage: ruhiger Markt, keine großen Nachrichten.",
+   "stufe_empfehlung": "normal",
+   "status": "nicht gehandelt: Entscheidung: halten",
+   "gehandelt": false
+  },
+  "notbremse": {
+   "tag_prozent": -7.0,
+   "woche_prozent": -6.0,
+   "monat_prozent": -10.0,
+   "letztes_parken": "2026-09-14T09:05:00+00:00",
+   "letztes_parken_grund": "Gewinnschutz",
+   "rueckkauf_fruehestens": null
+  },
+  "gewinnschutz": {
+   "an": true,
+   "prozent": 14.0,
+   "aktiv": true,
+   "coin": "BTC",
+   "hoechststand_eur": 73000.0,
+   "hoechststand_zeit": "2026-10-05T02:21:00+00:00",
+   "einstieg_zeit": "2026-09-29T06:35:00+00:00",
+   "grenze_eur": 62780.0,
+   "kurs_eur": 70000.0,
+   "kurs_zeit": "2026-10-11T06:20:00+00:00",
+   "abstand_prozent": -4.11,
+   "ausgeloest": false
+  }
+ },
+ "aktien": {
+  "name": "Aktien-Autopilot",
+  "an": true,
+  "modus": "etf",
+  "wert_eur": 100.0,
+  "wert_zeit": "2026-10-09T19:20:00+00:00",
+  "reserve_eur": 0.0,
+  "positionen": [
+   {
+    "symbol": "BEISPIEL.ETF",
+    "name": "Beispiel-Welt-ETF",
+    "wert_eur": 100.0,
+    "einstand_eur": 98.0
+   }
+  ],
+  "status": "im Ziel (ETF-Modus)",
+  "gewinnschutz_an": true,
+  "ki": {
+   "zeit": "2026-10-09T14:20:00+00:00",
+   "entscheidung": "halten",
+   "zuversicht": 70,
+   "einfach_erklaert": "Beispiel: Der Welt-ETF liegt im Plan, es ist nichts zu tun.",
+   "status": "nicht gehandelt: halten"
+  }
+ },
+ "raster_bot": {
+  "name": "Raster-Bot",
+  "status": "an",
+  "topf_eur": 205.0,
+  "einsatz_eur": 200.0,
+  "budget_eur": 200.0,
+  "eurcv": 120.0,
+  "ergebnis_eur": 5.0,
+  "ergebnis_prozent": 2.5,
+  "realisiert_eur": 1.5,
+  "gebuehren_eur": 0.4,
+  "bitcoin_halten_eur": 203.1,
+  "start_zeit": "2026-10-09T06:00:00+00:00",
+  "kurse_fehlen": null,
+  "coins": [
+   {
+    "coin": "SOL",
+    "wert_eur": 50.0,
+    "stufen": 4,
+    "sperre": false,
+    "auslaufend": false
+   },
+   {
+    "coin": "ADA",
+    "wert_eur": 35.0,
+    "stufen": 3,
+    "sperre": false,
+    "auslaufend": true
+   }
+  ],
+  "heute": {
+   "kaeufe": 1,
+   "verkaeufe": 1
+  },
+  "trades_letzte": [
+   {
+    "zeit": "2026-10-11T06:08:00+00:00",
+    "coin": "SOL",
+    "seite": "kauf",
+    "eur": 25.0
+   },
+   {
+    "zeit": "2026-10-10T22:41:00+00:00",
+    "coin": "ADA",
+    "seite": "verkauf",
+    "eur": 17.5
+   }
+  ],
+  "letzter_trade": "2026-10-11T06:08:00+00:00",
+  "verlustdeckel_zeit": null,
+  "ereignisse": [
+   {
+    "zeit": "2026-10-11T05:38:00+00:00",
+    "art": "coin_rein",
+    "text": "Beispiel: SOL neu im Raster-Bot (4 Stufen)"
+   },
+   {
+    "zeit": "2026-10-09T06:00:00+00:00",
+    "art": "ein",
+    "text": "Beispiel: Raster-Bot eingeschaltet (200 €)"
+   }
+  ],
+  "letzter_lauf": "2026-10-11T06:20:55+00:00",
+  "schatten": {
+   "status": "an",
+   "runde": 1,
+   "wert_eur": 304.2,
+   "start_eur": 300.0,
+   "start_zeit": "2026-10-04T06:00:00+00:00",
+   "bitcoin_halten_eur": 301.0,
+   "zeit": "2026-10-11T06:00:00+00:00"
+  }
+ },
+ "trend_bot": {
+  "name": "Trend-Bot",
+  "status": "aus",
+  "modus": "schatten",
+  "topf_eur": null,
+  "einsatz_eur": 0.0,
+  "ergebnis_eur": null,
+  "ergebnis_prozent": null,
+  "bitcoin_halten_eur": null,
+  "wert_zeit": null,
+  "markt_ampel": {
+   "gruen": true,
+   "abstand_prozent": 5.2,
+   "tag": "2026-10-10"
+  },
+  "naechste_umschichtung": "morgen ab 00:05 UTC (etwa 02:20 Uhr)",
+  "verlustdeckel_prozent": 0.0,
+  "positionen": [],
+  "rangliste": [
+   {
+    "rang": 1,
+    "coin": "AAVE",
+    "r14_prozent": 9.9
+   },
+   {
+    "rang": 2,
+    "coin": "NEAR",
+    "r14_prozent": 7.1
+   },
+   {
+    "rang": 3,
+    "coin": "ATOM",
+    "r14_prozent": 4.4
+   },
+   {
+    "rang": 4,
+    "coin": "SOL",
+    "r14_prozent": 1.2
+   },
+   {
+    "rang": 5,
+    "coin": "DOT",
+    "r14_prozent": -0.8
+   }
+  ],
+  "trades_letzte": [],
+  "letzter_trade": null,
+  "verlustdeckel_zeit": null,
+  "ereignisse": [],
+  "letzter_lauf": "2026-10-11T06:21:50+00:00",
+  "schatten": {
+   "wert_eur": 296.5,
+   "start_eur": 300.0,
+   "start_zeit": "2026-10-06T06:21:50+00:00",
+   "bitcoin_halten_eur": 299.25,
+   "zeit": "2026-10-11T06:21:50+00:00",
+   "positionen": [
+    "AAVE",
+    "NEAR",
+    "ATOM"
+   ]
+  }
+ },
+ "alarme": [
+  {
+   "zeit": "2026-10-10T18:12:00+00:00",
+   "stufe": "wichtig",
+   "symbol": "BTC",
+   "titel": "Beispiel-Alarm: Bitcoin −3 % in 24 h",
+   "text": "Erfundener Beispieltext für die Demo."
+  },
+  {
+   "zeit": "2026-10-08T07:28:44+00:00",
+   "stufe": "info",
+   "symbol": "BEISPIEL.ETF",
+   "titel": "Beispiel: ETF-Sparrate ausgeführt",
+   "text": "Erfundener Beispieltext."
+  }
+ ],
+ "freiminuten": {
+  "sparmodus": false
+ },
+ "bilanz": {
+  "text": "Beispiel: Kern-Bot 1.234,56 € vs. Halten 1.220,00 € → +1,19 % seit Start",
+  "kern_bot_eur": 1234.56,
+  "halten_eur": 1220.0,
+  "seit_start_prozent": 1.19,
+  "letzte_30_tage_pp": 0.42,
+  "tage_seit_start": 15.8,
+  "zeit": "2026-10-11T06:20:00+00:00"
+ },
+ "modi": [
+  {
+   "modus": "einschaetzung",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "frische KI-Einschätzung des Kern-Bots, nur Mail"
+  },
+  {
+   "modus": "bericht_jetzt",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "frische Einschätzung + Bericht per Mail, nie Handel"
+  },
+  {
+   "modus": "news_jetzt",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "Schlagzeilen + KI-Zusammenfassung neu holen (cloud/news.json), höchstens alle 30 min"
+  },
+  {
+   "modus": "start",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Kern-Bot EIN"
+  },
+  {
+   "modus": "stopp",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "Kern-Bot AUS"
+  },
+  {
+   "modus": "allesstopp",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "Alles stoppen: Kern-Bot, Regelwerk, Aktien-Autopilot aus; Raster- und Trend-Bot pausiert"
+  },
+  {
+   "modus": "regelwerk_ein",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Regelwerk ohne KI EIN"
+  },
+  {
+   "modus": "euro_ein",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Euro-Automatik EIN"
+  },
+  {
+   "modus": "euro_aus",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "Euro-Automatik AUS"
+  },
+  {
+   "modus": "einstellung",
+   "bestaetigung": "JA(;(stufe=(sicher|normal)|auto=[01]|streuung=(aus|kern_satellit|korb)|kern=\\d{2}|ab=\\d{3,6}|korb=[2-8]))+",
+   "ja_noetig": true,
+   "beispiel": "JA;stufe=normal;auto=1",
+   "text": "Stufe des Kern-Bots (sicher/normal), Automatik, Streuung"
+  },
+  {
+   "modus": "gewinnschutz_ein",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "Gewinnschutz Krypto EIN"
+  },
+  {
+   "modus": "gewinnschutz_aus",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Gewinnschutz Krypto AUS"
+  },
+  {
+   "modus": "gewinnschutz_aktien_ein",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "Gewinnschutz Aktien/ETF EIN"
+  },
+  {
+   "modus": "gewinnschutz_aktien_aus",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Gewinnschutz Aktien/ETF AUS"
+  },
+  {
+   "modus": "aktien_start",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Aktien-Autopilot EIN"
+  },
+  {
+   "modus": "aktien_stopp",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "Aktien-Autopilot AUS"
+  },
+  {
+   "modus": "surfen_ein",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=200",
+   "text": "Raster-Bot EIN mit Betrag aus dem Kern-Topf"
+  },
+  {
+   "modus": "surfen_betrag",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=250",
+   "text": "Raster-Topf ändern"
+  },
+  {
+   "modus": "surfen_zurueck",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)(;sofort=JA)?",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=50",
+   "text": "Teil zurück in den Kern-Topf (;sofort=JA = auch mit Verlust)"
+  },
+  {
+   "modus": "surfen_aus",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Raster-Bot AUS (alles zurück in den Kern-Topf)"
+  },
+  {
+   "modus": "surfen_pause",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Raster-Bot pausieren"
+  },
+  {
+   "modus": "surfen_deckel",
+   "bestaetigung": "JA;prozent=(\\d{1,2})",
+   "ja_noetig": true,
+   "beispiel": "JA;prozent=30",
+   "text": "Verlustdeckel (0 = keiner, sonst 10..60 %)"
+  },
+  {
+   "modus": "surfen_recherchen",
+   "bestaetigung": "JA;anzahl=([1-4])",
+   "ja_noetig": true,
+   "beispiel": "JA;anzahl=2",
+   "text": "feste Raster-Recherchen je Tag (1..4)"
+  },
+  {
+   "modus": "trend_ein",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=200",
+   "text": "Trend-Bot EIN mit Betrag aus dem Kern-Topf (mindestens 150 €)"
+  },
+  {
+   "modus": "trend_betrag",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=250",
+   "text": "Trend-Topf ändern"
+  },
+  {
+   "modus": "trend_zurueck",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=50",
+   "text": "Teil zurück in den Kern-Topf"
+  },
+  {
+   "modus": "trend_aus",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Trend-Bot AUS"
+  },
+  {
+   "modus": "trend_pause",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Trend-Bot pausieren"
+  },
+  {
+   "modus": "trend_deckel",
+   "bestaetigung": "JA;prozent=(\\d{1,2})",
+   "ja_noetig": true,
+   "beispiel": "JA;prozent=30",
+   "text": "Verlustdeckel (0 = keiner, sonst 10..60 %)"
+  },
+  {
+   "modus": "hinweis",
+   "bestaetigung": "app:(1|3|7|0)\\|.{1,300}",
+   "ja_noetig": false,
+   "beispiel": "app:7|SOL hat am Freitag ein Upgrade",
+   "text": "Hinweis an den Bot/die KI (ohne JA, nur Text; Zahl = Gültigkeit 1/3/7 Tage, 0 = bis zum Löschen)"
+  },
+  {
+   "modus": "hinweis_loeschen",
+   "bestaetigung": "\\d{1,6}",
+   "ja_noetig": false,
+   "beispiel": "3",
+   "text": "Hinweis Nr. … löschen"
+  },
+  {
+   "modus": "push_abo",
+   "bestaetigung": "(\\{.*\\}|loeschen:[0-9a-f]{16})",
+   "ja_noetig": false,
+   "beispiel": "{\"endpoint\":\"https://web.push.apple.com/…\",\"keys\":{\"p256dh\":\"…\",\"auth\":\"…\"}}",
+   "text": "Web-Push-Abo speichern (JSON des Abos) oder löschen (loeschen:<Hash>), ohne JA"
+  }
+ ],
+ "push": {
+  "abos": [],
+  "vapid_eingerichtet": true
+ }
+}
