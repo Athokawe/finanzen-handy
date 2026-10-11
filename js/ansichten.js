@@ -125,6 +125,8 @@ function verlaufHinweis(Z) {
   return h("p", { class: "leer statistik-leer" }, "Statistik wird geladen …");
 }
 
+/** Gesamt = gesamt_eur der Cloud (seit 1.2.3 inkl. echter Bot-Töpfe; Punkte ohne Wert = Lücke, zählen auch für Veränderung,
+ *  Höchst und Tiefst nicht). Linien für Trend-/Raster-Topf nur, wenn der Zeitraum echte Werte hat. */
 function gesamtStatistik(Z) {
   const hinweis = verlaufHinweis(Z);
   if (hinweis) return hinweis;
@@ -133,6 +135,8 @@ function gesamtStatistik(Z) {
     serien: (p) => [
       { name: "Gesamt", klasse: "l-haupt", werte: D.reihe(p, "gesamt_eur") },
       { name: "Coin-Topf", klasse: "l-zweit", werte: D.reihe(p, "coin_topf_eur") },
+      { name: "Trend-Topf", klasse: "l-trend", werte: D.reihe(p, "trend_echt_eur") },
+      { name: "Raster-Topf", klasse: "l-raster", werte: D.reihe(p, "raster_echt_eur") },
       { name: "Aktien & ETFs", klasse: "l-dritt", werte: D.reihe(p, "aktien_eur") },
     ],
     kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
@@ -202,36 +206,83 @@ function botStatistik(Z, bot) {
 
 // ------------------------------------------------------------------ Übersicht
 
-/** Gesamtvermögen aus handy.json → gesamt; ältere Cloud ohne diesen Teil: aus Coin-Topf und Aktien gerechnet */
+/**
+ * Bot-Topf für eine ältere Cloud, deren „gesamt“ die Bot-Töpfe noch nicht kennt – dieselbe Regel wie handy.bot_topf:
+ * Trend zählt im Modus „echt“, Raster bei Status an/pausiert, Einsatz > 0, Topf > 0 oder Coins ohne Kurs; sonst 0 (bekannt).
+ * Schattendepots zählen nie. Teil fehlt/kaputt: [true, null] = unbekannt.
+ */
+function botTopf(teil, art) {
+  const t = ok(teil);
+  if (!t) return [true, null];
+  const pos = (x) => F.istZahl(x) && x > 0;
+  const kf = t.kurse_fehlen;
+  const echt = art === "trend" ? t.modus === "echt"
+    : t.status === "an" || t.status === "pausiert" || pos(t.einsatz_eur) || pos(t.topf_eur) || (Array.isArray(kf) ? kf.length > 0 : !!kf);
+  return echt ? [true, F.istZahl(t.topf_eur) ? t.topf_eur : null] : [false, 0];
+}
+
+/**
+ * Gesamtvermögen aus handy.json → gesamt = Coin-Topf + echter Trend-Topf + echter Raster-Topf + Aktien & ETFs + Aktien-Reserve
+ * (docs/HANDY-DATEN.md). Ältere Cloud – „gesamt“ ohne Bot-Töpfe (bis 11.10.2026) oder ganz ohne: aus den Teilen gerechnet, gleiche
+ * Regel; der Coin-Topf enthält die Bot-Töpfe nicht. Die Aktien-Reserve fehlt dann (ihre Deckung kennt nur die Cloud).
+ */
 function gesamtTeil(d) {
   const g = ok(d.gesamt);
-  if (g) return g;
+  if (g && ("trend_topf_eur" in g || "raster_topf_eur" in g)) return g;
   const k = ok(d.kern_bot), a = ok(d.aktien);
-  const c = k && F.istZahl(k.wert_eur) ? k.wert_eur : null, s = a && F.istZahl(a.wert_eur) ? a.wert_eur : null;
-  if (c === null && s === null) return null;
-  const sum = (c || 0) + (s || 0);
-  return { gesamt_eur: sum, coin_topf_eur: c, aktien_eur: s, anteil_coin_topf_prozent: c !== null && sum ? c / sum * 100 : null,
-    anteil_aktien_prozent: s !== null && sum ? s / sum * 100 : null, vollstaendig: c !== null && s !== null,
-    zeit: [k && k.wert_zeit, a && a.wert_zeit].filter(Boolean).sort()[0] || null };
+  const zahl = (x) => (F.istZahl(x) ? x : null);
+  const c = g ? zahl(g.coin_topf_eur) : k ? zahl(k.wert_eur) : null;
+  const s = g ? zahl(g.aktien_eur) : a ? zahl(a.wert_eur) : null;
+  const [tEcht, t] = botTopf(d.trend_bot, "trend");
+  const [rEcht, r] = botTopf(d.raster_bot, "raster");
+  if (c === null && s === null && !t && !r) return null;
+  const sum = Math.round([c, t, r, s].reduce((x, y) => x + (y || 0), 0) * 100) / 100;
+  const anteil = (x) => (x !== null && sum > 0 ? x / sum * 100 : null);
+  return { gesamt_eur: sum, coin_topf_eur: c, trend_topf_eur: t, raster_topf_eur: r, aktien_eur: s, reserve_eur: null,
+    trend_echt: tEcht, raster_echt: rEcht,
+    anteil_coin_topf_prozent: anteil(c), anteil_trend_topf_prozent: anteil(t), anteil_raster_topf_prozent: anteil(r), anteil_aktien_prozent: anteil(s),
+    vollstaendig: (!g || g.vollstaendig !== false) && [c, t, r, s].every((x) => x !== null),
+    zeit: (g && g.zeit) || [k && k.wert_zeit, a && a.wert_zeit].filter(Boolean).sort()[0] || null,
+    ohne_reserve: !!(a && F.istZahl(a.reserve_eur) && a.reserve_eur > 0) };
+}
+
+/** Teile des Gesamtvermögens: [Schlüssel (= Farbe), Name, Wertfeld, Anteilfeld, echt-Feld] */
+const GESAMT_TEILE = [
+  ["coin", "Coin-Topf", "coin_topf_eur", "anteil_coin_topf_prozent", null],
+  ["trend", "Trend-Topf", "trend_topf_eur", "anteil_trend_topf_prozent", "trend_echt"],
+  ["raster", "Raster-Topf", "raster_topf_eur", "anteil_raster_topf_prozent", "raster_echt"],
+  ["aktien", "Aktien & ETFs", "aktien_eur", "anteil_aktien_prozent", null],
+  ["reserve", "Aktien-Reserve", "reserve_eur", "anteil_reserve_prozent", null],
+];
+
+/** Sichtbare Teile: Coin-Topf und Aktien immer; ein Bot-Topf nur mit echtem Geld (oder Wert > 0); Reserve nur > 0. */
+function gesamtTeile(g) {
+  return GESAMT_TEILE.filter(([k, , feld, , echt]) => k === "coin" || k === "aktien"
+    || (echt && g[echt] === true) || (F.istZahl(g[feld]) && g[feld] > 0))
+    .map(([k, name, feld, af]) => {
+      const v = F.istZahl(g[feld]) ? g[feld] : null;
+      const a = F.istZahl(g[af]) ? g[af] : v !== null && F.istZahl(g.gesamt_eur) && g.gesamt_eur > 0 ? v / g.gesamt_eur * 100 : null;
+      return { k, name, v, a };
+    });
 }
 
 function gesamtKarte(d, Z) {
   const g = gesamtTeil(d);
   if (!g) return fehlerKarte("Gesamtvermögen", d.gesamt);
-  const anteil = h("div", { class: "anteil-balken", "aria-hidden": "true" }, h("div", { class: "anteil-coin" }), h("div", { class: "anteil-aktien" }));
-  const pc = F.istZahl(g.anteil_coin_topf_prozent) ? g.anteil_coin_topf_prozent : 0;
-  anteil.firstChild.style.width = Math.max(0, Math.min(100, pc)).toFixed(1) + "%";       // CSSOM ist mit der CSP erlaubt
-  anteil.lastChild.style.width = Math.max(0, Math.min(100, 100 - pc)).toFixed(1) + "%";
+  const teile = gesamtTeile(g);
+  const balken = h("div", { class: "anteil-balken", "aria-hidden": "true" }, teile.filter((t) => t.a !== null && t.a > 0).map((t) => {
+    const el = h("div", { class: "anteil-" + t.k, "data-teil": t.k });
+    el.style.width = Math.max(0, Math.min(100, t.a)).toFixed(1) + "%";       // CSSOM ist mit der CSP erlaubt
+    return el;
+  }));
   return h("section", { class: "karte gesamt-karte", id: "gesamt-karte" },
-    h("div", { class: "karte-kopf" }, h("h2", null, "Gesamtvermögen"), h("span", { class: "klein gedimmt" }, "Coin-Topf + Aktien & ETFs")),
+    h("div", { class: "karte-kopf" }, h("h2", null, "Gesamtvermögen"), h("span", { class: "klein gedimmt" }, "Coin-Topf + Bots + Aktien & ETFs")),
     h("div", { class: "gross", id: "gesamt-wert" }, F.euro(g.gesamt_eur)),
-    anteil,
-    zeilen([
-      [h("span", null, h("span", { class: "punkt coin" }), " Coin-Topf"), F.euro(g.coin_topf_eur) + (F.istZahl(g.anteil_coin_topf_prozent) ? " · " + F.prozent(g.anteil_coin_topf_prozent, 1, false) : "")],
-      [h("span", null, h("span", { class: "punkt aktien" }), " Aktien & ETFs"), F.euro(g.aktien_eur) + (F.istZahl(g.anteil_aktien_prozent) ? " · " + F.prozent(g.anteil_aktien_prozent, 1, false) : "")],
-    ]),
-    h("p", { class: "klein gedimmt", id: "gesamt-stand" }, "Stand " + F.zeit(g.zeit) + (g.vollstaendig === false ? " · unvollständig (ein Teil ist gerade nicht lesbar)" : "")
-      + " · ohne Raster-/Trend-Topf und Aktien-Reserve"),
+    balken,
+    zeilen(teile.map((t) => [h("span", { "data-teil": t.k }, h("span", { class: "punkt " + t.k }), " " + t.name),
+      F.euro(t.v) + (t.a !== null ? " · " + F.prozent(t.a, 1, false) : "")])),
+    h("p", { class: "klein gedimmt", id: "gesamt-stand" }, "Stand " + F.zeit(g.zeit)
+      + (g.vollstaendig === false ? " · unvollständig (ein Teil ist gerade nicht lesbar)" : "") + (g.ohne_reserve ? " · ohne Aktien-Reserve" : "")),
     gesamtStatistik(Z));
 }
 

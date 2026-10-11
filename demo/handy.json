@@ -10,15 +10,25 @@
  },
  "gesamt": {
   "name": "Gesamtvermögen",
-  "gesamt_eur": 1334.56,
+  "gesamt_eur": 1539.56,
   "coin_topf_eur": 1234.56,
+  "trend_topf_eur": 0.0,
+  "raster_topf_eur": 205.0,
   "aktien_eur": 100.0,
-  "anteil_coin_topf_prozent": 92.5,
-  "anteil_aktien_prozent": 7.5,
+  "reserve_eur": 0.0,
+  "trend_echt": false,
+  "raster_echt": true,
+  "anteil_coin_topf_prozent": 80.2,
+  "anteil_trend_topf_prozent": 0.0,
+  "anteil_raster_topf_prozent": 13.3,
+  "anteil_aktien_prozent": 6.5,
+  "anteil_reserve_prozent": 0.0,
   "vollstaendig": true,
   "zeit": "2026-10-09T19:20:00+00:00",
   "coin_topf_zeit": "2026-10-11T06:20:00+00:00",
-  "aktien_zeit": "2026-10-09T19:20:00+00:00"
+  "aktien_zeit": "2026-10-09T19:20:00+00:00",
+  "trend_topf_zeit": null,
+  "raster_topf_zeit": "2026-10-11T06:20:55+00:00"
  },
  "kern_bot": {
   "name": "Coin-Bot",
@@ -76,6 +86,7 @@
   "wert_eur": 100.0,
   "wert_zeit": "2026-10-09T19:20:00+00:00",
   "reserve_eur": 0.0,
+  "reserve_gedeckt_eur": 0.0,
   "positionen": [
    {
     "symbol": "BEISPIEL.ETF",
@@ -105,7 +116,7 @@
   "ergebnis_prozent": 2.5,
   "realisiert_eur": 1.5,
   "gebuehren_eur": 0.4,
-  "bitcoin_halten_eur": 203.1,
+  "bitcoin_halten_eur": 191.5,
   "start_zeit": "2026-10-09T06:00:00+00:00",
   "kurse_fehlen": null,
   "coins": [

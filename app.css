@@ -289,3 +289,14 @@ body.blatt-offen { overflow: hidden; }
 .hinweis-eintrag.weg .hinweis-text { color: var(--gedimmt); }
 .hinweis-zitat { padding: 8px 12px; border-left: 3px solid var(--rand); background: var(--karte2); border-radius: 8px; overflow-wrap: anywhere; }
 
+/* ---------- 1.2.3: Gesamtvermögen mit echten Bot-Töpfen und Aktien-Reserve (Balken, Legende, Diagramm-Linien) ---------- */
+.gesamt-karte .karte-kopf { flex-wrap: wrap; row-gap: 2px; }   /* Untertitel rutscht am schmalen Handy unter den Titel */
+.anteil-balken > div + div { border-left: 2px solid var(--karte); }
+.anteil-trend { background: #c084fc; }
+.anteil-raster { background: #fbbf24; }
+.anteil-reserve { background: #93c5fd; }
+.punkt.trend { background: #c084fc; } .punkt.raster { background: #fbbf24; } .punkt.reserve { background: #93c5fd; }
+svg.diagramm .l-trend { stroke: #c084fc; stroke-width: 1.2; opacity: .85; }
+svg.diagramm .l-raster { stroke: #fbbf24; stroke-width: 1.2; opacity: .85; }
+svg.diagramm .marke-punkt.l-trend { stroke: #c084fc; } svg.diagramm .marke-punkt.l-raster { stroke: #fbbf24; }
+.legende-strich.l-trend { border-top-color: #c084fc; border-top-width: 2px; } .legende-strich.l-raster { border-top-color: #fbbf24; border-top-width: 2px; }

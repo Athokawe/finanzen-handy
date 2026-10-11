@@ -11,7 +11,7 @@ import * as F from "./format.js";
 import * as K from "./kifrage.js";
 import * as AL from "./alarme.js";
 
-export const APP_VERSION = "1.2.2";
+export const APP_VERSION = "1.2.3";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/

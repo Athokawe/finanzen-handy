@@ -4,6 +4,19 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.3
+
+* **Gesamtvermögen mit allen Töpfen:** Coin-Topf + echter Trend-Topf + echter Raster-Topf + Aktien & ETFs (+ Aktien-Reserve,
+  wenn > 0) – wie `gesamt` in `cloud/handy.json` (Finanz-App, `handy.gesamt_teil`). Ein Bot-Topf erscheint nur, wenn er echtes
+  Geld hält (Trend-Bot im Modus „echt“, Raster-Bot an/pausiert oder mit Einsatz); Schattendepots zählen nie. Jeder Teil hat eine
+  eigene Farbe im Anteil-Balken und eine eigene Zeile (Trend-Topf violett, Raster-Topf gelb, Aktien-Reserve hellblau); der
+  Hinweis „ohne Raster-/Trend-Topf und Aktien-Reserve“ ist weg. Eine Umbuchung zwischen Töpfen ändert die Summe nicht mehr.
+* **Statistik:** die Linie „Gesamt“ nimmt `gesamt_eur` aus `cloud/handy_verlauf.json` (seit `gesamt_def` 2 inkl. Bot-Töpfe –
+  der falsche Absturz am 11.10.2026 ist weg); Punkte ohne Wert (Lücke) zählen weder für die Linie noch für Veränderung, Höchst
+  und Tiefst. Zusätzliche Linien „Trend-Topf“ / „Raster-Topf“, sobald der Zeitraum echte Werte hat.
+* Ältere Cloud ohne die neuen Felder: die App rechnet die echten Bot-Töpfe nach derselben Regel aus `trend_bot`/`raster_bot`
+  dazu (die Aktien-Reserve fehlt dann – Hinweis „ohne Aktien-Reserve“).
+
 ## Neu in 1.2.2
 
 * **„Gemerkte Hinweise“ statt „Hinweis löschen“:** der allgemeine Knopf (Nummer eintippen) ist weg – er sah aus, als wäre
