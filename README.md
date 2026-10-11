@@ -2,7 +2,28 @@
 
 Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, Coin-Topf, Raster-Bot, Trend-Bot,
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
-„Nur anhalten“, Bots ein/aus, Stufe, Hinweis an die KI) und Mitteilungen (Web-Push).
+„Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
+
+## Neu in 1.2.0
+
+* **„An die KI“:** schwebender Knopf 💬 rechts unten (auf jedem Reiter mit dem Daumen erreichbar) öffnet ein Eingabe-Blatt:
+  Frage tippen (eine Zeile, höchstens 500 Zeichen), **Senden** = Auftrag `ki.yml` Modus `frage` (ohne JA). Live-Status wie bei
+  allen Aufträgen (gesendet → angekommen → „Die KI denkt nach …“ → Antwort da). Die KI **erklärt nur** – sie kann nie kaufen,
+  verkaufen oder schalten (das sichert die Cloud selbst ab). Hält sie etwas für den Bot wichtig, merkt sie es als Hinweis:
+  „📌 Als Hinweis gemerkt (7 Tage) · **Rückgängig**“ (= `hinweis_loeschen`). Ersetzt den bisherigen Hinweis-Dialog; „Hinweis
+  löschen“ bleibt als kleine Aktion. Höchstens 10 Fragen in 24 Stunden.
+* **Antworten nur im Arbeitsspeicher:** gezeigt werden die Antworten der letzten 24 h, geholt aus dem Actions-Artefakt
+  `ki-antwort-<lauf>` (ZIP – eigener kleiner Entpacker `js/zip.js`, „gespeichert“ oder „deflate“ über
+  `DecompressionStream("deflate-raw")`, mit CRC-Prüfung). Kann der Browser das Artefakt nicht laden (Weiterleitung auf den
+  Artefakt-Speicher, CORS), nimmt die App den Ersatzweg: die Cloud legt die Antwort dann zusätzlich **verschlüsselt** in den
+  Zweig `ki-antwort` (AES-256-GCM; Schlüssel = HMAC-SHA256 des Tokens über eine Zufallszahl – die Cloud kennt den Token nie).
+  Die App fordert den Ersatzweg an, solange sie nicht weiß, dass Artefakte gehen; in `localStorage` steht nur, welcher Weg
+  funktioniert (`fh_ki_weg`), nie eine Frage oder Antwort. In der Cloud verschwinden Läufe, Artefakte und Zweig-Einträge nach 24 h.
+* **Alarme löschen:** je Alarm „✕“, oben „Alle löschen“ – sofort ausgeblendet, Auftrag `alarme_gelesen` (ohne JA, Live-Status).
+  Die Cloud markiert sie nur als gelesen (nichts wird wirklich gelöscht). Läuft gerade ein anderer Auftrag, geht der Versand
+  automatisch danach. Gemerkt werden nur die Alarm-Nummern (`fh_alarme_weg_v1`), bis `handy.json` sie nicht mehr zeigt.
+* CSP `connect-src` zusätzlich nur `https://productionresultssa0…19.blob.core.windows.net` (Artefakt-Speicher von GitHub, wohin
+  der Artefakt-Download weiterleitet) – kein `*.blob.core.windows.net`.
 
 ## Neu in 1.1.0
 
@@ -44,9 +65,10 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
   310 000 Runden und zufälligem Salz aus der PIN (Web Crypto, Schlüssel nicht exportierbar).
 * **PIN-Sperre** beim Öffnen und nach 5 Minuten im Hintergrund; **5 falsche PINs löschen den Token** (neu verbinden nötig).
   „Abmelden“ löscht Token und PIN.
-* **Keine Daten am Gerät gespeichert:** Zahlen und Nachrichten liegen nur im Arbeitsspeicher; der Service Worker cacht nur die
+* **Keine Daten am Gerät gespeichert:** Zahlen, Nachrichten, Fragen und Antworten an die KI liegen nur im Arbeitsspeicher; der Service Worker cacht nur die
   App-Hülle (HTML/CSS/JS/Icons), nie Antworten der GitHub-API.
-* **Strenge Content-Security-Policy** (nur eigene Dateien, Verbindungen nur zu `api.github.com`, keine Inline-Skripte),
+* **Strenge Content-Security-Policy** (nur eigene Dateien, Verbindungen nur zu `api.github.com` und zum Artefakt-Speicher
+  `productionresultssa0…19.blob.core.windows.net`, keine Inline-Skripte),
   `noindex`, kein Referrer. Fremde Texte (Schlagzeilen, KI-Texte) werden nur als Text angezeigt; Links nur `http(s)`, in neuem
   Fenster mit `rel="noopener noreferrer"`.
 * Der Token kann kein Geld bewegen und kommt an keine anderen Repos. Grenze: Wer das entsperrte iPhone **und** die PIN hat,
@@ -87,6 +109,9 @@ Lokal: `python -m http.server` in einem Ordner, der dieses Repo als Unterordner 
 | `js/github.js` | GitHub-API (lesen, Aufträge, Lauf-Status), Demo-Modus |
 | `js/aktionen.js` | erlaubte Modi, JA-Dialog, Bestätigung bauen/prüfen, Weg (Express/ki.yml), Live-Rückmeldung und Neu-Senden |
 | `js/ansichten.js` | die Reiter |
+| `js/kifrage.js` | „An die KI“: schwebender Knopf, Eingabe-Blatt, Senden, Live-Status, Antworten (Artefakt bzw. verschlüsselter Zweig), Rückgängig |
+| `js/zip.js` | ZIP-Leser für genau eine Datei (gespeichert/deflate, CRC-Prüfung) |
+| `js/alarme.js` | Alarme ausblenden und als gelesen melden (`alarme_gelesen`) |
 | `js/diagramm.js` | Statistik-Diagramme (SVG, Zeiträume, Antippen, Kennzahlen) |
 | `js/push.js`, `sw.js` | Web-Push-Abo, Service Worker (Hülle cachen, Mitteilungen) |
 | `manifest.webmanifest`, `icons/` | Home-Bildschirm-App |

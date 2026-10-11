@@ -8,8 +8,10 @@ import * as A from "./aktionen.js";
 import * as V from "./ansichten.js";
 import * as P from "./push.js";
 import * as F from "./format.js";
+import * as K from "./kifrage.js";
+import * as AL from "./alarme.js";
 
-export const APP_VERSION = "1.1.0";
+export const APP_VERSION = "1.2.0";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -182,6 +184,7 @@ function sperren() {
   Z.fehlerHandy = Z.fehlerNews = Z.fehlerVerlauf = null;
   for (const k of [...Object.keys(ANSICHT), "mehr"]) leeren($("t-" + k));
   A.dialogZu();
+  K.vergessen();
   meldung("");
   if (T.vorhanden()) pinZeigen("eingeben");
   else verbindenZeigen();
@@ -216,6 +219,7 @@ function zeichnen() {
     : ANSICHT[reiter](Z);
   for (const t of teile) if (t) el.appendChild(t);
   standZeigen();
+  K.knopfZeigen(true);
 }
 
 function standZeigen() {
@@ -259,6 +263,7 @@ async function laden() {
   if (a.status === "fulfilled") {
     Z.handy = demo ? demoZeiten(a.value, versatz) : a.value;
     Z.fehlerHandy = null;
+    AL.sichtbar(Z.handy.alarme, true);           // was handy.json nicht mehr zeigt (gelesen), ist bestätigt
   } else {
     Z.fehlerHandy = a.reason && a.reason.message ? a.reason.message : "Daten nicht lesbar.";
   }
@@ -289,6 +294,7 @@ async function laden() {
   if (Z.handy) {
     A.pruefen(Z.handy);
     pushPruefen();
+    if (K.istOffen()) K.laden(true);
   }
 }
 
@@ -301,6 +307,7 @@ function abmelden() {
       T.loeschen();
       Z.handy = Z.news = Z.verlauf = null;
       for (const k of [...Object.keys(ANSICHT), "mehr"]) leeren($("t-" + k));
+      K.vergessen();
       verbindenZeigen("Abgemeldet – Token und PIN sind gelöscht.");
       return true;
     },
@@ -399,10 +406,12 @@ function verdrahten() {
 function start() {
   verdrahten();
   A.dialogVerdrahten();
-  A.init({ neuLaden: laden, toast, handy: () => Z.handy, entsperrt: () => entsperrt });
+  A.init({ neuLaden: laden, toast, handy: () => Z.handy, entsperrt: () => entsperrt, fertig: (a) => K.auftragFertig(a), geaendert: () => K.zeichnen() });
+  K.init({ toast, entsperrt: () => entsperrt });
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => { /* ohne Offline-Hülle geht es auch */ });
   }
+  AL.init({ neuZeichnen: () => { if (entsperrt) zeichnen(); }, toast, entsperrt: () => entsperrt }, demo);
   if (demo) {
     gh.demoSetzen(true);
     appStarten();

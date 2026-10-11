@@ -6,6 +6,8 @@ import * as F from "./format.js";
 import * as A from "./aktionen.js";
 import * as P from "./push.js";
 import * as D from "./diagramm.js";
+import * as K from "./kifrage.js";
+import * as AL from "./alarme.js";
 import { BITPANDA_URL, BITPANDA_SWAP_URL } from "../konfig.js";
 
 const istObj = (x) => !!x && typeof x === "object" && !Array.isArray(x);
@@ -310,11 +312,36 @@ export function uebersicht(Z) {
       schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", "))));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
 
-  const al = liste(d.alarme);
-  out.push(karte("Letzte Alarme", null, al.length ? h("ul", { class: "liste" }, al.slice(0, 5).map((x) => h("li", { class: "alarm " + F.text(x.stufe, "") },
-    h("div", { class: "oben" }, h("span", { class: "titel" }, F.text(x.titel)), h("span", { class: "klein gedimmt" }, F.zeit(x.zeit))),
-    x.text ? h("div", { class: "unter" }, x.text) : null))) : leer(fehlerVon(d.alarme) || "Keine Alarme.")));
+  out.push(alarmKarte(d));
   return out;
+}
+
+/** „Letzte Alarme“ (1.2.0): je Alarm „✕“, oben „Alle löschen“ – sofort ausgeblendet, Auftrag alarme_gelesen (js/alarme.js) */
+function alarmKarte(d) {
+  const roh = liste(d.alarme);
+  const darf = AL.moeglich(roh);
+  const al = AL.sichtbar(roh, false);
+  const alle = darf && al.some((x) => Number.isInteger(x.id))
+    ? h("button", { type: "button", class: "knopf-text", id: "alarme-alle", onclick: () => AL.ausblenden(al.map((x) => x.id)) }, "Alle löschen")
+    : null;
+  return h("section", { class: "karte", id: "alarm-karte" }, h("div", { class: "karte-kopf" }, h("h2", null, "Letzte Alarme"), alle),
+    al.length ? h("ul", { class: "liste" }, al.slice(0, 5).map((x) => h("li", { class: "alarm " + F.text(x.stufe, ""), "data-alarm": Number.isInteger(x.id) ? String(x.id) : null },
+      h("div", { class: "oben" }, h("span", { class: "titel" }, F.text(x.titel)),
+        h("span", { class: "alarm-rechts" }, h("span", { class: "klein gedimmt" }, F.zeit(x.zeit)),
+          darf && Number.isInteger(x.id) ? h("button", { type: "button", class: "alarm-weg", "aria-label": "Alarm löschen", "data-weg": String(x.id),
+            onclick: () => AL.ausblenden([x.id]) }, "✕") : null)),
+      x.text ? h("div", { class: "unter" }, x.text) : null)))
+      : leer(fehlerVon(d.alarme) || (roh.length ? "Alle Alarme gelöscht." : "Keine Alarme.")),
+    AL.wartet() ? h("p", { class: "klein gedimmt" }, "Ausgeblendet – wird an die Cloud geschickt, sobald der laufende Auftrag fertig ist.") : null);
+}
+
+/** Karte „An die KI“ (1.2.0, ersetzt „Hinweis an die KI“): öffnet das Eingabe-Blatt; „Hinweis löschen“ bleibt klein */
+function kiKarte(text) {
+  if (!A.erlaubt("frage") && !A.erlaubt("hinweis_loeschen")) return null;
+  return karte("An die KI", null,
+    h("p", { class: "klein gedimmt" }, text),
+    reihe(A.erlaubt("frage") ? h("button", { type: "button", class: "knopf primaer", "data-ki-oeffnen": "1", onclick: () => K.oeffnen() }, "💬 Frage an die KI") : null),
+    reihe(A.knopf("hinweis_loeschen", "Hinweis löschen", "leise klein")));
 }
 
 // ------------------------------------------------------------------ Coin-Bot (Reiter „kern“ – interner Name bleibt)
@@ -413,9 +440,7 @@ export function kern(Z) {
         ["Tage seit Start", F.zahl(b.tage_seit_start, 0)],
       ])));
   }
-  out.push(karte("Hinweis an die KI", null,
-    h("p", { class: "klein gedimmt" }, "Etwas, das der Bot wissen soll (z. B. ein Termin). Löst nie selbst eine Order aus."),
-    reihe(A.knopf("hinweis", "Hinweis schreiben"), A.knopf("hinweis_loeschen", "Hinweis löschen"))));
+  out.push(kiKarte("Frag die KI zu deinem Stand – oder sag ihr etwas, das der Bot wissen soll (z. B. ein Termin): sie merkt es sich dann als Hinweis. Sie erklärt nur und löst nie selbst eine Order aus."));
   return out;
 }
 
@@ -604,12 +629,10 @@ export function mehr(Z, ctx) {
     }
     if (P.erlaubnis() === "denied") pk.push(h("p", { class: "klein gedimmt" }, "Mitteilungen sind abgelehnt – erlauben in den iPhone-Einstellungen → Mitteilungen → Finanzen."));
   }
-  pk.push(h("p", { class: "klein gedimmt" }, "Du bekommst eine Mitteilung, wenn der Coin-Bot parkt oder zurückkauft, die Stufe wechselt, ein Bot geschaltet wird oder handelt, ein Verlustdeckel greift, und einmal täglich ein Lebenszeichen. In der Cloud angemeldet: " + abos.length + " Gerät(e)."));
+  pk.push(h("p", { class: "klein gedimmt" }, "Du bekommst eine Mitteilung, wenn der Coin-Bot parkt oder zurückkauft, die Stufe wechselt, ein Bot geschaltet wird oder handelt, ein Verlustdeckel greift, die KI deine Frage beantwortet hat (ohne den Text), und einmal täglich ein Lebenszeichen. In der Cloud angemeldet: " + abos.length + " Gerät(e)."));
   out.push(karte("Benachrichtigungen", null, ...pk));
 
-  out.push(karte("Hinweis an die KI", null,
-    h("p", { class: "klein gedimmt" }, "Etwas, das der Bot wissen soll. Löst nie selbst eine Order aus."),
-    reihe(A.knopf("hinweis", "Hinweis schreiben"), A.knopf("hinweis_loeschen", "Hinweis löschen"))));
+  out.push(kiKarte("Fragen an die KI und Hinweise für den Bot – auch über den Knopf 💬 unten rechts. Die KI löst nie selbst eine Order aus."));
 
   const lauf = ok(d.lauf);
   out.push(karte("Verbindung", null,

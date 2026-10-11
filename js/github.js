@@ -141,3 +141,111 @@ export async function laeufe(weg) {
     erstellt: x.created_at,
   }));
 }
+
+// ------------------------------------------------------------------ „An die KI“ (1.2.0): Antworten holen
+// Die Cloud legt die Antwort als Actions-Artefakt „ki-antwort-<lauf>“ ab (1 Tag) und – nur wenn die App es anfordert – zusätzlich
+// verschlüsselt in den Zweig „ki-antwort“ (AES-256-GCM; Schlüssel = HMAC-SHA256(Token, "ki-frage|" + nonce), die Cloud kennt den
+// Token nie). Nichts davon wird hier gespeichert.
+
+const enc = new TextEncoder();
+
+function b64url(bytes) {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function b64urlBytes(s) {
+  const t = String(s);
+  const bin = atob(t.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (t.length % 4)) % 4));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function frageSchluesselRoh(nonce) {
+  if (!token) throw new ApiFehler("Nicht verbunden.", "token", 0);
+  const k = await crypto.subtle.importKey("raw", enc.encode(token), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", k, enc.encode("ki-frage|" + nonce)));
+}
+
+/** Präfix „s=<nonce>.<schlüssel>|“ für den verschlüsselten Ersatzweg (nur mit Token; Demo: ""). */
+export async function frageZweigPraefix() {
+  if (demo || !token) return "";
+  const nonce = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  return "s=" + nonce + "." + b64url(await frageSchluesselRoh(nonce)) + "|";
+}
+
+/** Eintrag {lauf, nonce, iv, daten} aus dem Zweig ki-antwort entschlüsseln -> Antwort-Objekt. */
+export async function frageEntschluesseln(e) {
+  const key = await crypto.subtle.importKey("raw", await frageSchluesselRoh(e.nonce), "AES-GCM", false, ["decrypt"]);
+  const klar = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64urlBytes(e.iv), additionalData: enc.encode("ki-antwort|" + e.lauf) },
+    key, b64urlBytes(e.daten));
+  return JSON.parse(new TextDecoder().decode(klar));
+}
+
+/** ki.yml-Läufe „Hand: frage“ der letzten 24 h: [{id, titel, status, ergebnis, erstellt}] */
+export async function frageLaeufe() {
+  if (demo) return [];
+  const seit = new Date(Date.now() - 24 * 3600 * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
+  const r = await anfrage("/repos/" + REPO + "/actions/workflows/" + WORKFLOW + "/runs?event=workflow_dispatch&per_page=50&created="
+    + encodeURIComponent(">=" + seit), { headers: { Accept: "application/vnd.github+json" } }, "laeufe");
+  const d = await r.json();
+  return (d.workflow_runs || []).filter((x) => x.display_title === "Hand: frage").map((x) => ({
+    id: x.id, titel: x.display_title, status: x.status, ergebnis: x.conclusion, erstellt: x.created_at,
+  }));
+}
+
+/**
+ * Antwort aus dem Artefakt „ki-antwort-<id>“ (ZIP mit antwort.json) lesen. null = kein (gültiges) Artefakt da.
+ * Wirft ApiFehler art "artefakt", wenn der Download selbst scheitert (Weiterleitung/CORS/CSP) – dann nimmt die App den Zweig.
+ */
+export async function frageArtefakt(id, entpacken) {
+  const r = await anfrage("/repos/" + REPO + "/actions/runs/" + encodeURIComponent(id) + "/artifacts?per_page=20",
+    { headers: { Accept: "application/vnd.github+json" } }, "laeufe");
+  const d = await r.json();
+  const a = (d.artifacts || []).find((x) => x.name === "ki-antwort-" + id && !x.expired);
+  if (!a) return null;
+  let url;
+  try {
+    url = new URL(a.archive_download_url);
+  } catch {
+    throw new ApiFehler("Artefakt-Adresse unlesbar.", "artefakt", 0);
+  }
+  if (url.origin !== API) throw new ApiFehler("Artefakt-Adresse nicht bei api.github.com.", "artefakt", 0);
+  const ab = new AbortController();
+  const uhr = setTimeout(() => ab.abort(), ZEITLIMIT_MS);
+  let z;
+  try {
+    // GitHub antwortet mit 302 auf den Artefakt-Speicher; der Browser folgt und lässt den Token dabei weg (fremder Rechner)
+    z = await fetch(url.href, { headers: { Authorization: "Bearer " + token }, cache: "no-store", credentials: "omit",
+      referrerPolicy: "no-referrer", redirect: "follow", signal: ab.signal });
+  } catch {
+    throw new ApiFehler("Das Artefakt lässt sich in diesem Browser nicht laden.", "artefakt", 0);
+  } finally {
+    clearTimeout(uhr);
+  }
+  if (!z.ok) {
+    if (z.status === 404 || z.status === 410) return null;
+    throw new ApiFehler("Artefakt nicht ladbar (Fehler " + z.status + ").", "artefakt", z.status);
+  }
+  const daten = await entpacken(new Uint8Array(await z.arrayBuffer()), "antwort.json");
+  return JSON.parse(new TextDecoder().decode(daten));
+}
+
+/** antworten.json im Zweig ki-antwort -> [Eintrag]; [] wenn es den Zweig nicht gibt. */
+export async function frageZweig() {
+  if (demo) return [];
+  let r;
+  try {
+    r = await anfrage("/repos/" + REPO + "/contents/antworten.json?ref=ki-antwort", { headers: { Accept: "application/vnd.github.raw+json" } }, "lesen");
+  } catch (e) {
+    if (e && e.art === "nichtda") return [];
+    throw e;
+  }
+  try {
+    const d = JSON.parse(await r.text());
+    return d && Array.isArray(d.antworten) ? d.antworten : [];
+  } catch {
+    throw new ApiFehler("Antwort-Zweig nicht lesbar.", "daten", 0);
+  }
+}

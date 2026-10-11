@@ -1,6 +1,7 @@
 // Aufträge an die Cloud: nur Modi aus handy.json → „modi“; die Bestätigung wird nach dem Muster aus Formularfeldern gebaut, gegen
 // den regulären Ausdruck aus handy.json geprüft und erst dann geschickt. Schalt-Modi mit „ja_noetig“ verlangen ein wörtlich
 // getipptes JA.
+// 1.2.0: „An die KI“ (Modus frage, js/kifrage.js) ersetzt den Hinweis-Dialog; Alarme löschen (Modus alarme_gelesen, js/alarme.js).
 // 1.1.0: Brems-Befehle (handy.json: express true – „Alles parken“, „Nur anhalten“, Coin-Bot aus, Stufe → sicher, Raster/Trend
 // pausieren) gehen an express.yml (eigene Warteschlange, sofort), alles andere an ki.yml. Jeder Auftrag wird über die Actions-API
 // anhand des Lauf-Titels verfolgt („Express: <modus>“ bzw. „Hand: <modus>“): gesendet → angekommen → läuft → erledigt ✓ /
@@ -11,7 +12,7 @@ import { h, $, leeren } from "./dom.js";
 import * as gh from "./github.js";
 import { datum, vor } from "./format.js";
 
-let hooks = { neuLaden: () => {}, toast: () => {}, handy: () => null, entsperrt: () => true };
+let hooks = { neuLaden: () => {}, toast: () => {}, handy: () => null, entsperrt: () => true, fertig: () => {}, geaendert: () => {} };
 let modiListe = [];
 
 const LISTE_KEY = "fh_auftraege_v2";
@@ -156,17 +157,9 @@ const SPEZ = {
   trend_pause: { titel: "Trend-Bot pausieren", text: "Er handelt nicht mehr, sein Bestand bleibt. Geht als Bremse sofort.", bauen: () => "JA" },
   trend_deckel: { titel: "Trend-Bot: Verlustdeckel", felder: [DECKEL], pruefen: deckelPruefen, bauen: (w) => "JA;prozent=" + parseInt(w.prozent, 10) },
 
-  hinweis: {
-    titel: "Hinweis an die KI",
-    text: "Ein kurzer Hinweis, den der Bot und die KI bei den nächsten Entscheidungen lesen. Er löst nie selbst eine Order aus.",
-    ok: "Hinweis senden",
-    felder: [
-      { name: "text", art: "text", label: "Dein Hinweis", max: 300, hilfe: "höchstens 300 Zeichen, eine Zeile" },
-      { name: "tage", art: "wahl", label: "Gültig", optionen: [["1", "1 Tag"], ["3", "3 Tage"], ["7", "7 Tage"], ["0", "bis du ihn löschst"]], vorgabe: "7" },
-    ],
-    pruefen: (w) => (hinweisText(w.text) ? null : "Bitte einen Hinweis eintippen."),
-    bauen: (w) => "app:" + w.tage + "|" + hinweisText(w.text),
-  },
+  // 1.2.0: „An die KI“ ersetzt den Hinweis-Dialog – die KI merkt Bot-Relevantes selbst als Hinweis (js/kifrage.js)
+  frage: { titel: "An die KI", ohneFrage: true },
+  alarme_gelesen: { titel: "Alarme löschen", ohneFrage: true },
   hinweis_loeschen: {
     titel: "Hinweis löschen",
     felder: [{ name: "nr", art: "zahl", label: "Nummer des Hinweises", hilfe: "steht in der Bestätigungs-Mail bzw. in der Laptop-App" }],
@@ -175,10 +168,6 @@ const SPEZ = {
   },
   push_abo: { titel: "Benachrichtigungen", ohneFrage: true },
 };
-
-function hinweisText(t) {
-  return String(t ?? "").split(/\s+/).join(" ").trim().slice(0, 300); // \s trifft auch Zeilenumbrüche und Tabs
-}
 
 /** Anzeigename eines Modus (für Band/Toast) */
 export function name(m) {
@@ -420,7 +409,7 @@ export function laufendeAuftraege() {
 export function offenerAuftrag() {
   return laufendeAuftraege()[0] || null;
 }
-/** für Tests und Einstellungen: Kopie der Liste */
+/** für Tests, Einstellungen und „An die KI“: Kopie der Liste (ohne Bestätigungstext) */
 export function auftragsListe() {
   return auftraege.map((a) => Object.assign({}, a, { best: undefined }));
 }
@@ -463,6 +452,7 @@ function abschliessen(a, status, text) {
   } else {
     hooks.toast("„" + name(a.modus) + "“: " + (text || STATUS_TEXT[status]));
   }
+  try { hooks.fertig(a); } catch { /* Anzeige-Fehler stören die Verfolgung nie */ }
   hooks.neuLaden();
 }
 
@@ -564,7 +554,11 @@ function bandZeichnen() {
   if (!b) return;
   const jetzt = Date.now();
   const zeigen = auftraege.filter((a) => !istFinal(a) || jetzt - (a.ende || 0) < FERTIG_ZEIGEN_MS);
-  if (!zeigen.length) { b.hidden = true; return; }
+  if (!zeigen.length) {
+    b.hidden = true;
+    try { hooks.geaendert(); } catch { /* egal */ }
+    return;
+  }
   leeren(b);
   for (const a of zeigen) {
     const symbol = a.status === "erledigt" ? "✓" : istFinal(a) ? "✗" : a.status === "laeuft" ? "▶" : "⏳";
@@ -576,4 +570,5 @@ function bandZeichnen() {
   }
   if (!actionsOk) b.appendChild(h("div", { class: "klein" }, "Lauf-Status nicht lesbar (Token ohne „Actions: Read“) – die App erkennt das Ergebnis an den Daten."));
   b.hidden = false;
+  try { hooks.geaendert(); } catch { /* egal */ }
 }

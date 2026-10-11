@@ -111,7 +111,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .kopf-knoepfe { display: flex; gap: 8px; }
 .stand { margin: 2px auto 0; font-size: 14px; color: var(--gedimmt); max-width: 640px; }
 .stand.alt { color: var(--gelb); font-weight: 600; }
-.inhalt { max-width: 640px; margin: 0 auto; padding: 12px calc(16px + var(--rechts)) calc(96px + var(--unten)) calc(16px + var(--links)); }
+.inhalt { max-width: 640px; margin: 0 auto; padding: 12px calc(16px + var(--rechts)) calc(150px + var(--unten)) calc(16px + var(--links)); }
 .demo-band { background: var(--gelb-bg); color: var(--text); font-size: 13px; font-weight: 600; text-align: center; padding: 6px 12px; letter-spacing: .02em; }
 .meldung { max-width: 640px; margin: 10px auto 0; padding: 12px 14px; border-radius: 12px; font-size: 15px;
   background: var(--rot-bg); color: var(--text); border: 1px solid color-mix(in srgb, var(--rot) 35%, transparent); }
@@ -244,3 +244,40 @@ svg.diagramm .fang { fill: transparent; cursor: crosshair; }
 .kz-r { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .statistik-leer { margin: 10px 0 0; }
 .knopf.stufe-sicher { font-size: 15px; }
+
+/* ---------- „An die KI“ (1.2.0): schwebender Knopf + Eingabe-Blatt ---------- */
+.ki-fab { position: fixed; right: calc(16px + var(--rechts)); bottom: calc(76px + var(--unten)); z-index: 7; width: 58px; height: 58px;
+  border-radius: 50%; border: 1px solid color-mix(in srgb, var(--akzent) 60%, var(--rand)); background: var(--karte2); color: var(--text);
+  font-size: 26px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .55); -webkit-tap-highlight-color: transparent; }
+.ki-fab:active { transform: scale(.94); }
+.blatt-huelle { position: fixed; inset: 0; z-index: 15; background: rgba(0, 0, 0, .6); display: flex; align-items: flex-end; justify-content: center; }
+.blatt { width: 100%; max-width: 560px; max-height: 90vh; max-height: 90dvh; overflow: auto; background: var(--karte); border: 1px solid var(--rand);
+  border-radius: 22px 22px 0 0; padding: 14px calc(16px + var(--rechts)) calc(18px + var(--unten)) calc(16px + var(--links)); }
+@media (min-width: 600px) { .blatt-huelle { align-items: center; } .blatt { border-radius: 22px; } }
+.blatt-kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.blatt-kopf h2 { margin: 0; }
+body.blatt-offen { overflow: hidden; }
+.ki-zeile { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 0; }
+.ki-zeile .knopf { min-width: 128px; }
+#ki-zaehler.zu-lang { color: var(--rot-hell); font-weight: 600; }
+.ki-status { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--karte2); font-size: 15px; }
+.ki-status.gut { color: var(--gruen-hell); }
+.ki-status.fehler { color: var(--rot-hell); font-weight: 600; }
+.ki-liste-kopf { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 16px 0 0; }
+.ki-liste-kopf h3 { margin: 0; font-size: 16px; }
+.ki-eintrag .ki-frage-text { color: var(--gedimmt); font-size: 14px; margin-bottom: 4px; }
+.ki-eintrag .ki-frage-text::before { content: "Du: "; font-weight: 600; }
+.ki-eintrag .ki-antwort-text { white-space: pre-line; overflow-wrap: anywhere; }
+.ki-eintrag.drossel .ki-antwort-text, .ki-eintrag.fehler .ki-antwort-text, .ki-eintrag.fehlt .ki-antwort-text { color: var(--gelb); }
+.ki-hinweis { margin-top: 6px; font-size: 14px; }
+.ki-aktionen { margin-top: 10px; }
+.ki-aktionen .knopf { width: 100%; }
+.knopf-text { background: none; border: 0; padding: 4px 2px; font: inherit; font-size: 14px; font-weight: 600; color: var(--akzent);
+  cursor: pointer; text-decoration: underline; text-underline-offset: 3px; min-height: 32px; }
+.knopf.klein { min-height: 36px; font-size: 14px; }
+.alarm-rechts { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.alarm-weg { background: none; border: 1px solid var(--rand); border-radius: 50%; width: 32px; height: 32px; color: var(--gedimmt);
+  font-size: 15px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.alarm-weg:active { color: var(--text); background: var(--karte2); }
+

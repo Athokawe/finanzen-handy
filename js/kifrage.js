@@ -1,0 +1,332 @@
+// „An die KI“ (1.2.0): schwebender Knopf 💬 → Eingabe-Blatt mit Feld, „Senden“, Live-Status und den Antworten der letzten 24 h.
+// Senden = Auftrag ki.yml Modus „frage“ (ohne JA). Die KI erklärt nur – sie kann nie handeln (das prüft die Cloud selbst).
+// Antworten holt die App aus dem Actions-Artefakt „ki-antwort-<lauf>“ (ZIP, js/zip.js); lässt der Browser den Download nicht zu
+// (Weiterleitung auf den Artefakt-Speicher, CORS), aus dem verschlüsselten Zweig „ki-antwort“ (Schlüssel aus dem Token, js/github.js).
+// Gespeichert wird NICHTS davon: Fragen und Antworten liegen nur im Arbeitsspeicher; in localStorage steht höchstens, welcher
+// der beiden Wege in diesem Browser funktioniert („artefakt“/„zweig“) – nie ein Inhalt.
+
+import { h, $, leeren } from "./dom.js";
+import * as gh from "./github.js";
+import * as A from "./aktionen.js";
+import * as ZIP from "./zip.js";
+import * as F from "./format.js";
+
+const WEG_KEY = "fh_ki_weg";
+export const MAX_ZEICHEN = 500;
+const AUFBEWAHREN_MS = 24 * 3600 * 1000;
+
+let hooks = { toast: () => {}, entsperrt: () => true, demo: false };
+const antworten = new Map();   // Lauf-ID -> {zustand: "da"|"fehlt"|"rot", daten?, text?, erstellt}
+let laeufe = [];
+let laedt = false;
+let fehlerText = null;
+let geladen = false;
+const rueckgaengig = new Set();  // Hinweis-Nummern, für die „Rückgängig“ geschickt wurde
+let demoAntworten = null;
+
+function wegLesen() {
+  try { return localStorage.getItem(WEG_KEY) || ""; } catch { return ""; }
+}
+function wegSetzen(w) {
+  try { localStorage.setItem(WEG_KEY, w); } catch { /* egal */ }
+}
+/** für Einstellungen/Tests: welcher Weg in diesem Browser funktioniert ("artefakt", "zweig" oder "" = noch unbekannt) */
+export function weg() {
+  return wegLesen();
+}
+
+/** Frage als eine Zeile ohne Steuerzeichen, höchstens 500 Zeichen (Code-Punkte – wie die Cloud). */
+export function einzeilig(t) {
+  const s = Array.from(String(t ?? "")).map((c) => { const n = c.codePointAt(0); return n < 32 || n === 127 || n === 8232 || n === 8233 ? " " : c; }).join("").split(/\s+/).join(" ").trim();
+  return Array.from(s).slice(0, MAX_ZEICHEN).join("");
+}
+
+function tageText(t) {
+  if (t === 0) return "bis du ihn löschst";
+  if (t === 1) return "1 Tag";
+  return (Number.isInteger(t) ? t : 7) + " Tage";
+}
+
+function sauber(d) {
+  const o = d && typeof d === "object" ? d : {};
+  return {
+    zeit: typeof o.zeit === "string" ? o.zeit : null,
+    frage: typeof o.frage === "string" ? o.frage : "",
+    antwort: typeof o.antwort === "string" ? o.antwort : "",
+    hinweis_nr: Number.isInteger(o.hinweis_nr) ? o.hinweis_nr : null,
+    hinweis_tage: Number.isInteger(o.hinweis_tage) ? o.hinweis_tage : null,
+    art: typeof o.art === "string" ? o.art : "antwort",
+  };
+}
+
+// ------------------------------------------------------------------ Knopf und Blatt
+
+export function init(h0) {
+  hooks = Object.assign(hooks, h0);
+  $("ki-knopf").addEventListener("click", oeffnen);
+  $("ki-zu").addEventListener("click", schliessen);
+  $("ki-huelle").addEventListener("click", (e) => { if (e.target === $("ki-huelle")) schliessen(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("ki-huelle").hidden && $("dialog-huelle").hidden) schliessen();
+  });
+  $("ki-feld").addEventListener("input", zaehlerZeigen);
+  $("ki-feld").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); senden(); }
+  });
+  $("ki-senden").addEventListener("click", senden);
+}
+
+/** nach jedem Zeichnen der App: Knopf zeigen, wenn „frage“ laut handy.json erlaubt ist (oder Demo) */
+export function knopfZeigen(sichtbar) {
+  const darf = sichtbar && A.erlaubt("frage");
+  $("ki-knopf").hidden = !darf || !$("ki-huelle").hidden;
+  if (!darf && !$("ki-huelle").hidden) schliessen();
+}
+
+export function istOffen() {
+  return !$("ki-huelle").hidden;
+}
+
+export function oeffnen() {
+  if (!A.erlaubt("frage")) {
+    hooks.toast("„An die KI“ kommt mit dem nächsten Cloud-Lauf (die Cloud kennt den Modus noch nicht).");
+    return;
+  }
+  $("ki-huelle").hidden = false;
+  $("ki-knopf").hidden = true;
+  document.body.classList.add("blatt-offen");
+  zaehlerZeigen();
+  zeichnen();
+  laden();
+  setTimeout(() => $("ki-feld").focus(), 60);
+}
+
+export function schliessen() {
+  $("ki-huelle").hidden = true;
+  document.body.classList.remove("blatt-offen");
+  knopfZeigen(hooks.entsperrt());
+}
+
+/** beim Sperren/Abmelden: alles aus dem Arbeitsspeicher */
+export function vergessen() {
+  antworten.clear();
+  laeufe = [];
+  geladen = false;
+  fehlerText = null;
+  rueckgaengig.clear();
+  $("ki-feld").value = "";
+  $("ki-huelle").hidden = true;
+  $("ki-knopf").hidden = true;
+  document.body.classList.remove("blatt-offen");
+  leeren($("ki-antworten"));
+}
+
+function zaehlerZeigen() {
+  const n = Array.from($("ki-feld").value).length;
+  $("ki-zaehler").textContent = n + " / " + MAX_ZEICHEN;
+  $("ki-zaehler").classList.toggle("zu-lang", n > MAX_ZEICHEN);
+}
+
+function statusSetzen(text, art) {
+  const s = $("ki-status");
+  s.textContent = text || "";
+  s.className = "ki-status" + (art ? " " + art : "");
+  s.hidden = !text;
+}
+
+// ------------------------------------------------------------------ Senden
+
+export async function senden() {
+  const text = einzeilig($("ki-feld").value);
+  if (!text) { statusSetzen("Bitte eine Frage eintippen.", "fehler"); return; }
+  if (!A.erlaubt("frage")) { statusSetzen("Die Cloud kennt „An die KI“ noch nicht – kommt mit dem nächsten Cloud-Lauf.", "fehler"); return; }
+  if (!gh.istDemo() && A.laufendeAuftraege().some((a) => a.weg === "ki")) {
+    statusSetzen("Es läuft noch ein Auftrag – bitte warten, bis er fertig ist, dann noch einmal senden.", "fehler");
+    return;
+  }
+  const knopf = $("ki-senden");
+  knopf.disabled = true;
+  try {
+    // Ersatzweg anfordern, solange nicht feststeht, dass dieser Browser Artefakte laden kann
+    const praefix = wegLesen() === "artefakt" ? "" : await gh.frageZweigPraefix();
+    const best = praefix + text;
+    if (!A.passt("frage", best)) { statusSetzen("Die Frage passt nicht zum erlaubten Muster – nichts geschickt.", "fehler"); return; }
+    await A.senden("frage", best);
+    $("ki-feld").value = "";
+    zaehlerZeigen();
+    if (gh.istDemo()) statusSetzen("Demo: nichts gesendet – unten stehen Beispiel-Antworten.", "");
+  } catch (e) {
+    statusSetzen(e && e.message ? e.message : "Senden fehlgeschlagen.", "fehler");
+    return;
+  } finally {
+    knopf.disabled = false;
+  }
+  zeichnen();
+}
+
+/** Aufruf aus aktionen.js, wenn ein Auftrag fertig ist */
+export function auftragFertig(a) {
+  if (!a || a.modus !== "frage") return;
+  if (a.status === "erledigt") {
+    laden(true);
+    if (!istOffen()) hooks.toast("💬 Antwort da – tippe auf 💬");
+  }
+  zeichnen();
+}
+
+// ------------------------------------------------------------------ Antworten holen (nur Arbeitsspeicher)
+
+async function antwortHolen(lauf, zweigCache) {
+  let problem = null;
+  if (wegLesen() !== "zweig") {
+    try {
+      const d = await gh.frageArtefakt(lauf.id, ZIP.datei);
+      if (d) {
+        wegSetzen("artefakt");
+        return { daten: d };
+      }
+    } catch (e) {
+      if (e && e.art === "artefakt") wegSetzen("zweig");      // dieser Browser lädt keine Artefakte -> ab jetzt der Zweig
+      else problem = e;
+    }
+  }
+  try {
+    if (!zweigCache.liste) zweigCache.liste = await gh.frageZweig();
+    const e = zweigCache.liste.find((x) => x && String(x.lauf) === String(lauf.id));
+    if (e) return { daten: await gh.frageEntschluesseln(e) };
+  } catch (e) {
+    problem = problem || e;
+  }
+  return { problem };
+}
+
+export async function laden(erzwingen) {
+  if (gh.istDemo()) {
+    await demoLaden();
+    return;
+  }
+  if (laedt || (!erzwingen && !istOffen() && geladen)) return;
+  laedt = true;
+  zeichnen();
+  try {
+    laeufe = await gh.frageLaeufe();
+    fehlerText = null;
+    const zweigCache = { liste: null };
+    for (const l of laeufe) {
+      const alt = antworten.get(l.id);
+      if (l.status !== "completed" || (alt && alt.zustand === "da")) continue;
+      if (l.ergebnis !== "success") {
+        antworten.set(l.id, { zustand: "rot", erstellt: l.erstellt, text: "Dieser Lauf ist fehlgeschlagen – keine Antwort. Bitte noch einmal fragen." });
+        continue;
+      }
+      const r = await antwortHolen(l, zweigCache);
+      antworten.set(l.id, r.daten ? { zustand: "da", daten: sauber(r.daten), erstellt: l.erstellt }
+        : { zustand: "fehlt", erstellt: l.erstellt, text: "Antwort nicht abrufbar" + (r.problem && r.problem.message ? " (" + r.problem.message + ")" : "") + "." });
+    }
+    const ids = new Set(laeufe.map((l) => l.id));
+    for (const id of [...antworten.keys()]) if (!ids.has(id)) antworten.delete(id);
+    geladen = true;
+  } catch (e) {
+    fehlerText = e && e.message ? e.message : "Antworten nicht lesbar.";
+  } finally {
+    laedt = false;
+    zeichnen();
+  }
+}
+
+async function demoLaden() {
+  if (demoAntworten) { zeichnen(); return; }
+  try {
+    const r = await fetch("demo/ki_antworten.json", { cache: "no-store" });
+    const d = await r.json();
+    demoAntworten = (d.antworten || []).map((x, i) => ({
+      id: "demo-" + i, zustand: "da", erstellt: new Date(Date.now() - (x.vor_min || 0) * 60000).toISOString(),
+      daten: sauber(Object.assign({}, x, { zeit: new Date(Date.now() - (x.vor_min || 0) * 60000).toISOString() })),
+    }));
+  } catch {
+    demoAntworten = [];
+  }
+  zeichnen();
+}
+
+// ------------------------------------------------------------------ Zeichnen
+
+function letzterAuftrag() {
+  return A.auftragsListe().filter((a) => a.modus === "frage").sort((x, y) => y.zeit - x.zeit)[0] || null;
+}
+
+function statusAusAuftrag() {
+  const a = letzterAuftrag();
+  if (!a) return null;
+  const e = a.runId ? antworten.get(a.runId) : null;
+  const da = !!e && e.zustand === "da";
+  if (a.status === "erledigt" && e && !da) return ["✗ Antwort nicht abrufbar – siehe unten.", "fehler"];
+  switch (a.status) {
+    case "gesendet": return ["⏳ Frage gesendet – wartet auf GitHub …", "laeuft"];
+    case "angekommen": return ["⏳ Frage angekommen – wartet in der Cloud …", "laeuft"];
+    case "laeuft": return ["▶ Die KI denkt nach …", "laeuft"];
+    case "erledigt": return [da ? "✓ Antwort da (unten)" : "✓ Fertig – Antwort wird geholt …", "gut"];
+    case "fehlgeschlagen": return ["✗ Der Lauf ist fehlgeschlagen – bitte noch einmal fragen.", "fehler"];
+    case "verloren": return ["✗ Nicht angekommen – bitte noch einmal senden.", "fehler"];
+    default: return null;
+  }
+}
+
+function eintragZeigen(id, e) {
+  if (e.zustand !== "da") {
+    return h("li", { class: "ki-eintrag fehlt", "data-lauf": String(id) },
+      h("div", { class: "ki-antwort-text" }, e.text || "Keine Antwort."), h("div", { class: "unter" }, F.vor(e.erstellt)));
+  }
+  const d = e.daten;
+  const nr = d.hinweis_nr;
+  let hinweis = null;
+  if (Number.isInteger(nr)) {
+    const weg = rueckgaengig.has(nr);
+    hinweis = h("div", { class: "ki-hinweis" }, "📌 Als Hinweis gemerkt (" + tageText(d.hinweis_tage) + ") · ",
+      weg ? h("span", { class: "gedimmt" }, "Rückgängig geschickt")
+        : h("button", { type: "button", class: "knopf-text", "data-rueckgaengig": String(nr), onclick: () => hinweisZurueck(nr) }, "Rückgängig"));
+  }
+  return h("li", { class: "ki-eintrag" + (d.art !== "antwort" ? " " + d.art : ""), "data-lauf": String(id) },
+    d.frage ? h("div", { class: "ki-frage-text" }, d.frage) : null,
+    h("div", { class: "ki-antwort-text" }, d.antwort || "–"),
+    hinweis,
+    h("div", { class: "unter" }, F.vor(d.zeit || e.erstellt) + " · " + F.zeit(d.zeit || e.erstellt)));
+}
+
+async function hinweisZurueck(nr) {
+  if (!A.erlaubt("hinweis_loeschen")) { hooks.toast("Hinweis löschen ist gerade nicht erlaubt."); return; }
+  if (!gh.istDemo() && A.laufendeAuftraege().some((a) => a.weg === "ki")) {
+    hooks.toast("Es läuft noch ein Auftrag – „Rückgängig“ bitte gleich noch einmal tippen.");
+    return;
+  }
+  try {
+    await A.senden("hinweis_loeschen", String(nr));
+    rueckgaengig.add(nr);
+  } catch (e) {
+    hooks.toast(e && e.message ? e.message : "Nicht gesendet.");
+  }
+  zeichnen();
+}
+
+export function zeichnen() {
+  if ($("ki-huelle").hidden) return;
+  const st = statusAusAuftrag();
+  if (st) statusSetzen(st[0], st[1]);
+  else if ($("ki-status").classList.contains("laeuft") || $("ki-status").classList.contains("gut")) statusSetzen("");
+  const box = leeren($("ki-antworten"));
+  const liste = gh.istDemo() ? (demoAntworten || []).map((e) => [e.id, e])
+    : [...antworten.entries()].filter(([, e]) => Date.now() - (F.datum(e.erstellt) || new Date()).getTime() < AUFBEWAHREN_MS);
+  liste.sort((x, y) => (F.datum(y[1].erstellt) || 0) - (F.datum(x[1].erstellt) || 0));
+  const kopf = h("div", { class: "ki-liste-kopf" }, h("h3", null, "Antworten der letzten 24 Stunden"),
+    laedt ? h("span", { class: "klein gedimmt" }, "lädt …") : null);
+  box.appendChild(kopf);
+  if (fehlerText) box.appendChild(h("p", { class: "fehlerteil" }, fehlerText));
+  const offen = laeufe.filter((l) => l.status !== "completed").length;
+  if (offen) box.appendChild(h("p", { class: "klein gedimmt" }, offen === 1 ? "Eine Frage ist noch in Arbeit." : offen + " Fragen sind noch in Arbeit."));
+  if (!liste.length) box.appendChild(h("p", { class: "leer" }, laedt ? "Antworten werden geholt …" : "Noch keine Antworten in den letzten 24 Stunden."));
+  else box.appendChild(h("ul", { class: "liste ki-liste" }, liste.map(([id, e]) => eintragZeigen(id, e))));
+  const akt = leeren($("ki-aktionen"));
+  const loeschen = A.knopf("hinweis_loeschen", "Hinweis löschen", "leise klein");
+  if (loeschen) akt.appendChild(loeschen);
+  akt.appendChild(h("p", { class: "klein gedimmt" }, "Fragen und Antworten bleiben nicht am iPhone; in der Cloud verschwinden sie nach 24 Stunden."));
+}

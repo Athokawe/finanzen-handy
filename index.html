@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.github.com; font-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.github.com https://productionresultssa0.blob.core.windows.net https://productionresultssa1.blob.core.windows.net https://productionresultssa2.blob.core.windows.net https://productionresultssa3.blob.core.windows.net https://productionresultssa4.blob.core.windows.net https://productionresultssa5.blob.core.windows.net https://productionresultssa6.blob.core.windows.net https://productionresultssa7.blob.core.windows.net https://productionresultssa8.blob.core.windows.net https://productionresultssa9.blob.core.windows.net https://productionresultssa10.blob.core.windows.net https://productionresultssa11.blob.core.windows.net https://productionresultssa12.blob.core.windows.net https://productionresultssa13.blob.core.windows.net https://productionresultssa14.blob.core.windows.net https://productionresultssa15.blob.core.windows.net https://productionresultssa16.blob.core.windows.net https://productionresultssa17.blob.core.windows.net https://productionresultssa18.blob.core.windows.net https://productionresultssa19.blob.core.windows.net; font-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
@@ -124,7 +124,32 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9h10M7 13h10M7 17h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       <span>News</span></button>
   </nav>
+
+  <!-- „An die KI“ (1.2.0): schwebender Knopf, über der Reiter-Leiste mit dem Daumen erreichbar -->
+  <button id="ki-knopf" class="ki-fab" type="button" aria-label="An die KI" hidden><span aria-hidden="true">💬</span></button>
 </section>
+
+<!-- Eingabe-Blatt „An die KI“ (Inhalt der Antworten baut js/kifrage.js nur als Text) -->
+<div id="ki-huelle" class="blatt-huelle" hidden>
+  <div id="ki-blatt" class="blatt" role="dialog" aria-modal="true" aria-labelledby="ki-titel">
+    <div class="blatt-kopf">
+      <h2 id="ki-titel">An die KI</h2>
+      <button id="ki-zu" class="rund" type="button" aria-label="Schließen">✕</button>
+    </div>
+    <p class="klein gedimmt">Frag zu deinem Stand oder sag, was der Bot wissen soll. Die KI erklärt nur – sie kann nie kaufen, verkaufen
+      oder etwas schalten. Höchstens 10 Fragen in 24 Stunden.</p>
+    <label for="ki-feld" class="feld-label">Deine Frage</label>
+    <textarea id="ki-feld" rows="3" maxlength="500" autocomplete="off" enterkeyhint="send"
+              placeholder="z. B. Warum hat der Coin-Bot heute geparkt?"></textarea>
+    <div class="ki-zeile">
+      <span id="ki-zaehler" class="klein gedimmt">0 / 500</span>
+      <button id="ki-senden" class="knopf primaer" type="button">Senden</button>
+    </div>
+    <p id="ki-status" class="ki-status" role="status" hidden></p>
+    <div id="ki-antworten"></div>
+    <div id="ki-aktionen" class="ki-aktionen"></div>
+  </div>
+</div>
 
 <!-- Dialog (Bestätigung, JA, Formular) -->
 <div id="dialog-huelle" class="dialog-huelle" hidden>
