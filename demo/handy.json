@@ -24,6 +24,8 @@
   "anteil_aktien_prozent": 6.5,
   "anteil_reserve_prozent": 0.0,
   "vollstaendig": true,
+  "coin_topf_geschaetzt": false,
+  "unvollstaendig_grund": null,
   "zeit": "2026-10-09T19:20:00+00:00",
   "coin_topf_zeit": "2026-10-11T06:20:00+00:00",
   "aktien_zeit": "2026-10-09T19:20:00+00:00",

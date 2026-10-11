@@ -16,6 +16,11 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
   und Tiefst. Zusätzliche Linien „Trend-Topf“ / „Raster-Topf“, sobald der Zeitraum echte Werte hat.
 * Ältere Cloud ohne die neuen Felder: die App rechnet die echten Bot-Töpfe nach derselben Regel aus `trend_bot`/`raster_bot`
   dazu (die Aktien-Reserve fehlt dann – Hinweis „ohne Aktien-Reserve“).
+* **Umbuchung im selben Lauf:** hat ein Bot nach dem Bilanz-Punkt Geld aus dem Coin-Topf geholt oder zurückgegeben (z. B.
+  „Alles parken“), meldet die Cloud `vollstaendig: false` mit Grund – die Karte zeigt „unvollständig (Umbuchung – Coin-Topf folgt
+  im nächsten Lauf)“ und „Coin-Topf (geschätzt)“, der Verlauf eine Lücke statt einer Spitze bzw. eines Knicks.
+* **„ohne freies Euro-Guthaben“** unter der Summe: frisch eingezahltes Euro zählt erst, wenn es investiert ist – die
+  Laptop-Übersicht zählt es sofort mit und zeigt nach einer Einzahlung daher mehr.
 
 ## Neu in 1.2.2
 

@@ -279,11 +279,23 @@ function gesamtKarte(d, Z) {
     h("div", { class: "karte-kopf" }, h("h2", null, "Gesamtvermögen"), h("span", { class: "klein gedimmt" }, "Coin-Topf + Bots + Aktien & ETFs")),
     h("div", { class: "gross", id: "gesamt-wert" }, F.euro(g.gesamt_eur)),
     balken,
-    zeilen(teile.map((t) => [h("span", { "data-teil": t.k }, h("span", { class: "punkt " + t.k }), " " + t.name),
+    zeilen(teile.map((t) => [h("span", { "data-teil": t.k }, h("span", { class: "punkt " + t.k }),
+      " " + t.name + (t.k === "coin" && g.coin_topf_geschaetzt === true ? " (geschätzt)" : "")),
       F.euro(t.v) + (t.a !== null ? " · " + F.prozent(t.a, 1, false) : "")])),
-    h("p", { class: "klein gedimmt", id: "gesamt-stand" }, "Stand " + F.zeit(g.zeit)
-      + (g.vollstaendig === false ? " · unvollständig (ein Teil ist gerade nicht lesbar)" : "") + (g.ohne_reserve ? " · ohne Aktien-Reserve" : "")),
+    h("p", { class: "klein gedimmt", id: "gesamt-stand" }, "Stand " + F.zeit(g.zeit) + gesamtVermerk(g)),
     gesamtStatistik(Z));
+}
+
+/**
+ * Vermerke unter dem Gesamtvermögen: unvollständig (Grund der Cloud, z. B. „Umbuchung – Coin-Topf folgt im nächsten Lauf“: zwischen
+ * Bilanz-Punkt und Bot-Topf wurde umgebucht, der Coin-Topf ist geschätzt), ohne Aktien-Reserve (ältere Cloud) und immer „ohne freies
+ * Euro-Guthaben“ – frisch eingezahltes Euro zählt erst, wenn es investiert ist (die Laptop-Übersicht zählt es sofort mit).
+ */
+function gesamtVermerk(g) {
+  const grund = typeof g.unvollstaendig_grund === "string" && g.unvollstaendig_grund.trim()
+    ? g.unvollstaendig_grund.trim().slice(0, 80) : "ein Teil ist gerade nicht lesbar";
+  return (g.vollstaendig === false ? " · unvollständig (" + grund + ")" : "") + (g.ohne_reserve ? " · ohne Aktien-Reserve" : "")
+    + " · ohne freies Euro-Guthaben";
 }
 
 /** „Alles parken“ (groß, rot) und „Nur anhalten“ (klein) mit Erklärtexten */
