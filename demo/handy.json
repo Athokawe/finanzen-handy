@@ -8,8 +8,20 @@
   "ausloeser": "wecker",
   "ergebnis": "success"
  },
+ "gesamt": {
+  "name": "Gesamtvermögen",
+  "gesamt_eur": 1334.56,
+  "coin_topf_eur": 1234.56,
+  "aktien_eur": 100.0,
+  "anteil_coin_topf_prozent": 92.5,
+  "anteil_aktien_prozent": 7.5,
+  "vollstaendig": true,
+  "zeit": "2026-10-09T19:20:00+00:00",
+  "coin_topf_zeit": "2026-10-11T06:20:00+00:00",
+  "aktien_zeit": "2026-10-09T19:20:00+00:00"
+ },
  "kern_bot": {
-  "name": "Kern-Bot",
+  "name": "Coin-Bot",
   "an": true,
   "regelwerk_an": true,
   "euro_automatik": true,
@@ -19,7 +31,7 @@
   "stufe_quelle": "Nutzer",
   "position": "BTC",
   "geparkt": false,
-  "topf_name": "Kern-Topf",
+  "topf_name": "Coin-Topf",
   "wert_eur": 1234.56,
   "wert_zeit": "2026-10-11T06:20:00+00:00",
   "bitcoin_kurs_eur": 70000.0,
@@ -28,7 +40,7 @@
    "zeit": "2026-10-11T04:31:00+00:00",
    "entscheidung": "halten",
    "zuversicht": 66,
-   "einfach_erklaert": "Beispiel: Bitcoin bewegt sich seit Tagen seitwärts. Es gibt keinen guten Grund zu wechseln, also bleibt der Kern-Topf in Bitcoin.",
+   "einfach_erklaert": "Beispiel: Bitcoin bewegt sich seit Tagen seitwärts. Es gibt keinen guten Grund zu wechseln, also bleibt der Coin-Topf in Bitcoin.",
    "lage": "Beispiel-Lage: ruhiger Markt, keine großen Nachrichten.",
    "stufe_empfehlung": "normal",
    "status": "nicht gehandelt: Entscheidung: halten",
@@ -238,13 +250,14 @@
   "sparmodus": false
  },
  "bilanz": {
-  "text": "Beispiel: Kern-Bot 1.234,56 € vs. Halten 1.220,00 € → +1,19 % seit Start",
+  "text": "Beispiel: Coin-Bot 1.234,56 € vs. Halten 1.220,00 € → +1,19 % seit Start",
   "kern_bot_eur": 1234.56,
   "halten_eur": 1220.0,
   "seit_start_prozent": 1.19,
   "letzte_30_tage_pp": 0.42,
   "tage_seit_start": 15.8,
-  "zeit": "2026-10-11T06:20:00+00:00"
+  "zeit": "2026-10-11T06:20:00+00:00",
+  "name": "Coin-Bot gegen „Bitcoin halten“ seit Start"
  },
  "modi": [
   {
@@ -252,224 +265,297 @@
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "frische KI-Einschätzung des Kern-Bots, nur Mail"
+   "text": "frische KI-Einschätzung des Coin-Bots, nur Mail",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "bericht_jetzt",
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "frische Einschätzung + Bericht per Mail, nie Handel"
+   "text": "frische Einschätzung + Bericht per Mail, nie Handel",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "news_jetzt",
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "Schlagzeilen + KI-Zusammenfassung neu holen (cloud/news.json), höchstens alle 30 min"
+   "text": "Schlagzeilen + KI-Zusammenfassung neu holen (cloud/news.json), höchstens alle 30 min",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "start",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Kern-Bot EIN"
+   "text": "Coin-Bot EIN",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "allesstopp",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Alles parken: Coin-Topf, Raster- und Trend-Bot in EURCV verkaufen und ausschalten (Aktien bleiben)",
+   "express": true,
+   "express_bestaetigung": "JA"
+  },
+  {
+   "modus": "anhalten",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "Nur anhalten: Coin-Bot, Regelwerk aus; Raster- und Trend-Bot pausiert – nichts wird verkauft",
+   "express": true,
+   "express_bestaetigung": ""
   },
   {
    "modus": "stopp",
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "Kern-Bot AUS"
-  },
-  {
-   "modus": "allesstopp",
-   "bestaetigung": "",
-   "ja_noetig": false,
-   "beispiel": "",
-   "text": "Alles stoppen: Kern-Bot, Regelwerk, Aktien-Autopilot aus; Raster- und Trend-Bot pausiert"
+   "text": "Coin-Bot AUS (nur die KI – das Regelwerk mit Notbremse schützt weiter)",
+   "express": true,
+   "express_bestaetigung": ""
   },
   {
    "modus": "regelwerk_ein",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Regelwerk ohne KI EIN"
+   "text": "Regelwerk ohne KI EIN",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "euro_ein",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Euro-Automatik EIN"
+   "text": "Euro-Automatik EIN",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "euro_aus",
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "Euro-Automatik AUS"
+   "text": "Euro-Automatik AUS",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "einstellung",
    "bestaetigung": "JA(;(stufe=(sicher|normal)|auto=[01]|streuung=(aus|kern_satellit|korb)|kern=\\d{2}|ab=\\d{3,6}|korb=[2-8]))+",
    "ja_noetig": true,
    "beispiel": "JA;stufe=normal;auto=1",
-   "text": "Stufe des Kern-Bots (sicher/normal), Automatik, Streuung"
+   "text": "Stufe des Coin-Bots (sicher/normal), Automatik, Streuung",
+   "express": true,
+   "express_bestaetigung": "JA;stufe=sicher(;auto=0)?"
   },
   {
    "modus": "gewinnschutz_ein",
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "Gewinnschutz Krypto EIN"
+   "text": "Gewinnschutz Krypto EIN",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "gewinnschutz_aus",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Gewinnschutz Krypto AUS"
+   "text": "Gewinnschutz Krypto AUS",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "gewinnschutz_aktien_ein",
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "Gewinnschutz Aktien/ETF EIN"
+   "text": "Gewinnschutz Aktien/ETF EIN",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "gewinnschutz_aktien_aus",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Gewinnschutz Aktien/ETF AUS"
+   "text": "Gewinnschutz Aktien/ETF AUS",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "aktien_start",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Aktien-Autopilot EIN"
+   "text": "Aktien-Autopilot EIN",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "aktien_stopp",
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "Aktien-Autopilot AUS"
+   "text": "Aktien-Autopilot AUS",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "surfen_ein",
    "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
    "ja_noetig": true,
    "beispiel": "JA;betrag=200",
-   "text": "Raster-Bot EIN mit Betrag aus dem Kern-Topf"
+   "text": "Raster-Bot EIN mit Betrag aus dem Coin-Topf",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "surfen_betrag",
    "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
    "ja_noetig": true,
    "beispiel": "JA;betrag=250",
-   "text": "Raster-Topf ändern"
+   "text": "Raster-Topf ändern",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "surfen_zurueck",
    "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)(;sofort=JA)?",
    "ja_noetig": true,
    "beispiel": "JA;betrag=50",
-   "text": "Teil zurück in den Kern-Topf (;sofort=JA = auch mit Verlust)"
+   "text": "Teil zurück in den Coin-Topf (;sofort=JA = auch mit Verlust)",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "surfen_aus",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Raster-Bot AUS (alles zurück in den Kern-Topf)"
+   "text": "Raster-Bot AUS (alles zurück in den Coin-Topf)",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "surfen_pause",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Raster-Bot pausieren"
+   "text": "Raster-Bot pausieren",
+   "express": true,
+   "express_bestaetigung": "JA"
   },
   {
    "modus": "surfen_deckel",
    "bestaetigung": "JA;prozent=(\\d{1,2})",
    "ja_noetig": true,
    "beispiel": "JA;prozent=30",
-   "text": "Verlustdeckel (0 = keiner, sonst 10..60 %)"
+   "text": "Verlustdeckel (0 = keiner, sonst 10..60 %)",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "surfen_recherchen",
    "bestaetigung": "JA;anzahl=([1-4])",
    "ja_noetig": true,
    "beispiel": "JA;anzahl=2",
-   "text": "feste Raster-Recherchen je Tag (1..4)"
+   "text": "feste Raster-Recherchen je Tag (1..4)",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "trend_ein",
    "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
    "ja_noetig": true,
    "beispiel": "JA;betrag=200",
-   "text": "Trend-Bot EIN mit Betrag aus dem Kern-Topf (mindestens 150 €)"
+   "text": "Trend-Bot EIN mit Betrag aus dem Coin-Topf (mindestens 150 €)",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "trend_betrag",
    "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
    "ja_noetig": true,
    "beispiel": "JA;betrag=250",
-   "text": "Trend-Topf ändern"
+   "text": "Trend-Topf ändern",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "trend_zurueck",
    "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
    "ja_noetig": true,
    "beispiel": "JA;betrag=50",
-   "text": "Teil zurück in den Kern-Topf"
+   "text": "Teil zurück in den Coin-Topf",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "trend_aus",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Trend-Bot AUS"
+   "text": "Trend-Bot AUS",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "trend_pause",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Trend-Bot pausieren"
+   "text": "Trend-Bot pausieren",
+   "express": true,
+   "express_bestaetigung": "JA"
   },
   {
    "modus": "trend_deckel",
    "bestaetigung": "JA;prozent=(\\d{1,2})",
    "ja_noetig": true,
    "beispiel": "JA;prozent=30",
-   "text": "Verlustdeckel (0 = keiner, sonst 10..60 %)"
+   "text": "Verlustdeckel (0 = keiner, sonst 10..60 %)",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "hinweis",
    "bestaetigung": "app:(1|3|7|0)\\|.{1,300}",
    "ja_noetig": false,
    "beispiel": "app:7|SOL hat am Freitag ein Upgrade",
-   "text": "Hinweis an den Bot/die KI (ohne JA, nur Text; Zahl = Gültigkeit 1/3/7 Tage, 0 = bis zum Löschen)"
+   "text": "Hinweis an den Bot/die KI (ohne JA, nur Text; Zahl = Gültigkeit 1/3/7 Tage, 0 = bis zum Löschen)",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "hinweis_loeschen",
    "bestaetigung": "\\d{1,6}",
    "ja_noetig": false,
    "beispiel": "3",
-   "text": "Hinweis Nr. … löschen"
+   "text": "Hinweis Nr. … löschen",
+   "express": false,
+   "express_bestaetigung": null
   },
   {
    "modus": "push_abo",
    "bestaetigung": "(\\{.*\\}|loeschen:[0-9a-f]{16})",
    "ja_noetig": false,
    "beispiel": "{\"endpoint\":\"https://web.push.apple.com/…\",\"keys\":{\"p256dh\":\"…\",\"auth\":\"…\"}}",
-   "text": "Web-Push-Abo speichern (JSON des Abos) oder löschen (loeschen:<Hash>), ohne JA"
+   "text": "Web-Push-Abo speichern (JSON des Abos) oder löschen (loeschen:<Hash>), ohne JA",
+   "express": false,
+   "express_bestaetigung": null
   }
  ],
  "push": {

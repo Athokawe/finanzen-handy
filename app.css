@@ -1,53 +1,37 @@
-/* Finanzen – Handy-Ansicht. Ruhig, gut lesbar, große Zahlen; Hell/Dunkel nach System. */
+/* Finanzen – Handy-Ansicht. Look der Laptop-App (1.1.0): IMMER dunkel (Bitpanda-Art) – fast schwarz, dunkle Karten mit feinem
+   Rand, große Zahlen, grüner Akzent, Pillen-Knöpfe. Farben wie static/style.css der Laptop-App (:root). */
 :root {
-  --bg: #f6f3ef;
-  --karte: #fffdfa;
-  --karte2: #f0ebe4;
-  --rand: #e4ddd4;
-  --text: #1c1b1a;
-  --gedimmt: #6b6560;
-  --akzent: #b5562f;
-  --akzent-text: #ffffff;
-  --gruen: #2f8a4c;
-  --gelb: #b88a12;
-  --rot: #c0392b;
+  --bg: #0b0b0c;
+  --karte: #141416;
+  --karte2: #1f1f22;
+  --tief: #0f0f10;
+  --rand: #262629;
+  --text: #f5f5f5;
+  --gedimmt: #9a9aa0;
+  --akzent: #22c55e;
+  --akzent-text: #04130a;
+  --gruen: #22c55e;
+  --gruen-hell: #4ade80;
+  --gelb: #f5c542;
+  --rot: #ef4444;
+  --rot-hell: #f87171;
   --gefahr-text: #ffffff;
-  --rot-bg: #fbe9e6;
-  --gelb-bg: #fbf3dc;
-  --gruen-bg: #e6f3ea;
-  --schatten: 0 1px 2px rgba(40, 30, 20, .06), 0 4px 14px rgba(40, 30, 20, .05);
+  --rot-bg: #2a1214;
+  --gelb-bg: #2b2412;
+  --gruen-bg: #113a26;
+  --schatten: none;
   --oben: env(safe-area-inset-top, 0px);
   --unten: env(safe-area-inset-bottom, 0px);
   --links: env(safe-area-inset-left, 0px);
   --rechts: env(safe-area-inset-right, 0px);
-  color-scheme: light dark;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161514;
-    --karte: #211f1d;
-    --karte2: #2a2724;
-    --rand: #36322e;
-    --text: #f0ece6;
-    --gedimmt: #a39c94;
-    --akzent: #d97757;
-    --akzent-text: #1c1310;
-    --gruen: #4fbf73;
-    --gelb: #e2b53a;
-    --rot: #ef6b5b;
-    --gefahr-text: #1c1310;
-    --rot-bg: #3a1f1b;
-    --gelb-bg: #352c16;
-    --gruen-bg: #1a3022;
-    --schatten: none;
-  }
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
 body {
-  font: 17px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font: 17px/1.45 -apple-system, BlinkMacSystemFont, Inter, "Segoe UI", system-ui, sans-serif;
   min-height: 100vh;
   min-height: 100dvh;
   overscroll-behavior-y: none;
@@ -56,8 +40,8 @@ body {
 a { color: var(--akzent); }
 b { font-weight: 600; }
 code { font: 15px ui-monospace, "SF Mono", Menlo, Consolas, monospace; background: var(--karte2); padding: 1px 5px; border-radius: 5px; }
-h1 { font-size: 28px; line-height: 1.15; margin: 0; letter-spacing: -.01em; }
-h2 { font-size: 20px; margin: 0 0 8px; }
+h1 { font-size: 28px; line-height: 1.15; margin: 0; letter-spacing: -.01em; font-weight: 700; }
+h2 { font-size: 19px; margin: 0 0 8px; font-weight: 600; color: var(--text); }
 h3 { font-size: 15px; margin: 18px 0 6px; color: var(--gedimmt); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 p { margin: 8px 0; }
 .gedimmt { color: var(--gedimmt); }
@@ -78,8 +62,8 @@ p { margin: 8px 0; }
 .anleitung ul { padding-left: 18px; margin: 4px 0; }
 .feld-label { display: block; font-weight: 600; margin: 12px 0 6px; }
 input[type=password], input[type=text], input[type=number], textarea, select {
-  width: 100%; font: inherit; font-size: 17px; color: var(--text); background: var(--karte);
-  border: 1px solid var(--rand); border-radius: 12px; padding: 12px 14px; outline: none; -webkit-appearance: none; appearance: none;
+  width: 100%; font: inherit; font-size: 17px; color: var(--text); background: var(--tief);
+  border: 1px solid var(--rand); border-radius: 10px; padding: 12px 14px; outline: none; -webkit-appearance: none; appearance: none;
 }
 textarea { min-height: 96px; resize: vertical; }
 select { background-image: linear-gradient(45deg, transparent 50%, var(--gedimmt) 50%), linear-gradient(135deg, var(--gedimmt) 50%, transparent 50%);
@@ -93,23 +77,26 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 /* ---------- Knöpfe ---------- */
 .knopf {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 48px; padding: 10px 18px; border-radius: 14px; border: 1px solid var(--rand);
-  background: var(--karte); color: var(--text); font: inherit; font-weight: 600; font-size: 16px; text-decoration: none;
+  min-height: 48px; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--rand);
+  background: var(--karte2); color: var(--text); font: inherit; font-weight: 600; font-size: 16px; text-decoration: none;
   cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
-.knopf:active { transform: scale(.98); opacity: .85; }
+.knopf:active { transform: scale(.97); filter: brightness(1.4); }
 .knopf:disabled { opacity: .45; cursor: not-allowed; }
 .knopf.voll { width: 100%; margin: 10px 0 0; }
 .knopf.primaer { background: var(--akzent); border-color: var(--akzent); color: var(--akzent-text); }
-.knopf.leise { background: transparent; border-color: transparent; color: var(--akzent); }
+.knopf.leise { background: transparent; border-color: transparent; color: var(--gedimmt); }
 .knopf.gefahr { background: var(--rot); border-color: var(--rot); color: var(--gefahr-text); }
-.knopf.gefahr-rand { color: var(--rot); border-color: color-mix(in srgb, var(--rot) 45%, var(--rand)); }
+.knopf.gefahr-rand { color: var(--rot-hell); background: transparent; border-color: color-mix(in srgb, var(--rot) 55%, var(--rand)); }
 .knopf.link::after { content: "↗"; font-weight: 400; opacity: .7; }
 .knopf-reihe { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 0; }
 .knopf-reihe.eins { grid-template-columns: 1fr; }
 .knopf-reihe .knopf { width: 100%; }
-.stopp-knopf { width: 100%; min-height: 56px; font-size: 18px; margin: 4px 0 14px; }
-.rund { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--rand); background: var(--karte); color: var(--text);
+.stopp-knopf { width: 100%; min-height: 58px; font-size: 19px; margin: 2px 0 4px; letter-spacing: .01em; }
+.park-knoepfe { margin: 0 0 14px; }
+.park-knoepfe .anhalten-knopf { width: 100%; min-height: 42px; font-size: 15px; margin-top: 4px; }
+.erklaer-text { font-size: 13px; color: var(--gedimmt); margin: 4px 4px 8px; line-height: 1.35; }
+.rund { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--rand); background: var(--karte2); color: var(--text);
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .rund:active { opacity: .7; }
 .rund.dreht svg { animation: drehen 1s linear infinite; }
@@ -131,27 +118,32 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .meldung.gut { background: var(--gruen-bg); border-color: color-mix(in srgb, var(--gruen) 35%, transparent); }
 .meldung.info { background: var(--karte2); border-color: var(--rand); }
 .meldung, .auftrag-band { margin-left: max(16px, calc(50% - 320px)); margin-right: max(16px, calc(50% - 320px)); }
-.auftrag-band { margin-top: 10px; padding: 10px 14px; border-radius: 12px; background: var(--karte2); font-size: 15px; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
-.auftrag-band .knopf { min-height: 36px; padding: 4px 12px; font-size: 14px; }
+.auftrag-band { margin-top: 10px; padding: 8px 12px; border-radius: 14px; background: var(--karte); border: 1px solid var(--rand); font-size: 14px; }
+.auftrag-zeile { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 4px 0; }
+.auftrag-zeile + .auftrag-zeile { border-top: 1px solid var(--rand); }
+.auftrag-zeile.erledigt { color: var(--gruen-hell); }
+.auftrag-zeile.fehlgeschlagen, .auftrag-zeile.verloren { color: var(--rot-hell); font-weight: 600; }
+.auftrag-band .knopf { min-height: 34px; padding: 4px 12px; font-size: 13px; white-space: nowrap; }
 
-.reiter-leiste { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: grid; grid-template-columns: repeat(5, 1fr);
-  background: color-mix(in srgb, var(--karte) 92%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
+.reiter-leiste { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px;
+  background: color-mix(in srgb, var(--bg) 94%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
   border-top: 1px solid var(--rand); padding: 4px calc(4px + var(--rechts)) calc(4px + var(--unten)) calc(4px + var(--links)); }
 .reiter { background: none; border: 0; color: var(--gedimmt); font: inherit; font-size: 11px; font-weight: 500; display: flex; flex-direction: column;
   align-items: center; gap: 2px; padding: 6px 0 4px; min-height: 52px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .reiter svg { width: 26px; height: 26px; }
-.reiter.aktiv { color: var(--akzent); }
+.reiter { border-radius: 14px; }
+.reiter.aktiv { color: #f5f5f5; background: var(--karte2); font-weight: 700; }
 
 /* ---------- Karten ---------- */
-.karte { background: var(--karte); border: 1px solid var(--rand); border-radius: 18px; padding: 16px; margin: 0 0 14px; box-shadow: var(--schatten); }
+.karte { background: var(--karte); border: 1px solid var(--rand); border-radius: 16px; padding: 16px; margin: 0 0 14px; box-shadow: var(--schatten); }
 .karte > h2:first-child, .karte > .karte-kopf:first-child { margin-top: 0; }
 .karte-kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .karte-kopf h2 { margin: 0; }
-.gross { font-size: 40px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 4px 0; font-variant-numeric: tabular-nums; }
+.gross { font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin: 4px 0; font-variant-numeric: tabular-nums; }
 .mittel { font-size: 26px; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .zahl { font-variant-numeric: tabular-nums; }
-.plus { color: var(--gruen); }
-.minus { color: var(--rot); }
+.plus { color: var(--gruen-hell); }
+.minus { color: var(--rot-hell); }
 .zeilen { margin: 8px 0 0; }
 .zeile { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-top: 1px solid var(--rand); }
 .zeile:first-child { border-top: 0; }
@@ -159,15 +151,15 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .zeile .r { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
 .etikett { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 14px; font-weight: 600;
   background: var(--karte2); color: var(--text); white-space: nowrap; }
-.etikett.an { background: var(--gruen-bg); color: var(--gruen); }
-.etikett.aus { background: var(--karte2); color: var(--gedimmt); }
+.etikett.an { background: var(--gruen-bg); color: var(--gruen-hell); }
+.etikett.aus { background: #2a2a2e; color: #d4d4d8; }
 .etikett.pausiert, .etikett.gelb { background: var(--gelb-bg); color: var(--gelb); }
 .etikett.rot { background: var(--rot-bg); color: var(--rot); }
 .etikett.gruen { background: var(--gruen-bg); color: var(--gruen); }
 .punkt { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: var(--gedimmt); }
 .punkt.gruen { background: var(--gruen); } .punkt.gelb { background: var(--gelb); } .punkt.rot { background: var(--rot); }
-.erklaert { background: var(--karte2); border-radius: 14px; padding: 12px 14px; margin: 12px 0 0; }
-.erklaert .label { display: block; font-size: 13px; font-weight: 700; color: var(--akzent); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.erklaert { background: #101c14; border-left: 3px solid var(--gruen); border-radius: 12px; padding: 12px 14px; margin: 12px 0 0; }
+.erklaert .label { display: block; font-size: 13px; font-weight: 700; color: var(--gruen-hell); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
 .hinweis-schatten { font-size: 14px; color: var(--gedimmt); margin-top: 8px; }
 .fehlerteil { color: var(--rot); font-size: 15px; }
 .leer { color: var(--gedimmt); font-style: italic; }
@@ -193,8 +185,8 @@ a.news-link .titel::after { content: " ↗"; color: var(--akzent); font-weight: 
 .rubrik-text { white-space: pre-line; }
 
 /* ---------- Dialog ---------- */
-.dialog-huelle { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .45); display: flex; align-items: flex-end; justify-content: center; }
-.dialog { width: 100%; max-width: 560px; max-height: 92vh; max-height: 92dvh; overflow: auto; background: var(--bg); border-radius: 22px 22px 0 0;
+.dialog-huelle { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .65); display: flex; align-items: flex-end; justify-content: center; }
+.dialog { width: 100%; max-width: 560px; max-height: 92vh; max-height: 92dvh; overflow: auto; background: var(--karte); border: 1px solid var(--rand); border-radius: 22px 22px 0 0;
   padding: 20px calc(18px + var(--rechts)) calc(18px + var(--unten)) calc(18px + var(--links)); box-shadow: 0 -8px 30px rgba(0, 0, 0, .25); }
 @media (min-width: 600px) { .dialog-huelle { align-items: center; } .dialog { border-radius: 22px; } }
 .dialog-knoepfe { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
@@ -213,3 +205,42 @@ a.news-link .titel::after { content: " ↗"; color: var(--akzent); font-weight: 
 
 /* 1.0.1: Ersteinrichtung – Überschrift nicht unter der Statusleiste (iPhone, standalone) */
 #s-verbinden .schirm-inhalt, #s-pin .schirm-inhalt { padding-top: calc(28px + env(safe-area-inset-top, 0px)); }
+
+/* ---------- 1.1.0: Gesamtvermögen und Statistik ---------- */
+.gesamt-karte .gross { margin-bottom: 10px; }
+.anteil-balken { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--karte2); margin: 4px 0 6px; }
+.anteil-coin { background: var(--gruen); }
+.anteil-aktien { background: #60a5fa; }
+.punkt.coin { background: var(--gruen); } .punkt.aktien { background: #60a5fa; }
+.statistik { margin-top: 12px; }
+.zeitraeume { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 4px 0 8px; }
+.zr { min-height: 34px; border-radius: 999px; border: 1px solid var(--rand); background: transparent; color: var(--gedimmt);
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.zr.aktiv { background: var(--karte2); color: #f5f5f5; border-color: #f5f5f5; }
+.diagramm-info { min-height: 20px; font-size: 13px; color: var(--gedimmt); margin: 2px 2px 4px; font-variant-numeric: tabular-nums; }
+.diagramm-info.aktiv { color: var(--text); }
+svg.diagramm { display: block; width: 100%; height: auto; background: var(--tief); border-radius: 12px; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+svg.diagramm .raster { stroke: #26262a; stroke-width: 1; }
+svg.diagramm .null-linie { stroke: #4a4a52; stroke-width: 1; stroke-dasharray: 3 3; }
+svg.diagramm .achse { fill: #9a9aa0; font-size: 10.5px; font-family: -apple-system, Inter, "Segoe UI", system-ui, sans-serif; }
+svg.diagramm .linie { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+svg.diagramm .l-haupt { stroke: var(--gruen); stroke-width: 2.4; }
+svg.diagramm .l-zweit { stroke: #86efac; stroke-width: 1.2; opacity: .75; }
+svg.diagramm .l-dritt { stroke: #60a5fa; stroke-width: 1.2; opacity: .85; }
+svg.diagramm .l-halten { stroke: #9a9aa0; stroke-width: 1.6; stroke-dasharray: 5 3; }
+svg.diagramm .marke-linie { stroke: #f5f5f5; stroke-width: 1; opacity: .5; }
+svg.diagramm .marke-punkt { fill: var(--bg); stroke-width: 2; }
+svg.diagramm .marke-punkt.l-haupt { stroke: var(--gruen); } svg.diagramm .marke-punkt.l-zweit { stroke: #86efac; }
+svg.diagramm .marke-punkt.l-dritt { stroke: #60a5fa; } svg.diagramm .marke-punkt.l-halten { stroke: #9a9aa0; }
+svg.diagramm .fang { fill: transparent; cursor: crosshair; }
+.legende { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--gedimmt); margin: 8px 2px 0; }
+.legende-eintrag { display: inline-flex; align-items: center; gap: 6px; }
+.legende-strich { display: inline-block; width: 18px; height: 0; border-top: 3px solid var(--gedimmt); border-radius: 2px; }
+.legende-strich.l-haupt { border-top-color: var(--gruen); } .legende-strich.l-zweit { border-top-color: #86efac; border-top-width: 2px; }
+.legende-strich.l-dritt { border-top-color: #60a5fa; border-top-width: 2px; } .legende-strich.l-halten { border-top: 2px dashed #9a9aa0; }
+.kennzahlen { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--rand); }
+.kennzahl { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.kz-l { font-size: 12px; color: var(--gedimmt); }
+.kz-r { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.statistik-leer { margin: 10px 0 0; }
+.knopf.stufe-sicher { font-size: 15px; }

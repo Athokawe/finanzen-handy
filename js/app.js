@@ -9,12 +9,13 @@ import * as V from "./ansichten.js";
 import * as P from "./push.js";
 import * as F from "./format.js";
 
-export const APP_VERSION = "1.0.2";
+export const APP_VERSION = "1.1.0";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
 
-const Z = { handy: null, news: null, fehlerHandy: null, fehlerNews: null, laedt: false, geladenUm: 0 };
+// verlauf: cloud/handy_verlauf.json (Statistik, 1.1.0); fehlerVerlauf: "nichtda" (entsteht erst mit dem nächsten Cloud-Lauf) oder Text
+const Z = { handy: null, news: null, verlauf: null, fehlerHandy: null, fehlerNews: null, fehlerVerlauf: null, laedt: false, geladenUm: 0 };
 const demo = new URLSearchParams(location.search).get("demo") === "1";
 let reiter = "uebersicht";
 let entsperrt = false;
@@ -24,7 +25,7 @@ let neuerToken = null;   // nur während der Einrichtung, bis die PIN steht (nie
 let pinModus = "eingeben";
 let ersterPin = "";
 
-const TITEL = { uebersicht: "Übersicht", kern: "Kern-Bot", raster: "Raster-Bot", trend: "Trend-Bot", news: "News", mehr: "Einstellungen" };
+const TITEL = { uebersicht: "Übersicht", kern: "Coin-Bot", raster: "Raster-Bot", trend: "Trend-Bot", news: "News", mehr: "Einstellungen" };
 const ANSICHT = { uebersicht: V.uebersicht, kern: V.kern, raster: V.raster, trend: V.trend, news: V.news };
 
 // ------------------------------------------------------------------ kleine Helfer
@@ -177,8 +178,8 @@ function sperren() {
   if (demo) return;
   entsperrt = false;
   gh.tokenSetzen(null);
-  Z.handy = Z.news = null;
-  Z.fehlerHandy = Z.fehlerNews = null;
+  Z.handy = Z.news = Z.verlauf = null;
+  Z.fehlerHandy = Z.fehlerNews = Z.fehlerVerlauf = null;
   for (const k of [...Object.keys(ANSICHT), "mehr"]) leeren($("t-" + k));
   A.dialogZu();
   meldung("");
@@ -250,7 +251,7 @@ async function laden() {
   Z.laedt = true;
   $("knopf-aktualisieren").classList.add("dreht");
   standZeigen();
-  const [a, b] = await Promise.allSettled([gh.lesen("cloud/handy.json"), gh.lesen("cloud/news.json")]);
+  const [a, b, c] = await Promise.allSettled([gh.lesen("cloud/handy.json"), gh.lesen("cloud/news.json"), gh.lesen("cloud/handy_verlauf.json")]);
   Z.laedt = false;
   $("knopf-aktualisieren").classList.remove("dreht");
   if (!entsperrt) return; // inzwischen gesperrt
@@ -270,6 +271,16 @@ async function laden() {
       ? "Noch keine News geholt. Tippe auf „News aktualisieren“ – in ein paar Minuten sind sie da (sonst kommen sie mit dem nächsten Bericht)."
       : (b.reason && b.reason.message ? b.reason.message : "News nicht lesbar.");
   }
+  if (c.status === "fulfilled" && c.value && Array.isArray(c.value.punkte)) {
+    Z.verlauf = demo ? demoZeiten(c.value, versatz) : c.value;
+    Z.fehlerVerlauf = null;
+  } else if (c.status === "fulfilled") {
+    Z.fehlerVerlauf = "unbekanntes Format";
+  } else if (!Z.verlauf) {
+    // handy_verlauf.json entsteht erst mit dem ersten Cloud-Lauf ab Finanz-App V1.2 (11.10.2026) – kein Fehler, nur ein Hinweis
+    Z.fehlerVerlauf = c.reason && c.reason.art === "nichtda" && a.status === "fulfilled" ? "nichtda"
+      : (c.reason && c.reason.message ? c.reason.message : "nicht lesbar");
+  }
   Z.geladenUm = Date.now();
   if (Z.fehlerHandy) meldung((Z.handy ? "Aktualisieren fehlgeschlagen – du siehst den letzten Stand. " : "") + Z.fehlerHandy);
   else if (Z.handy && Z.handy.format > 1) meldung("Die Cloud liefert ein neueres Datenformat – bitte die App neu laden (oben ziehen oder schließen und neu öffnen).", "info");
@@ -288,7 +299,7 @@ function abmelden() {
     okText: "Abmelden", okKlasse: "gefahr",
     onOk: async () => {
       T.loeschen();
-      Z.handy = Z.news = null;
+      Z.handy = Z.news = Z.verlauf = null;
       for (const k of [...Object.keys(ANSICHT), "mehr"]) leeren($("t-" + k));
       verbindenZeigen("Abgemeldet – Token und PIN sind gelöscht.");
       return true;

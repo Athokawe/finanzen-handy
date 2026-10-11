@@ -5,6 +5,7 @@ import { h, aussenLink, sichereUrl } from "./dom.js";
 import * as F from "./format.js";
 import * as A from "./aktionen.js";
 import * as P from "./push.js";
+import * as D from "./diagramm.js";
 import { BITPANDA_URL, BITPANDA_SWAP_URL } from "../konfig.js";
 
 const istObj = (x) => !!x && typeof x === "object" && !Array.isArray(x);
@@ -112,23 +113,152 @@ function schattenHinweis(s, name) {
     + (diff !== null ? " → " + F.euroPlus(diff) : "") + (name ? " · " + name : ""));
 }
 
+// ------------------------------------------------------------------ Statistik (handy_verlauf.json)
+
+/** Hinweis statt Diagramm, wenn der Verlauf fehlt bzw. nicht lesbar ist – sonst null. */
+function verlaufHinweis(Z) {
+  if (Z.verlauf) return null;
+  if (Z.fehlerVerlauf === "nichtda") return h("p", { class: "leer statistik-leer statistik-fehlt" }, "Statistik entsteht ab dem nächsten Cloud-Lauf.");
+  if (Z.fehlerVerlauf) return h("p", { class: "fehlerteil" }, "Statistik gerade nicht lesbar: " + Z.fehlerVerlauf);
+  return h("p", { class: "leer statistik-leer" }, "Statistik wird geladen …");
+}
+
+function gesamtStatistik(Z) {
+  const hinweis = verlaufHinweis(Z);
+  if (hinweis) return hinweis;
+  return D.statistik({
+    schluessel: "gesamt", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens",
+    serien: (p) => [
+      { name: "Gesamt", klasse: "l-haupt", werte: D.reihe(p, "gesamt_eur") },
+      { name: "Coin-Topf", klasse: "l-zweit", werte: D.reihe(p, "coin_topf_eur") },
+      { name: "Aktien & ETFs", klasse: "l-dritt", werte: D.reihe(p, "aktien_eur") },
+    ],
+    kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
+  });
+}
+
+function coinStatistik(Z) {
+  const hinweis = verlaufHinweis(Z);
+  if (hinweis) return [hinweis];
+  const punkte = D.punkteLesen(Z.verlauf);
+  return [
+    D.statistik({
+      schluessel: "coin", punkte, einheit: "prozent", beschreibung: "Coin-Topf gegen Bitcoin halten in Prozent seit Zeitraumbeginn",
+      serien: (p) => [
+        { name: "Coin-Topf", klasse: "l-haupt", werte: D.zeitgewichtet(p) },
+        { name: "Bitcoin halten", klasse: "l-halten", werte: D.bitcoinProzent(p) },
+      ],
+      kennzahl: (p, serien) => {
+        const c = serien[0].werte, b = serien[1].werte;
+        const ce = c.length ? c[c.length - 1][1] : null, be = b.length ? b[b.length - 1][1] : null;
+        const k = D.kennzahlen(D.reihe(p, "coin_topf_eur"));
+        return [
+          ["Coin-Topf (ohne Einzahlungen)", F.prozent(ce), F.vorzeichenKlasse(ce)],
+          ["Bitcoin halten", F.prozent(be), F.vorzeichenKlasse(be)],
+          F.istZahl(ce) && F.istZahl(be) ? ["Unterschied", F.zahl(ce - be, 2).replace(/^-/, "−") + " Prozentpunkte", F.vorzeichenKlasse(ce - be)] : null,
+          k ? ["Wert im Zeitraum", F.euroPlus(k.diff) + " (mit Ein-/Auszahlungen)", F.vorzeichenKlasse(k.diff)] : null,
+          k ? ["Höchst / Tiefst", F.euro(k.hoch[1]) + " / " + F.euro(k.tief[1])] : null,
+        ];
+      },
+    }),
+    h("h3", null, "Bitcoin-Kurs"),
+    D.statistik({
+      schluessel: "btc", punkte, einheit: "eur", beschreibung: "Bitcoin-Kurs in Euro",
+      serien: (p) => [{ name: "Bitcoin", klasse: "l-halten", werte: D.reihe(p, "bitcoin_kurs_eur") }],
+      kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
+    }),
+  ];
+}
+
+/** Raster/Trend: echter Topf (falls im Verlauf) sonst Schattendepot – jeweils gegen „Bitcoin halten“. */
+function botStatistik(Z, bot) {
+  const hinweis = verlaufHinweis(Z);
+  if (hinweis) return hinweis;
+  const punkte = D.punkteLesen(Z.verlauf);
+  const echt = punkte.some((p) => F.istZahl(p[bot + "_echt_eur"]));
+  const feld = bot + (echt ? "_echt" : "_schatten");
+  return h("div", null,
+    h("p", { class: "klein gedimmt" }, echt ? "Echter Topf gegen „Bitcoin halten“ mit demselben Startbetrag."
+      : "Schattendepot (Rechengeld) gegen „Bitcoin halten“ mit demselben Startbetrag."),
+    D.statistik({
+      schluessel: bot, punkte, einheit: "eur", beschreibung: (echt ? "Echter Topf" : "Schattendepot") + " gegen Bitcoin halten",
+      serien: (p) => [
+        { name: echt ? "Echter Topf" : "Schattendepot", klasse: "l-haupt", werte: D.reihe(p, feld + "_eur") },
+        { name: "Bitcoin halten", klasse: "l-halten", werte: D.reihe(p, feld + "_halten_eur") },
+      ],
+      kennzahl: (p, serien) => {
+        const k = D.euroKennzahlen(serien[0].werte);
+        const a = serien[0].werte, b = serien[1].werte;
+        if (a.length && b.length) {
+          const d = a[a.length - 1][1] - b[b.length - 1][1];
+          k.push(["gegen „Bitcoin halten“", F.euroPlus(d), F.vorzeichenKlasse(d)]);
+        }
+        return k;
+      },
+    }));
+}
+
 // ------------------------------------------------------------------ Übersicht
+
+/** Gesamtvermögen aus handy.json → gesamt; ältere Cloud ohne diesen Teil: aus Coin-Topf und Aktien gerechnet */
+function gesamtTeil(d) {
+  const g = ok(d.gesamt);
+  if (g) return g;
+  const k = ok(d.kern_bot), a = ok(d.aktien);
+  const c = k && F.istZahl(k.wert_eur) ? k.wert_eur : null, s = a && F.istZahl(a.wert_eur) ? a.wert_eur : null;
+  if (c === null && s === null) return null;
+  const sum = (c || 0) + (s || 0);
+  return { gesamt_eur: sum, coin_topf_eur: c, aktien_eur: s, anteil_coin_topf_prozent: c !== null && sum ? c / sum * 100 : null,
+    anteil_aktien_prozent: s !== null && sum ? s / sum * 100 : null, vollstaendig: c !== null && s !== null,
+    zeit: [k && k.wert_zeit, a && a.wert_zeit].filter(Boolean).sort()[0] || null };
+}
+
+function gesamtKarte(d, Z) {
+  const g = gesamtTeil(d);
+  if (!g) return fehlerKarte("Gesamtvermögen", d.gesamt);
+  const anteil = h("div", { class: "anteil-balken", "aria-hidden": "true" }, h("div", { class: "anteil-coin" }), h("div", { class: "anteil-aktien" }));
+  const pc = F.istZahl(g.anteil_coin_topf_prozent) ? g.anteil_coin_topf_prozent : 0;
+  anteil.firstChild.style.width = Math.max(0, Math.min(100, pc)).toFixed(1) + "%";       // CSSOM ist mit der CSP erlaubt
+  anteil.lastChild.style.width = Math.max(0, Math.min(100, 100 - pc)).toFixed(1) + "%";
+  return h("section", { class: "karte gesamt-karte", id: "gesamt-karte" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "Gesamtvermögen"), h("span", { class: "klein gedimmt" }, "Coin-Topf + Aktien & ETFs")),
+    h("div", { class: "gross", id: "gesamt-wert" }, F.euro(g.gesamt_eur)),
+    anteil,
+    zeilen([
+      [h("span", null, h("span", { class: "punkt coin" }), " Coin-Topf"), F.euro(g.coin_topf_eur) + (F.istZahl(g.anteil_coin_topf_prozent) ? " · " + F.prozent(g.anteil_coin_topf_prozent, 1, false) : "")],
+      [h("span", null, h("span", { class: "punkt aktien" }), " Aktien & ETFs"), F.euro(g.aktien_eur) + (F.istZahl(g.anteil_aktien_prozent) ? " · " + F.prozent(g.anteil_aktien_prozent, 1, false) : "")],
+    ]),
+    h("p", { class: "klein gedimmt", id: "gesamt-stand" }, "Stand " + F.zeit(g.zeit) + (g.vollstaendig === false ? " · unvollständig (ein Teil ist gerade nicht lesbar)" : "")
+      + " · ohne Raster-/Trend-Topf und Aktien-Reserve"),
+    gesamtStatistik(Z));
+}
+
+/** „Alles parken“ (groß, rot) und „Nur anhalten“ (klein) mit Erklärtexten */
+function parkKnoepfe() {
+  const gross = A.knopf("allesstopp", "Alles parken", "gefahr stopp-knopf");
+  const klein = A.knopf("anhalten", "Nur anhalten", "gefahr-rand anhalten-knopf");
+  if (!gross && !klein) return null;
+  return h("div", { class: "park-knoepfe" },
+    gross, gross ? h("p", { class: "erklaer-text" }, A.ERKLAERT.allesstopp) : null,
+    klein, klein ? h("p", { class: "erklaer-text" }, A.ERKLAERT.anhalten) : null);
+}
 
 export function uebersicht(Z) {
   const d = Z.handy;
   if (!d) return [Z.fehlerHandy ? h("p", { class: "leer" }, "Noch keine Daten.") : leer("Daten werden geladen …")];
   const out = [];
-  out.push(A.knopf("allesstopp", "■ Alles stoppen", "gefahr stopp-knopf"));
+  out.push(gesamtKarte(d, Z));
+  out.push(parkKnoepfe());
 
   const k = ok(d.kern_bot);
   if (k) {
     const ki = ok(k.ki);
     const pos = k.geparkt ? "geparkt in EURCV" : k.position ? F.text(k.position) : "–";
-    out.push(karte(F.text(k.topf_name, "Kern-Topf"), statusEtikett(k.an ? "an" : "aus"),
+    out.push(karte(F.text(k.topf_name, "Coin-Topf"), statusEtikett(k.an ? "an" : "aus"),
       h("div", { class: "gross", id: "kern-wert" }, F.euro(k.wert_eur)),
       h("p", { class: "klein gedimmt" }, "Stand " + F.zeit(k.wert_zeit) + (F.istZahl(k.bitcoin_kurs_eur) ? " · Bitcoin " + F.euro(k.bitcoin_kurs_eur) : "")),
       zeilen([
-        [F.text(k.name, "Kern-Bot"), anAus(k.an)],
+        [F.text(k.name, "Coin-Bot"), anAus(k.an)],
         ["Stufe", F.text(k.stufe) + (k.stufe_automatik ? " (Automatik)" : "")],
         ["Bitcoin-Ampel", ampel(k.ampel)],
         ["Hält", pos],
@@ -137,7 +267,7 @@ export function uebersicht(Z) {
       ki ? erklaert("Einfach erklärt", ki.einfach_erklaert) : null,
       ok(d.bilanz) && d.bilanz.text ? h("p", { class: "klein gedimmt" }, d.bilanz.text) : null,
     ));
-  } else out.push(fehlerKarte("Kern-Topf", d.kern_bot));
+  } else out.push(fehlerKarte("Coin-Topf", d.kern_bot));
 
   out.push(reihe(bitpandaKnopf("Zu Bitpanda", BITPANDA_URL, "primaer"), bitpandaKnopf("Einzahlen", BITPANDA_URL)));
   out.push(h("p", { class: "klein gedimmt" }, "Öffnet Bitpanda (mit installierter App meist direkt die Bitpanda-App). Einzahlen: dort auf „Einzahlen“ tippen."));
@@ -187,17 +317,17 @@ export function uebersicht(Z) {
   return out;
 }
 
-// ------------------------------------------------------------------ Kern-Bot
+// ------------------------------------------------------------------ Coin-Bot (Reiter „kern“ – interner Name bleibt)
 
 export function kern(Z) {
   const d = Z.handy;
   if (!d) return [leer("Daten werden geladen …")];
   const k = ok(d.kern_bot);
-  if (!k) return [fehlerKarte("Kern-Bot", d.kern_bot)];
+  if (!k) return [fehlerKarte("Coin-Bot", d.kern_bot)];
   const out = [];
-  out.push(karte(F.text(k.name, "Kern-Bot"), statusEtikett(k.an ? "an" : "aus"),
+  out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an ? "an" : "aus"),
     h("div", { class: "mittel" }, F.euro(k.wert_eur)),
-    h("p", { class: "klein gedimmt" }, F.text(k.topf_name, "Kern-Topf") + " · Stand " + F.zeit(k.wert_zeit)),
+    h("p", { class: "klein gedimmt" }, F.text(k.topf_name, "Coin-Topf") + " · Stand " + F.zeit(k.wert_zeit)),
     zeilen([
       ["Hält", k.geparkt ? "geparkt in EURCV" : F.text(k.position)],
       ["Stufe", F.text(k.stufe)],
@@ -206,8 +336,11 @@ export function kern(Z) {
       ["Regelwerk ohne KI", anAus(k.regelwerk_an)],
       ["Euro-Automatik", anAus(k.euro_automatik)],
     ]),
-    reihe(k.an ? A.knopf("stopp", "Kern-Bot aus") : A.knopf("start", "Kern-Bot ein", "primaer"),
+    reihe(k.an ? A.knopf("stopp", "Coin-Bot aus", "gefahr-rand") : A.knopf("start", "Coin-Bot ein", "primaer"),
       A.knopf("einstellung", "Stufe ändern", "", { stufe: k.stufe, auto: !!k.stufe_automatik })),
+    k.an && A.erlaubt("stopp") ? h("p", { class: "erklaer-text" }, "„Coin-Bot aus“: " + A.ERKLAERT.stopp) : null,
+    k.stufe !== "sicher" || k.stufe_automatik
+      ? reihe(A.knopf("einstellung", "Bremsen: Stufe → sicher", "gefahr-rand stufe-sicher", { stufe: "sicher", auto: false })) : null,
     reihe(k.euro_automatik ? A.knopf("euro_aus", "Euro-Automatik aus") : A.knopf("euro_ein", "Euro-Automatik ein"),
       k.regelwerk_an === false ? A.knopf("regelwerk_ein", "Regelwerk ein") : null),
   ));
@@ -215,7 +348,7 @@ export function kern(Z) {
   const nb = ok(k.notbremse);
   if (nb) {
     out.push(karte("Notbremse", null,
-      h("p", { class: "klein gedimmt" }, "Grenzen der Stufe „" + F.text(k.stufe) + "“: fällt der Kern-Topf so stark, parkt der Kern-Bot in EURCV."),
+      h("p", { class: "klein gedimmt" }, "Grenzen der Stufe „" + F.text(k.stufe) + "“: fällt der Coin-Topf so stark, parkt der Coin-Bot in EURCV."),
       zeilen([
         ["an einem Tag", F.prozent(nb.tag_prozent, 0)],
         ["in einer Woche", F.prozent(nb.woche_prozent, 0)],
@@ -267,11 +400,13 @@ export function kern(Z) {
     h("p", { class: "klein gedimmt" }, "Steuerneutraler Tausch Krypto gegen Krypto direkt bei Bitpanda (Anmeldung dort nötig)."),
     reihe(bitpandaKnopf("Tauschen bei Bitpanda", BITPANDA_SWAP_URL, "primaer"), bitpandaKnopf("Zu Bitpanda"))));
 
+  out.push(karte("Statistik", null, h("p", { class: "klein gedimmt" }, "Coin-Topf gegen „Bitcoin halten“ in Prozent seit Beginn des Zeitraums – Ein- und Auszahlungen herausgerechnet."), ...coinStatistik(Z)));
+
   const b = ok(d.bilanz);
   if (b) {
-    out.push(karte("Kern-Bot gegen „Bitcoin halten“", null,
+    out.push(karte(F.text(b.name, "Coin-Bot gegen „Bitcoin halten“ seit Start"), null,
       zeilen([
-        ["Kern-Bot", F.euro(b.kern_bot_eur)],
+        ["Coin-Bot", F.euro(b.kern_bot_eur)],
         ["Bitcoin halten", F.euro(b.halten_eur)],
         ["seit Start", F.prozent(b.seit_start_prozent), F.vorzeichenKlasse(b.seit_start_prozent)],
         ["letzte 30 Tage", F.istZahl(b.letzte_30_tage_pp) ? F.zahl(b.letzte_30_tage_pp, 2).replace(/^-/, "−") + " Prozentpunkte" : "–", F.vorzeichenKlasse(b.letzte_30_tage_pp)],
@@ -315,6 +450,7 @@ export function raster(Z) {
     reihe(A.knopf("surfen_deckel", "Verlustdeckel"), A.knopf("surfen_recherchen", "Recherchen/Tag")),
   ));
 
+  out.push(karte("Statistik", null, botStatistik(Z, "raster")));
   const coins = liste(r.coins);
   out.push(karte("Coins im Raster", null, coins.length ? h("ul", { class: "liste" }, coins.map((c) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(c.coin)), h("span", { class: "zahl" }, F.euro(c.wert_eur)), coinLink(c.coin)),
@@ -370,6 +506,7 @@ export function trend(Z) {
     reihe(A.knopf("trend_deckel", "Verlustdeckel")),
   ));
 
+  out.push(karte("Statistik", null, botStatistik(Z, "trend")));
   const pos = liste(t.positionen);
   out.push(karte("Positionen", null, pos.length ? h("ul", { class: "liste" }, pos.map((p) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(p.coin)), h("span", { class: "zahl" }, F.euro(p.einstand_eur)), coinLink(p.coin)),
@@ -467,7 +604,7 @@ export function mehr(Z, ctx) {
     }
     if (P.erlaubnis() === "denied") pk.push(h("p", { class: "klein gedimmt" }, "Mitteilungen sind abgelehnt – erlauben in den iPhone-Einstellungen → Mitteilungen → Finanzen."));
   }
-  pk.push(h("p", { class: "klein gedimmt" }, "Du bekommst eine Mitteilung, wenn der Kern-Bot parkt oder zurückkauft, die Stufe wechselt, ein Bot geschaltet wird oder handelt, ein Verlustdeckel greift, und einmal täglich ein Lebenszeichen. In der Cloud angemeldet: " + abos.length + " Gerät(e)."));
+  pk.push(h("p", { class: "klein gedimmt" }, "Du bekommst eine Mitteilung, wenn der Coin-Bot parkt oder zurückkauft, die Stufe wechselt, ein Bot geschaltet wird oder handelt, ein Verlustdeckel greift, und einmal täglich ein Lebenszeichen. In der Cloud angemeldet: " + abos.length + " Gerät(e)."));
   out.push(karte("Benachrichtigungen", null, ...pk));
 
   out.push(karte("Hinweis an die KI", null,

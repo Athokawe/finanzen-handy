@@ -1,6 +1,11 @@
-// Aufträge an die Cloud (ki.yml): nur Modi aus handy.json → „modi“; Bestätigung wird nach dem Muster aus Formularfeldern gebaut,
-// gegen den regulären Ausdruck aus handy.json geprüft und erst dann geschickt. Schalt-Modi mit „ja_noetig“ verlangen ein wörtlich
-// getipptes JA. Nach einem Auftrag wartet die App, bis er durch ist (Warteschlange der Cloud), „Alles stoppen“ hat Vorrang.
+// Aufträge an die Cloud: nur Modi aus handy.json → „modi“; die Bestätigung wird nach dem Muster aus Formularfeldern gebaut, gegen
+// den regulären Ausdruck aus handy.json geprüft und erst dann geschickt. Schalt-Modi mit „ja_noetig“ verlangen ein wörtlich
+// getipptes JA.
+// 1.1.0: Brems-Befehle (handy.json: express true – „Alles parken“, „Nur anhalten“, Coin-Bot aus, Stufe → sicher, Raster/Trend
+// pausieren) gehen an express.yml (eigene Warteschlange, sofort), alles andere an ki.yml. Jeder Auftrag wird über die Actions-API
+// anhand des Lauf-Titels verfolgt („Express: <modus>“ bzw. „Hand: <modus>“): gesendet → angekommen → läuft → erledigt ✓ /
+// fehlgeschlagen ✗. Verwirft GitHub einen Auftrag (nach ~90 s kein passender Lauf oder Lauf „abgebrochen“), schickt die App ihn
+// automatisch noch einmal (Brems-Befehle bis zu 3-mal), danach eine klare Meldung.
 
 import { h, $, leeren } from "./dom.js";
 import * as gh from "./github.js";
@@ -9,15 +14,20 @@ import { datum, vor } from "./format.js";
 let hooks = { neuLaden: () => {}, toast: () => {}, handy: () => null, entsperrt: () => true };
 let modiListe = [];
 
-const OFFEN_KEY = "fh_auftrag";
-const WARTEN_MAX_MIN = 20;
+const LISTE_KEY = "fh_auftraege_v2";
+const ALT_KEY = "fh_auftrag";
+export const VERWORFEN_NACH_MS = 90 * 1000;   // so lange darf GitHub für das Anlegen des Laufs brauchen
+const WARTEN_MAX_MIN = 30;                    // danach wird ein Auftrag nicht mehr verfolgt
+const NEU_SENDEN = { normal: 1, bremse: 3 };  // wie oft ein verworfener Auftrag automatisch neu geht
+const FERTIG_ZEIGEN_MS = 2 * 60000;           // ✓/✗ bleibt so lange im Band stehen
+const BREMSEN = new Set(["allesstopp", "anhalten", "stopp", "surfen_pause", "trend_pause", "einstellung"]);
 
 export function init(h0) {
   hooks = Object.assign(hooks, h0);
   setInterval(() => {
-    if (offen && document.visibilityState === "visible" && hooks.entsperrt()) pruefen(null);
-    bandZeichnen();
-  }, 20000);
+    if (laufendeAuftraege().length && document.visibilityState === "visible" && hooks.entsperrt()) pruefen(null);
+    else bandZeichnen();
+  }, 10000);
   bandZeichnen();
 }
 
@@ -36,6 +46,7 @@ export function erlaubt(m) {
 /** Muster aus handy.json als „ganzer Text“-Ausdruck (wie Pythons re.fullmatch). */
 export function ausdruck(muster) {
   if (muster === "") return /^$/;
+  if (typeof muster !== "string") return null;
   for (const flags of ["u", ""]) {
     try {
       return new RegExp("^(?:" + muster + ")$", flags);
@@ -48,6 +59,19 @@ export function passt(m, bestaetigung) {
   if (!e) return false;
   const r = ausdruck(e.bestaetigung);
   return !!r && r.test(bestaetigung);
+}
+
+/** "express", wenn der Modus laut handy.json über express.yml darf UND die Bestätigung dessen Muster ganz trifft – sonst "ki". */
+export function weg(m, bestaetigung) {
+  const e = eintrag(m);
+  if (!e || e.express !== true || typeof e.express_bestaetigung !== "string") return "ki";
+  const r = ausdruck(e.express_bestaetigung);
+  return r && r.test(bestaetigung) ? "express" : "ki";
+}
+
+/** Brems-Befehl: wird nie zurückgehalten (stoppt nur). „einstellung“ ist nur mit „sicher“ ohne Automatik eine Bremse (weg). */
+export function istBremse(m) {
+  return BREMSEN.has(m) && m !== "einstellung";
 }
 
 // ------------------------------------------------------------------ Feld-Helfer
@@ -70,44 +94,54 @@ function betragPruefen(w) {
 
 // ------------------------------------------------------------------ was jeder Modus im Dialog zeigt
 
+export const ERKLAERT = {
+  allesstopp: "Verkauft alle Krypto-Bestände der Bots in EURCV und schaltet sie aus – Aktien bleiben.",
+  anhalten: "Alle Krypto-Bots aus, nichts wird verkauft – auch keine Notbremse mehr.",
+  stopp: "Nur die KI aus – das Regelwerk mit Notbremse schützt weiter.",
+};
+
 const SPEZ = {
-  einschaetzung: { titel: "Frische KI-Einschätzung", text: "Die Cloud holt eine neue Einschätzung des Kern-Bots und schickt sie dir per Mail. Es wird nicht gehandelt.", ok: "Anfordern" },
+  einschaetzung: { titel: "Frische KI-Einschätzung", text: "Die Cloud holt eine neue Einschätzung des Coin-Bots und schickt sie dir per Mail. Es wird nicht gehandelt.", ok: "Anfordern" },
   bericht_jetzt: { titel: "Bericht jetzt", text: "Frische Einschätzung und Bericht per Mail – es wird nie gehandelt.", ok: "Anfordern" },
   news_jetzt: { titel: "News aktualisieren", ohneFrage: true },
-  start: { titel: "Kern-Bot einschalten", text: "Der Kern-Bot entscheidet und handelt dann wieder selbst (mit Notbremse und Gewinnschutz)." },
-  stopp: { titel: "Kern-Bot ausschalten", text: "Der Kern-Bot handelt nicht mehr selbst. Der Kern-Topf bleibt, wie er ist." },
+  start: { titel: "Coin-Bot einschalten", text: "Der Coin-Bot entscheidet und handelt dann wieder selbst (mit Notbremse und Gewinnschutz)." },
+  stopp: { titel: "Coin-Bot ausschalten", text: ERKLAERT.stopp + " Der Coin-Topf bleibt, wie er ist." },
   allesstopp: {
-    titel: "Alles stoppen", gefahr: true, ok: "Alles stoppen",
-    text: "Kern-Bot, Regelwerk und Aktien-Autopilot gehen aus, Raster- und Trend-Bot werden pausiert (offene Orders storniert). Deine Bestände bleiben liegen – es wird nichts verkauft.",
+    titel: "Alles parken", gefahr: true, ok: "Alles parken",
+    text: ERKLAERT.allesstopp + " Der Coin-Topf wird über Fusion in EURCV verkauft (wie bei der Notbremse), Raster- und Trend-Bot verkaufen ihre Coins in EURCV (das EURCV bleibt in ihrem Topf) und werden pausiert; Coin-Bot und Regelwerk gehen aus. Scheitert ein Verkauf, ist trotzdem alles aus – die Mail sagt es je Bot.",
+  },
+  anhalten: {
+    titel: "Nur anhalten", gefahr: true, ok: "Anhalten",
+    text: ERKLAERT.anhalten + " Coin-Bot und Regelwerk gehen aus, Raster- und Trend-Bot werden pausiert (offene Orders storniert, Bestände bleiben liegen). Aktien bleiben.",
   },
   regelwerk_ein: { titel: "Regelwerk einschalten", text: "Das Regelwerk ohne KI wird eingeschaltet." },
   euro_ein: { titel: "Euro-Automatik einschalten", text: "Euro-Guthaben bei Bitpanda wird dann automatisch eingesetzt." },
   euro_aus: { titel: "Euro-Automatik ausschalten", text: "Euro-Guthaben bleibt liegen, bis du selbst entscheidest." },
   einstellung: {
-    titel: "Stufe des Kern-Bots",
-    text: "Die Stufe bestimmt die Grenzen von Notbremse und Gewinnschutz.",
+    titel: "Stufe des Coin-Bots",
+    text: "Die Stufe bestimmt die Grenzen von Notbremse und Gewinnschutz. „sicher“ ohne Automatik geht als Bremse sofort über den Express-Weg, alles andere über die normale Warteschlange.",
     felder: [
       { name: "stufe", art: "wahl", label: "Stufe", optionen: [["sicher", "sicher"], ["normal", "normal"]] },
       { name: "auto", art: "schalter", label: "Stufe folgt automatisch der Empfehlung" },
     ],
     bauen: (w) => "JA;stufe=" + w.stufe + ";auto=" + (w.auto ? "1" : "0"),
   },
-  gewinnschutz_ein: { titel: "Gewinnschutz Krypto einschalten", text: "Fällt der Kurs um die Grenze der Stufe unter den Höchststand, parkt der Kern-Bot." },
+  gewinnschutz_ein: { titel: "Gewinnschutz Krypto einschalten", text: "Fällt der Kurs um die Grenze der Stufe unter den Höchststand, parkt der Coin-Bot." },
   gewinnschutz_aus: { titel: "Gewinnschutz Krypto ausschalten", text: "Ohne Gewinnschutz wird bei fallenden Kursen nicht mehr automatisch geparkt (die Notbremse bleibt)." },
   gewinnschutz_aktien_ein: { titel: "Gewinnschutz Aktien/ETF einschalten" },
   gewinnschutz_aktien_aus: { titel: "Gewinnschutz Aktien/ETF ausschalten" },
   aktien_start: { titel: "Aktien-Autopilot einschalten" },
   aktien_stopp: { titel: "Aktien-Autopilot ausschalten" },
 
-  surfen_ein: { titel: "Raster-Bot einschalten", text: "Der Betrag kommt aus dem Kern-Topf.", felder: [BETRAG()], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
+  surfen_ein: { titel: "Raster-Bot einschalten", text: "Der Betrag kommt aus dem Coin-Topf.", felder: [BETRAG()], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
   surfen_betrag: { titel: "Raster-Topf ändern", text: "Neuer Betrag für den Raster-Topf.", felder: [BETRAG("Neuer Topf in Euro")], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
   surfen_zurueck: {
-    titel: "Raster-Bot: Teil zurück in den Kern-Topf",
+    titel: "Raster-Bot: Teil zurück in den Coin-Topf",
     felder: [BETRAG("Betrag zurück in Euro"), { name: "sofort", art: "schalter", label: "Sofort – auch mit Verlust verkaufen" }],
     pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) + (w.sofort ? ";sofort=JA" : ""),
   },
-  surfen_aus: { titel: "Raster-Bot ausschalten", text: "Alles geht zurück in den Kern-Topf.", bauen: () => "JA" },
-  surfen_pause: { titel: "Raster-Bot pausieren", text: "Er handelt nicht mehr, sein Bestand bleibt.", bauen: () => "JA" },
+  surfen_aus: { titel: "Raster-Bot ausschalten", text: "Alles wird verkauft und geht zurück in den Coin-Topf.", bauen: () => "JA" },
+  surfen_pause: { titel: "Raster-Bot pausieren", text: "Er handelt nicht mehr, offene Orders werden storniert, sein Bestand bleibt. Geht als Bremse sofort.", bauen: () => "JA" },
   surfen_deckel: { titel: "Raster-Bot: Verlustdeckel", felder: [DECKEL], pruefen: deckelPruefen, bauen: (w) => "JA;prozent=" + parseInt(w.prozent, 10) },
   surfen_recherchen: {
     titel: "Raster-Bot: Recherchen je Tag",
@@ -115,11 +149,11 @@ const SPEZ = {
     bauen: (w) => "JA;anzahl=" + w.anzahl,
   },
 
-  trend_ein: { titel: "Trend-Bot einschalten", text: "Der Betrag kommt aus dem Kern-Topf (mindestens 150 €).", felder: [BETRAG()], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
+  trend_ein: { titel: "Trend-Bot einschalten", text: "Der Betrag kommt aus dem Coin-Topf (mindestens 150 €).", felder: [BETRAG()], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
   trend_betrag: { titel: "Trend-Topf ändern", felder: [BETRAG("Neuer Topf in Euro")], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
-  trend_zurueck: { titel: "Trend-Bot: Teil zurück in den Kern-Topf", felder: [BETRAG("Betrag zurück in Euro")], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
-  trend_aus: { titel: "Trend-Bot ausschalten", bauen: () => "JA" },
-  trend_pause: { titel: "Trend-Bot pausieren", text: "Er handelt nicht mehr, sein Bestand bleibt.", bauen: () => "JA" },
+  trend_zurueck: { titel: "Trend-Bot: Teil zurück in den Coin-Topf", felder: [BETRAG("Betrag zurück in Euro")], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
+  trend_aus: { titel: "Trend-Bot ausschalten", text: "Alles wird verkauft und geht zurück in den Coin-Topf.", bauen: () => "JA" },
+  trend_pause: { titel: "Trend-Bot pausieren", text: "Er handelt nicht mehr, sein Bestand bleibt. Geht als Bremse sofort.", bauen: () => "JA" },
   trend_deckel: { titel: "Trend-Bot: Verlustdeckel", felder: [DECKEL], pruefen: deckelPruefen, bauen: (w) => "JA;prozent=" + parseInt(w.prozent, 10) },
 
   hinweis: {
@@ -254,6 +288,10 @@ function bestaetigungBauen(m, spez, w) {
   return e && e.ja_noetig ? "JA" : "";
 }
 
+function wegText(w) {
+  return w === "express" ? "Express-Bremse (express.yml, sofort)" : "normale Warteschlange (ki.yml)";
+}
+
 // ------------------------------------------------------------------ ausführen
 
 export async function ausfuehren(m, vorgaben = {}) {
@@ -263,12 +301,13 @@ export async function ausfuehren(m, vorgaben = {}) {
     hooks.toast("Dieser Befehl ist gerade nicht erlaubt.");
     return;
   }
-  if (offen && m !== "allesstopp" && !gh.istDemo()) {
+  const kiOffen = laufendeAuftraege().find((a) => a.weg === "ki");
+  if (kiOffen && !istBremse(m) && m !== "einstellung" && !gh.istDemo()) {
     dialog({
       titel: "Bitte kurz warten",
       inhalt: [
-        "Es läuft noch ein Auftrag: „" + name(offen.modus) + "“ (geschickt " + vor(new Date(offen.zeit).toISOString()) + ").",
-        "Die Cloud arbeitet Aufträge nacheinander ab – ein neuer könnte den wartenden verdrängen. Sobald er fertig ist, kannst du den nächsten schicken. „Alles stoppen“ geht immer.",
+        "Es läuft noch ein Auftrag: „" + name(kiOffen.modus) + "“ (geschickt " + vor(new Date(kiOffen.zeit).toISOString()) + ").",
+        "Die Cloud arbeitet normale Aufträge nacheinander ab – ein neuer könnte den wartenden verdrängen. Sobald er fertig ist, kannst du den nächsten schicken. Brems-Befehle („Alles parken“, „Nur anhalten“, Coin-Bot aus, Pausieren) gehen immer.",
       ],
       okText: "Verstanden", nurOk: true,
     });
@@ -298,13 +337,17 @@ export async function ausfuehren(m, vorgaben = {}) {
       if (jaFeld && jaFeld.value.trim() !== "JA") { fehlerZeigen("Bitte wörtlich JA (Großbuchstaben) eintippen – sonst wird nichts geschickt."); return false; }
       const best = bestaetigungBauen(m, spez, w);
       if (!passt(m, best)) { fehlerZeigen("Die Bestätigung „" + best + "“ passt nicht zum erlaubten Muster – nichts geschickt."); return false; }
+      if (weg(m, best) === "ki" && !istBremse(m) && laufendeAuftraege().some((a) => a.weg === "ki") && !gh.istDemo()) {
+        fehlerZeigen("Gerade läuft noch ein normaler Auftrag – bitte warten, bis er fertig ist. („sicher“ ohne Automatik geht als Bremse sofort.)");
+        return false;
+      }
       await senden(m, best);
       return true;
     },
   });
   const aktualisieren = () => {
     const best = bestaetigungBauen(m, spez, werteLesen(spez));
-    vorschau.textContent = "modus = " + m + "\nbestaetigung = " + (best === "" ? "(leer)" : best);
+    vorschau.textContent = "modus = " + m + "\nbestaetigung = " + (best === "" ? "(leer)" : best) + "\nweg = " + wegText(weg(m, best));
   };
   huelle.addEventListener("input", aktualisieren);
   huelle.addEventListener("change", aktualisieren);
@@ -314,98 +357,223 @@ export async function ausfuehren(m, vorgaben = {}) {
 /** Auftrag wirklich schicken (Bestätigung ist schon geprüft). Wirft ApiFehler mit deutscher Meldung. */
 export async function senden(m, best) {
   if (!passt(m, best)) throw new Error("Bestätigung passt nicht zum erlaubten Muster – nichts geschickt.");
-  const r = await gh.auftrag(m, best);
+  let w = weg(m, best);
+  let r;
+  try {
+    r = await gh.auftrag(m, best, w);
+  } catch (e) {
+    if (w === "express" && e && e.art === "nichtda") {         // express.yml (noch) nicht im Repo: über ki.yml (wie bis 1.0.x)
+      w = "ki";
+      r = await gh.auftrag(m, best, w);
+    } else throw e;
+  }
   if (r.demo) {
     dialog({
       titel: "Demo – nicht gesendet",
       inhalt: [
-        "Im Demo-Modus wird nichts an die Cloud geschickt. Echt würde dieser Auftrag gehen:",
-        h("div", { class: "vorschau", id: "demo-auftrag", "data-modus": r.nutzlast.inputs.modus, "data-bestaetigung": r.nutzlast.inputs.bestaetigung },
-          JSON.stringify(r.nutzlast)),
+        "Im Demo-Modus wird nichts an die Cloud geschickt. Echt würde dieser Auftrag gehen (" + wegText(w) + "):",
+        h("div", { class: "vorschau", id: "demo-auftrag", "data-modus": r.nutzlast.inputs.modus, "data-bestaetigung": r.nutzlast.inputs.bestaetigung,
+          "data-workflow": r.workflow }, JSON.stringify(Object.assign({ workflow: r.workflow }, r.nutzlast))),
       ],
       okText: "OK", nurOk: true,
     });
     return r;
   }
-  offenSetzen({ modus: m, zeit: Date.now() });
-  hooks.toast("Auftrag an die Cloud geschickt – Ergebnis in ein paar Minuten.");
+  verfolgen({ modus: m, best, weg: w, zeit: Date.now(), versuche: 1 });
+  hooks.toast((w === "express" ? "Brems-Auftrag" : "Auftrag") + " an die Cloud geschickt – die App verfolgt ihn.");
+  setTimeout(() => pruefen(null), 4000);
   setTimeout(() => hooks.entsperrt() && hooks.neuLaden(), 2 * 60000);
   setTimeout(() => hooks.entsperrt() && hooks.neuLaden(), 5 * 60000);
   return r;
 }
 
-// ------------------------------------------------------------------ offener Auftrag (Warteschlange)
+// ------------------------------------------------------------------ Aufträge verfolgen (Actions-API)
 
-let offen = (() => {
+/** Liste der verfolgten Aufträge. Im Speicher mit Bestätigung (zum Neu-Senden), in localStorage OHNE sie (nur Modus/Zeit/Status). */
+let auftraege = (() => {
   try {
-    const o = JSON.parse(localStorage.getItem(OFFEN_KEY) || "null");
-    return o && typeof o.modus === "string" && Number.isFinite(o.zeit) ? o : null;
+    const l = JSON.parse(localStorage.getItem(LISTE_KEY) || "[]");
+    localStorage.removeItem(ALT_KEY);
+    return Array.isArray(l) ? l.filter((a) => a && typeof a.modus === "string" && Number.isFinite(a.zeit)) : [];
   } catch {
-    return null;
+    return [];
   }
 })();
-let laufStatus = null;
+let naechsteNr = Date.now();
 
-function offenSetzen(o) {
-  offen = o;
-  laufStatus = null;
+function speichern() {
   try {
-    if (o) localStorage.setItem(OFFEN_KEY, JSON.stringify(o));
-    else localStorage.removeItem(OFFEN_KEY);
+    const roh = auftraege.map(({ best, ...rest }) => rest);
+    if (roh.length) localStorage.setItem(LISTE_KEY, JSON.stringify(roh));
+    else localStorage.removeItem(LISTE_KEY);
   } catch { /* egal */ }
+}
+
+const FINAL = new Set(["erledigt", "fehlgeschlagen", "verloren"]);
+function istFinal(a) {
+  return FINAL.has(a.status);
+}
+export function laufendeAuftraege() {
+  return auftraege.filter((a) => !istFinal(a));
+}
+/** für app.js (Push-Abo, Hinweise): der älteste laufende Auftrag oder null */
+export function offenerAuftrag() {
+  return laufendeAuftraege()[0] || null;
+}
+/** für Tests und Einstellungen: Kopie der Liste */
+export function auftragsListe() {
+  return auftraege.map((a) => Object.assign({}, a, { best: undefined }));
+}
+
+function verfolgen(a) {
+  a.nr = ++naechsteNr;
+  a.status = "gesendet";
+  a.runId = null;
+  a.max = (BREMSEN.has(a.modus) && a.weg === "express") || a.modus === "allesstopp" || a.modus === "anhalten" ? NEU_SENDEN.bremse : NEU_SENDEN.normal;
+  auftraege = auftraege.filter((x) => !istFinal(x) || Date.now() - (x.ende || 0) < FERTIG_ZEIGEN_MS).concat([a]).slice(-6);
+  speichern();
   bandZeichnen();
 }
 
-export function offenerAuftrag() {
-  return offen;
+function titelVon(a) {
+  return (a.weg === "express" ? "Express: " : "Hand: ") + a.modus;
+}
+
+const STATUS_TEXT = {
+  gesendet: "gesendet – wartet auf GitHub",
+  angekommen: "angekommen – wartet in der Cloud",
+  laeuft: "läuft gerade",
+  erledigt: "erledigt ✓",
+  fehlgeschlagen: "fehlgeschlagen ✗",
+  verloren: "NICHT angekommen ✗",
+};
+
+function abschliessen(a, status, text) {
+  a.status = status;
+  a.ende = Date.now();
+  a.best = undefined;
+  speichern();
+  if (status === "verloren") {
+    dialog({
+      titel: "Auftrag nicht angekommen",
+      inhalt: ["„" + name(a.modus) + "“ ist nicht in der Cloud angekommen – GitHub hat ihn " + (a.versuche > 1 ? a.versuche + "-mal" : "") + " verworfen.",
+        "Bitte noch einmal drücken. Ändert sich nichts, auf github.com → Athokawe/finanzen → Actions nachsehen."],
+      okText: "Verstanden", nurOk: true,
+    });
+  } else {
+    hooks.toast("„" + name(a.modus) + "“: " + (text || STATUS_TEXT[status]));
+  }
+  hooks.neuLaden();
+}
+
+async function neuSenden(a, grund) {
+  if (!a.best && a.best !== "") {
+    abschliessen(a, "verloren");
+    return;
+  }
+  try {
+    await gh.auftrag(a.modus, a.best, a.weg);
+    a.versuche += 1;
+    a.zeit = Date.now();
+    a.status = "gesendet";
+    a.runId = null;
+    speichern();
+    hooks.toast("„" + name(a.modus) + "“ " + grund + " – automatisch erneut gesendet (" + (a.versuche - 1) + "/" + a.max + ").");
+  } catch (e) {
+    abschliessen(a, "verloren");
+  }
+}
+
+let actionsOk = true;
+let pruefLaeuft = false;
+
+/** Nach jedem Laden und alle 10 s: Stand der verfolgten Aufträge über die Actions-API (Lauf-Titel) */
+export async function pruefen(handy) {
+  if (pruefLaeuft) return;
+  const offen = laufendeAuftraege();
+  if (!offen.length) { bandZeichnen(); return; }
+  pruefLaeuft = true;
+  try {
+    const listen = {};
+    for (const w of new Set(offen.map((a) => a.weg))) {
+      try {
+        listen[w] = await gh.laeufe(w);
+        actionsOk = true;
+      } catch (e) {
+        listen[w] = null;
+        if (e && e.art === "rechte") actionsOk = false;
+      }
+    }
+    const vergeben = new Set(auftraege.map((a) => a.runId).filter(Boolean));
+    for (const a of offen) {
+      const liste = listen[a.weg];
+      if (!liste) { handyPruefen(a, handy); continue; }
+      let lauf = a.runId ? liste.find((x) => x.id === a.runId) : null;
+      if (!lauf) {
+        lauf = liste.filter((x) => x.titel === titelVon(a) && !vergeben.has(x.id) && datum(x.erstellt)
+          && datum(x.erstellt).getTime() >= a.zeit - 60000)
+          .sort((x, y) => datum(x.erstellt) - datum(y.erstellt))[0] || null;
+        if (lauf) { a.runId = lauf.id; vergeben.add(lauf.id); }
+      }
+      if (!lauf) {
+        if (Date.now() - a.zeit > VERWORFEN_NACH_MS) {
+          if (a.versuche - 1 < a.max) await neuSenden(a, "wurde von GitHub verworfen");
+          else abschliessen(a, "verloren");
+        }
+        continue;
+      }
+      if (lauf.status === "completed") {
+        if (lauf.ergebnis === "success") abschliessen(a, "erledigt");
+        else if (lauf.ergebnis === "cancelled" || lauf.ergebnis === "skipped") {
+          if (a.versuche - 1 < a.max) await neuSenden(a, "wurde abgebrochen");
+          else abschliessen(a, "verloren");
+        } else abschliessen(a, "fehlgeschlagen", "fehlgeschlagen ✗ – Details in der Mail bzw. bei GitHub (" + (lauf.ergebnis || "Fehler") + ")");
+      } else {
+        a.status = lauf.status === "in_progress" ? "laeuft" : "angekommen";
+      }
+    }
+    for (const a of laufendeAuftraege()) {
+      if ((Date.now() - a.zeit) / 60000 > WARTEN_MAX_MIN) abschliessen(a, "verloren");
+    }
+    speichern();
+  } finally {
+    pruefLaeuft = false;
+    bandZeichnen();
+  }
+}
+
+/** Ohne Actions-Leserecht: Auftrag gilt als erledigt, sobald handy.json einen Hand-Lauf dieses Modus nach dem Senden zeigt. */
+function handyPruefen(a, handy) {
+  const d = handy || hooks.handy();
+  const lauf = d && d.lauf;
+  const stand = d && datum(d.stand);
+  if (lauf && lauf.modus === a.modus && stand && stand.getTime() >= a.zeit - 30000 && lauf.ergebnis) {
+    abschliessen(a, lauf.ergebnis === "success" ? "erledigt" : "fehlgeschlagen");
+  }
+}
+
+function nichtMehrVerfolgen(a) {
+  auftraege = auftraege.filter((x) => x !== a);
+  speichern();
+  bandZeichnen();
+  hooks.toast("„" + name(a.modus) + "“ wird nicht mehr verfolgt.");
 }
 
 function bandZeichnen() {
   const b = $("auftrag-band");
   if (!b) return;
-  if (!offen) { b.hidden = true; return; }
+  const jetzt = Date.now();
+  const zeigen = auftraege.filter((a) => !istFinal(a) || jetzt - (a.ende || 0) < FERTIG_ZEIGEN_MS);
+  if (!zeigen.length) { b.hidden = true; return; }
   leeren(b);
-  const st = laufStatus === "in_progress" ? "läuft gerade" : laufStatus === "queued" || laufStatus === "waiting" || laufStatus === "pending" ? "wartet in der Cloud" : "unterwegs";
-  b.appendChild(h("span", null, "⏳ „" + name(offen.modus) + "“ " + st + " (geschickt " + vor(new Date(offen.zeit).toISOString()) + ")"));
-  b.appendChild(h("button", { type: "button", class: "knopf leise", onclick: () => { offenSetzen(null); hooks.toast("Auftrag wird nicht mehr verfolgt."); } }, "Nicht mehr warten"));
+  for (const a of zeigen) {
+    const symbol = a.status === "erledigt" ? "✓" : istFinal(a) ? "✗" : a.status === "laeuft" ? "▶" : "⏳";
+    const extra = !istFinal(a) && a.versuche > 1 ? " · Versuch " + a.versuche : "";
+    b.appendChild(h("div", { class: "auftrag-zeile " + a.status, "data-modus": a.modus, "data-status": a.status, "data-weg": a.weg },
+      h("span", null, symbol + " „" + name(a.modus) + "“ " + STATUS_TEXT[a.status] + (a.weg === "express" ? " (Express)" : "") + extra
+        + " · " + vor(new Date(istFinal(a) ? a.ende : a.zeit).toISOString())),
+      istFinal(a) ? null : h("button", { type: "button", class: "knopf leise", onclick: () => nichtMehrVerfolgen(a) }, "Nicht mehr verfolgen")));
+  }
+  if (!actionsOk) b.appendChild(h("div", { class: "klein" }, "Lauf-Status nicht lesbar (Token ohne „Actions: Read“) – die App erkennt das Ergebnis an den Daten."));
   b.hidden = false;
-}
-
-function fertig(ergebnis) {
-  const m = offen.modus;
-  offenSetzen(null);
-  const t = ergebnis === "success" ? "erledigt ✓"
-    : ergebnis === "failure" ? "fehlgeschlagen – die Cloud hat ihn abgelehnt oder es gab einen Fehler (Details in der Mail)"
-    : ergebnis === "cancelled" ? "abgebrochen (vermutlich von einem neueren Auftrag verdrängt)"
-    : ergebnis ? "beendet (" + ergebnis + ")" : "beendet";
-  hooks.toast("„" + name(m) + "“: " + t);
-  hooks.neuLaden();
-}
-
-/** Nach jedem Laden und alle 20 s: ist der offene Auftrag durch? */
-export async function pruefen(handy) {
-  if (!offen) return;
-  const alterMin = (Date.now() - offen.zeit) / 60000;
-  const d = handy || hooks.handy();
-  const lauf = d && d.lauf;
-  const stand = d && datum(d.stand);
-  if (lauf && lauf.ausloeser === "dispatch" && lauf.modus === offen.modus && stand && stand.getTime() >= offen.zeit - 30000 && lauf.ergebnis) {
-    fertig(lauf.ergebnis);
-    return;
-  }
-  try {
-    const liste = await gh.laeufe();
-    const lauf2 = liste.find((x) => x.titel === "Hand: " + offen.modus && datum(x.erstellt) && datum(x.erstellt).getTime() >= offen.zeit - 120000);
-    if (lauf2) {
-      if (lauf2.status === "completed") { fertig(lauf2.ergebnis); return; }
-      laufStatus = lauf2.status;
-    }
-  } catch { /* ohne Actions-Leserecht nur über handy.json */ }
-  if (offen && alterMin > WARTEN_MAX_MIN) {
-    const m = offen.modus;
-    offenSetzen(null);
-    hooks.toast("Kein Ergebnis für „" + name(m) + "“ gesehen – bitte später in der Übersicht nachsehen.");
-    return;
-  }
-  bandZeichnen();
 }

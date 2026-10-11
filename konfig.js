@@ -8,6 +8,8 @@ export const VAPID_PUBLIC_KEY = "BBtbqMbfNFeUqOb0JW3x6m2RRzozq1oBOZjiW-MJfChblC2
 // Privates Repo der Finanz-App, aus dem gelesen und an das Aufträge geschickt werden
 export const REPO = "Athokawe/finanzen";
 export const WORKFLOW = "ki.yml";
+// Express-Bremse (1.1.0): Brems-Befehle laufen über einen eigenen Ablauf mit eigener Warteschlange (wartet nie hinter ki.yml)
+export const EXPRESS_WORKFLOW = "express.yml";
 export const BRANCH = "main";
 
 // Bitpanda-Adressen (ohne Zugangsdaten). SWAP_URL = dieselbe Adresse wie in den Empfehlungs-Mails (cloud_ki.SWAP_URL).

@@ -1,7 +1,7 @@
 // Zugriff auf das private Repo über die GitHub-REST-API (CORS erlaubt). Das Token liegt nur im Arbeitsspeicher dieses Moduls.
 // Demo-Modus: liest demo/*.json und schickt NIE einen Auftrag (er wird nur zurückgegeben und angezeigt).
 
-import { REPO, WORKFLOW, BRANCH } from "../konfig.js";
+import { REPO, WORKFLOW, EXPRESS_WORKFLOW, BRANCH } from "../konfig.js";
 
 const API = "https://api.github.com";
 const ZEITLIMIT_MS = 20000;
@@ -87,7 +87,12 @@ async function anfrage(pfad, opt, zweck) {
   return r;
 }
 
-/** cloud/handy.json bzw. cloud/news.json lesen -> Objekt */
+/** Ablauf-Datei je Weg: "express" -> express.yml (Brems-Befehle), sonst ki.yml */
+export function ablauf(weg) {
+  return weg === "express" ? EXPRESS_WORKFLOW : WORKFLOW;
+}
+
+/** cloud/handy.json, cloud/news.json bzw. cloud/handy_verlauf.json lesen -> Objekt */
 export async function lesen(datei) {
   if (demo) {
     const r = await fetch("demo/" + datei.split("/").pop(), { cache: "no-store" });
@@ -106,28 +111,30 @@ export async function lesen(datei) {
   }
 }
 
-/** Auftrag an ki.yml schicken. Demo: nur merken und zurückgeben. */
-export async function auftrag(modus, bestaetigung) {
+/** Auftrag an ki.yml bzw. (weg "express") an express.yml schicken. Demo: nur merken und zurückgeben. */
+export async function auftrag(modus, bestaetigung, weg) {
   const nutzlast = { ref: BRANCH, inputs: { modus: String(modus), bestaetigung: String(bestaetigung ?? "") } };
+  const wf = ablauf(weg);
   if (demo) {
-    demoAuftraege.push(nutzlast);
-    return { demo: true, nutzlast };
+    demoAuftraege.push({ workflow: wf, nutzlast });
+    return { demo: true, nutzlast, workflow: wf };
   }
-  await anfrage("/repos/" + REPO + "/actions/workflows/" + WORKFLOW + "/dispatches", {
+  await anfrage("/repos/" + REPO + "/actions/workflows/" + wf + "/dispatches", {
     method: "POST",
     headers: { Accept: "application/vnd.github+json", "Content-Type": "application/json" },
     body: JSON.stringify(nutzlast),
   }, "auftrag");
-  return { demo: false, nutzlast };
+  return { demo: false, nutzlast, workflow: wf };
 }
 
-/** Letzte Hand-Läufe von ki.yml: [{titel, status, ergebnis, erstellt}] */
-export async function laeufe() {
+/** Letzte Hand-Läufe von ki.yml bzw. express.yml: [{id, titel, status, ergebnis, erstellt}] */
+export async function laeufe(weg) {
   if (demo) return [];
-  const r = await anfrage("/repos/" + REPO + "/actions/workflows/" + WORKFLOW + "/runs?event=workflow_dispatch&per_page=15",
+  const r = await anfrage("/repos/" + REPO + "/actions/workflows/" + ablauf(weg) + "/runs?event=workflow_dispatch&per_page=20",
     { headers: { Accept: "application/vnd.github+json" } }, "laeufe");
   const d = await r.json();
   return (d.workflow_runs || []).map((x) => ({
+    id: x.id,
     titel: x.display_title || x.name || "",
     status: x.status,
     ergebnis: x.conclusion,

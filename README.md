@@ -1,16 +1,36 @@
 # Finanzen – Handy-Ansicht
 
-Web-App (PWA) fürs iPhone zur privaten Finanz-App: Kern-Bot, Kern-Topf, Raster-Bot, Trend-Bot, Aktien-Autopilot und
-Nachrichten auf einen Blick – plus die wichtigsten Schalter („Alles stoppen“, Bots ein/aus, Stufe, Hinweis an die KI) und
-Mitteilungen (Web-Push). Ausgeliefert über GitHub Pages: <https://athokawe.github.io/finanzen-handy/>
+Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, Coin-Topf, Raster-Bot, Trend-Bot,
+Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
+„Nur anhalten“, Bots ein/aus, Stufe, Hinweis an die KI) und Mitteilungen (Web-Push).
+
+## Neu in 1.1.0
+
+* **Look der Laptop-App, immer dunkel** (fast schwarz, Karten mit feinem Rand, grüner Akzent, Pillen-Knöpfe).
+* **Gesamtvermögen** als erste Karte: Coin-Topf + Aktien & ETFs mit Anteilen und Stand-Zeit.
+* **Statistik** aus `cloud/handy_verlauf.json`: selbst gezeichnete SVG-Diagramme (keine fremden Bibliotheken), Zeitraum
+  7 T / 30 T / 90 T / 1 J / Alles, Antippen zeigt Datum und Wert, darunter Veränderung, Höchst- und Tiefstwert. Übersicht:
+  Gesamtvermögen; Coin-Bot: Coin-Topf gegen „Bitcoin halten“ in Prozent (Ein- und Auszahlungen herausgerechnet) und
+  Bitcoin-Kurs; Raster/Trend: Schattendepot (bzw. echter Topf) gegen „Bitcoin halten“. Fehlt die Datei noch: „Statistik
+  entsteht ab dem nächsten Cloud-Lauf“.
+* **Neue Namen:** Coin-Bot (bisher Kern-Bot), Coin-Topf (bisher Kern-Topf).
+* **„Alles parken“** (großer roter Knopf, mit JA): verkauft alle Krypto-Bestände der Bots in EURCV und schaltet sie aus –
+  Aktien bleiben. **„Nur anhalten“** (kleiner Knopf): alle Krypto-Bots aus, nichts wird verkauft – auch keine Notbremse mehr.
+  „Coin-Bot aus“: nur die KI aus – das Regelwerk mit Notbremse schützt weiter.
+* **Express-Bremse:** Brems-Befehle (Alles parken, Nur anhalten, Coin-Bot aus, Stufe → sicher, Raster/Trend pausieren) gehen
+  an `express.yml` (eigene Warteschlange, wartet nie hinter einem laufenden Cloud-Lauf), alles andere an `ki.yml`.
+* **Live-Rückmeldung** für jeden Auftrag über die Actions-API (gesendet → angekommen → läuft → erledigt ✓ / fehlgeschlagen ✗).
+  Verwirft GitHub einen Auftrag (nach ~90 s kein Lauf oder Lauf abgebrochen), schickt die App ihn automatisch noch einmal
+  (Brems-Befehle bis zu 3-mal) und meldet es danach klar. Ausgeliefert über GitHub Pages: <https://athokawe.github.io/finanzen-handy/>
 
 **Dieses Repo enthält nur die Anzeige und die Knöpfe – keine Daten, keine Schlüssel.**
 
 ## Was ist das?
 
-* Die Zahlen liegen ausschließlich im privaten Repo `Athokawe/finanzen` (Dateien `cloud/handy.json` und `cloud/news.json`, die
-  die Cloud-Läufe schreiben). Die App liest sie direkt am Handy über die GitHub-API – sie braucht den Laptop nicht.
-* Befehle gehen als Cloud-Aufträge an den Ablauf `ki.yml` im privaten Repo (`workflow_dispatch` mit `modus` und `bestaetigung`).
+* Die Zahlen liegen ausschließlich im privaten Repo `Athokawe/finanzen` (Dateien `cloud/handy.json`, `cloud/news.json` und
+  `cloud/handy_verlauf.json`, die die Cloud-Läufe schreiben). Die App liest sie direkt am Handy über die GitHub-API – sie braucht den Laptop nicht.
+* Befehle gehen als Cloud-Aufträge an den Ablauf `ki.yml` bzw. – Brems-Befehle – `express.yml` im privaten Repo
+  (`workflow_dispatch` mit `modus` und `bestaetigung`).
   Erlaubt sind nur die Modi, die `handy.json` → `modi` nennt. Schaltbefehle brauchen ein getipptes **JA**; die App baut die
   Bestätigung (z. B. `JA;betrag=200`) aus den Formularfeldern, prüft sie gegen das Muster aus `handy.json` und erst dann geht sie
   raus. Die Cloud prüft noch einmal selbst.
@@ -60,13 +80,14 @@ Lokal: `python -m http.server` in einem Ordner, der dieses Repo als Unterordner 
 
 | Datei | Inhalt |
 |---|---|
-| `index.html`, `app.css` | Gerüst und Aussehen (Hell/Dunkel nach System, Safe-Area fürs iPhone) |
+| `index.html`, `app.css` | Gerüst und Aussehen (immer dunkel wie die Laptop-App, Safe-Area fürs iPhone) |
 | `konfig.js` | Repo, Ablauf, Bitpanda-Adressen, öffentlicher VAPID-Schlüssel (nicht geheim) |
 | `js/app.js` | Ablauf: Verbinden → PIN → App, Sperre, Laden, Push |
 | `js/tresor.js` | Token-Verschlüsselung (AES-GCM/PBKDF2) |
 | `js/github.js` | GitHub-API (lesen, Aufträge, Lauf-Status), Demo-Modus |
-| `js/aktionen.js` | erlaubte Modi, JA-Dialog, Bestätigung bauen/prüfen, Warteschlange |
+| `js/aktionen.js` | erlaubte Modi, JA-Dialog, Bestätigung bauen/prüfen, Weg (Express/ki.yml), Live-Rückmeldung und Neu-Senden |
 | `js/ansichten.js` | die Reiter |
+| `js/diagramm.js` | Statistik-Diagramme (SVG, Zeiträume, Antippen, Kennzahlen) |
 | `js/push.js`, `sw.js` | Web-Push-Abo, Service Worker (Hülle cachen, Mitteilungen) |
 | `manifest.webmanifest`, `icons/` | Home-Bildschirm-App |
 
