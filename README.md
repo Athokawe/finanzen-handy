@@ -11,7 +11,8 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
   „Sofort“ (auch Stufen im Minus verkaufen). Mit getipptem JA, Auftrag `ki.yml` Modus `bot_umschichten`
   (`JA;von=trend|raster;nach=…;betrag=…` bzw. `;alles=JA`, `;sofort=JA` nur vom Raster-Bot). Keine Bitcoin-Order: das Geld
   wird direkt von Topf zu Topf umgebucht. Der Dialog sagt, was mit dem anderen Bot passiert (aus → wird eingeschaltet,
-  pausiert → bleibt pausiert). Die Knöpfe erscheinen nur, wenn die Cloud den Modus in `handy.json` → `modi` anbietet und der
+  pausiert → bleibt pausiert; Trend-Bot an → stockt bei grüner Markt-Ampel sofort auf, bei roter bleibt das Geld als EURCV im
+  Topf). Jeder Auftrag bewegt den Betrag erneut – während einer läuft, nimmt die App keinen zweiten an. Die Knöpfe erscheinen nur, wenn die Cloud den Modus in `handy.json` → `modi` anbietet und der
   abgebende Bot nicht aus ist.
 
 ## Neu in 1.2.3

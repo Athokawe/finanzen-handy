@@ -112,7 +112,9 @@ function zielText(nach) {
   }
   if (st === "pausiert") return "Der " + n + " ist pausiert – das Geld kommt an, er bleibt pausiert.";
   if (st === "an") {
-    return nach === "trend" ? "Der Trend-Bot läuft – sein Topf wird größer, er kauft sofort zu gleichen Teilen nach."
+    return nach === "trend" ? "Der Trend-Bot läuft – sein Topf wird größer. Bei grüner Markt-Ampel kauft er sofort zu gleichen Teilen nach "
+      + "(ist der heutige Termin noch offen, läuft er zuerst); bei roter Markt-Ampel bleibt es als EURCV im Topf, ein späterer Termin legt "
+      + "es in freie Plätze an."
       : "Der Raster-Bot läuft – sein Betrag wird größer, der nächste Lauf legt mehr Stufen.";
   }
   return "Ist der " + n + " aus, wird er mit dem Betrag eingeschaltet; ist er pausiert, bleibt er pausiert.";
