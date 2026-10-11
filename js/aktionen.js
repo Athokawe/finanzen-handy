@@ -73,7 +73,7 @@ function betragPruefen(w) {
 const SPEZ = {
   einschaetzung: { titel: "Frische KI-Einschätzung", text: "Die Cloud holt eine neue Einschätzung des Kern-Bots und schickt sie dir per Mail. Es wird nicht gehandelt.", ok: "Anfordern" },
   bericht_jetzt: { titel: "Bericht jetzt", text: "Frische Einschätzung und Bericht per Mail – es wird nie gehandelt.", ok: "Anfordern" },
-  news_jetzt: { titel: "Nachrichten aktualisieren", ohneFrage: true },
+  news_jetzt: { titel: "News aktualisieren", ohneFrage: true },
   start: { titel: "Kern-Bot einschalten", text: "Der Kern-Bot entscheidet und handelt dann wieder selbst (mit Notbremse und Gewinnschutz)." },
   stopp: { titel: "Kern-Bot ausschalten", text: "Der Kern-Bot handelt nicht mehr selbst. Der Kern-Topf bleibt, wie er ist." },
   allesstopp: {

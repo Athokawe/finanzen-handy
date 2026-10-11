@@ -9,7 +9,7 @@ import * as V from "./ansichten.js";
 import * as P from "./push.js";
 import * as F from "./format.js";
 
-export const APP_VERSION = "1.0.1";
+export const APP_VERSION = "1.0.2";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -24,7 +24,7 @@ let neuerToken = null;   // nur während der Einrichtung, bis die PIN steht (nie
 let pinModus = "eingeben";
 let ersterPin = "";
 
-const TITEL = { uebersicht: "Übersicht", kern: "Kern-Bot", raster: "Raster-Bot", trend: "Trend-Bot", news: "Nachrichten", mehr: "Einstellungen" };
+const TITEL = { uebersicht: "Übersicht", kern: "Kern-Bot", raster: "Raster-Bot", trend: "Trend-Bot", news: "News", mehr: "Einstellungen" };
 const ANSICHT = { uebersicht: V.uebersicht, kern: V.kern, raster: V.raster, trend: V.trend, news: V.news };
 
 // ------------------------------------------------------------------ kleine Helfer
@@ -265,7 +265,10 @@ async function laden() {
     Z.news = demo ? demoZeiten(b.value, versatz) : b.value;
     Z.fehlerNews = null;
   } else {
-    Z.fehlerNews = b.reason && b.reason.message ? b.reason.message : "Nachrichten nicht lesbar.";
+    // news.json entsteht erst mit dem ersten Bericht bzw. „News aktualisieren“ – das ist kein Token-Fehler (handy.json kam ja an)
+    Z.fehlerNews = (b.reason && b.reason.art === "nichtda" && a.status === "fulfilled")
+      ? "Noch keine News geholt. Tippe auf „News aktualisieren“ – in ein paar Minuten sind sie da (sonst kommen sie mit dem nächsten Bericht)."
+      : (b.reason && b.reason.message ? b.reason.message : "News nicht lesbar.");
   }
   Z.geladenUm = Date.now();
   if (Z.fehlerHandy) meldung((Z.handy ? "Aktualisieren fehlgeschlagen – du siehst den letzten Stand. " : "") + Z.fehlerHandy);

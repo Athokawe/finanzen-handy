@@ -409,10 +409,10 @@ function schlagzeile(s) {
 
 export function news(Z) {
   const out = [];
-  out.push(reihe(A.knopf("news_jetzt", "Nachrichten aktualisieren", "primaer")));
+  out.push(reihe(A.knopf("news_jetzt", "News aktualisieren", "primaer")));
   const n = Z.news;
   if (!n) {
-    out.push(Z.fehlerNews ? h("p", { class: "fehlerteil" }, Z.fehlerNews) : leer("Nachrichten werden geladen …"));
+    out.push(Z.fehlerNews ? h("p", { class: "fehlerteil" }, Z.fehlerNews) : leer("News werden geladen …"));
     return out;
   }
   out.push(h("p", { class: "klein gedimmt" }, "Abgerufen " + F.vor(n.zeit) + " (" + F.zeit(n.zeit) + ", " + (n.anlass === "news_jetzt" ? "von Hand" : "für den Bericht") + "). Neu holen geht höchstens alle 30 Minuten."));
