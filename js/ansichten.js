@@ -475,6 +475,9 @@ export function raster(Z) {
     reihe(A.knopf("surfen_deckel", "Verlustdeckel"), A.knopf("surfen_recherchen", "Recherchen/Tag")),
   ));
 
+  // Ohne echtes Geld steht das Schattendepot gleich unter dem Bot, mit echtem Geld nur noch als eine Referenzzeile ganz unten (Nutzer 11.10.2026)
+  const rEcht = st !== "aus" || (F.istZahl(r.topf_eur) && r.topf_eur > 0);
+  if (!rEcht) out.push(rasterSchatten(r));
   out.push(karte("Statistik", null, botStatistik(Z, "raster")));
   const coins = liste(r.coins);
   out.push(karte("Coins im Raster", null, coins.length ? h("ul", { class: "liste" }, coins.map((c) => h("li", null,
@@ -483,8 +486,14 @@ export function raster(Z) {
   out.push(karte("Letzte Trades", null, tradesListe(r.trades_letzte)));
   out.push(karte("Ereignisse", null, ereignisListe(r.ereignisse)));
 
+  if (rEcht && ok(r.schatten)) out.push(schattenHinweis(r.schatten));
+  out.push(reihe(bitpandaKnopf("Zu Bitpanda")));
+  return out;
+}
+
+function rasterSchatten(r) {
   const s = ok(r.schatten);
-  out.push(karte("Schattendepot", s ? statusEtikett(s.status) : null,
+  return karte("Schattendepot", s ? statusEtikett(s.status) : null,
     h("p", { class: "klein gedimmt" }, "Rechengeld (kein echtes Geld): zeigt, wie sich der Raster-Bot mit 300 € gegen „Bitcoin halten“ schlagen würde."),
     s ? zeilen([
       ["Wert", F.euro(s.wert_eur)],
@@ -494,9 +503,7 @@ export function raster(Z) {
       ["Start", F.euro(s.start_eur) + " am " + F.tag(s.start_zeit)],
       F.istZahl(s.runde) ? ["Runde", String(s.runde)] : null,
       ["Stand", F.zeit(s.zeit)],
-    ]) : leer("Kein Schattendepot.")));
-  out.push(reihe(bitpandaKnopf("Zu Bitpanda")));
-  return out;
+    ]) : leer("Kein Schattendepot."));
 }
 
 // ------------------------------------------------------------------ Trend-Bot
@@ -531,6 +538,8 @@ export function trend(Z) {
     reihe(A.knopf("trend_deckel", "Verlustdeckel")),
   ));
 
+  const tEcht = t.modus === "echt";
+  if (!tEcht) out.push(trendSchatten(t));
   out.push(karte("Statistik", null, botStatistik(Z, "trend")));
   const pos = liste(t.positionen);
   out.push(karte("Positionen", null, pos.length ? h("ul", { class: "liste" }, pos.map((p) => h("li", null,
@@ -542,8 +551,16 @@ export function trend(Z) {
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(x.rang) + ". " + F.text(x.coin)),
       h("span", { class: "zahl " + F.vorzeichenKlasse(x.r14_prozent) }, F.prozent(x.r14_prozent)), coinLink(x.coin))))) : leer("Keine Rangliste.")));
 
+  out.push(karte("Letzte Trades", null, tradesListe(t.trades_letzte)));
+  out.push(karte("Ereignisse", null, ereignisListe(t.ereignisse)));
+  if (tEcht && ok(t.schatten)) out.push(schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", ")));
+  out.push(reihe(bitpandaKnopf("Zu Bitpanda")));
+  return out;
+}
+
+function trendSchatten(t) {
   const s = ok(t.schatten);
-  out.push(karte("Schattendepot", null,
+  return karte("Schattendepot", null,
     h("p", { class: "klein gedimmt" }, "Rechengeld (kein echtes Geld) mit denselben Regeln wie der Trend-Bot."),
     s ? zeilen([
       ["Wert", F.euro(s.wert_eur)],
@@ -553,11 +570,7 @@ export function trend(Z) {
       ["hält", liste(s.positionen).join(", ") || "nichts"],
       ["Start", F.euro(s.start_eur) + " am " + F.tag(s.start_zeit)],
       ["Stand", F.zeit(s.zeit)],
-    ]) : leer("Kein Schattendepot.")));
-  out.push(karte("Letzte Trades", null, tradesListe(t.trades_letzte)));
-  out.push(karte("Ereignisse", null, ereignisListe(t.ereignisse)));
-  out.push(reihe(bitpandaKnopf("Zu Bitpanda")));
-  return out;
+    ]) : leer("Kein Schattendepot."));
 }
 
 // ------------------------------------------------------------------ Nachrichten
