@@ -332,3 +332,8 @@ svg.diagramm .marke-punkt.l-trend { stroke: #c084fc; } svg.diagramm .marke-punkt
 .ki-schnell { display: flex; gap: 8px; align-items: center; }
 .ki-schnell .ki-schnell-feld { flex: 1; min-width: 0; margin: 0; }
 .ki-schnell .knopf { flex: none; }
+
+/* 1.2.11: Lagebericht je Bot */
+.lage-liste { margin: 0; padding-left: 18px; display: grid; gap: 6px; line-height: 1.4; }
+details.lage-karte > summary { cursor: pointer; font-weight: 600; }
+details.lage-karte[open] > summary { margin-bottom: 8px; }

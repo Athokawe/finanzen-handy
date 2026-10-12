@@ -83,7 +83,12 @@
    "kurs_zeit": "2026-10-11T06:20:00+00:00",
    "abstand_prozent": -4.11,
    "ausgeloest": false
-  }
+  },
+  "lage": [
+   "Coin-Bot EIN: die KI steuert (Stufe „normal“), die Notbremse läuft in jedem Lauf mit.",
+   "Notbremse: am nächsten ist die Grenze −6 % in 7 Tagen – Bitcoin müsste noch 3,1 % fallen.",
+   "Gewinnschutz: parkt BTC unter 61.000 € (14 % unter dem Höchststand); noch 5,2 % Luft."
+  ]
  },
  "aktien": {
   "name": "Aktien-Autopilot",
@@ -109,7 +114,11 @@
    "zuversicht": 70,
    "einfach_erklaert": "Beispiel: Der Welt-ETF liegt im Plan, es ist nichts zu tun.",
    "status": "nicht gehandelt: halten"
-  }
+  },
+  "lage": [
+   "Aktien-Autopilot EIN, Modus „nur ETF“.",
+   "Hält: Welt-ETF 100,00 € (erfundener Demo-Wert)."
+  ]
  },
  "raster_bot": {
   "name": "Raster-Bot",
@@ -188,7 +197,11 @@
    "start_zeit": "2026-10-04T06:00:00+00:00",
    "bitcoin_halten_eur": 301.0,
    "zeit": "2026-10-11T06:00:00+00:00"
-  }
+  },
+  "lage": [
+   "Raster-Bot EIN mit 1 Coin: SOL, Eignung 70, 4 Stufen.",
+   "Heute 1 von 4 Käufen und 0 von 4 Verkäufen."
+  ]
  },
  "trend_bot": {
   "name": "Trend-Bot",
@@ -253,7 +266,11 @@
     "NEAR",
     "ATOM"
    ]
-  }
+  },
+  "lage": [
+   "Markt-Ampel grün: Bitcoin liegt +4,0 % über der 50-Tage-Linie.",
+   "Schattendepot: hält SOL (Rang 1) – bleibt bis Rang 5."
+  ]
  },
  "alarme": [
   {

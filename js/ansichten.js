@@ -131,6 +131,15 @@ function ereignisListe(ev, bot, darf) {
  * Karte „Letzte Trades“ bzw. „Ereignisse“ eines Bots (1.2.5): ✕ je Eintrag und „Liste leeren“ blenden in beiden Apps aus – nichts
  * wird gelöscht (js/ausblenden.js, Modus liste_ausblenden). „n ausgeblendet“ aus handy.json (trades_/ereignisse_ausgeblendet).
  */
+/** 1.2.11: Lagebericht je Bot (handy.json <bot>.lage – Liste kurzer Sätze, regelbasiert aus der Cloud). Fehlt er: nichts zeigen. */
+function lageKarte(lage, titel, zu) {
+  const saetze = liste(lage).filter((x) => typeof x === "string" && x.trim());
+  if (!saetze.length) return null;
+  const ul = h("ul", { class: "lage-liste" }, saetze.map((t) => h("li", null, F.text(t))));
+  if (zu) return h("details", { class: "karte lage-karte" }, h("summary", null, titel || "Lage"), ul);
+  return karte(titel || "Lage – warum es gerade so ist", null, ul);
+}
+
 function listenKarte(titel, bot, art, teil) {
   const roh = liste(teil[art === "trades" ? "trades_letzte" : "ereignisse"]);
   const darf = AB.moeglich(roh);
@@ -424,6 +433,8 @@ export function uebersicht(Z) {
       reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein"),
         ak.gewinnschutz_an ? A.knopf("gewinnschutz_aktien_aus", "Gewinnschutz aus") : A.knopf("gewinnschutz_aktien_ein", "Gewinnschutz ein")),
     ));
+    const lageA = lageKarte(ak.lage, "Lage Aktien-Autopilot", true);   // 1.2.11: eingeklappt, die Übersicht bleibt kurz
+    if (lageA) out.push(lageA);
   } else out.push(fehlerKarte("Aktien-Autopilot", d.aktien));
 
   const r = ok(d.raster_bot);
@@ -488,6 +499,8 @@ export function kern(Z) {
   const k = ok(d.kern_bot);
   if (!k) return [fehlerKarte("Coin-Bot", d.kern_bot)];
   const out = [];
+  const lageK = lageKarte(k.lage);
+  if (lageK) out.push(lageK);
   out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an ? "an" : "aus"),
     h("div", { class: "mittel" }, F.euro(k.wert_eur)),
     h("p", { class: "klein gedimmt" }, F.text(k.topf_name, "Coin-Topf") + " · Stand " + F.zeit(k.wert_zeit)),
@@ -588,6 +601,8 @@ export function raster(Z) {
   const r = ok(d.raster_bot);
   if (!r) return [fehlerKarte("Raster-Bot", d.raster_bot)];
   const out = [];
+  const lageR = lageKarte(r.lage);
+  if (lageR) out.push(lageR);
   const st = r.status;
   out.push(karte(F.text(r.name, "Raster-Bot"), statusEtikett(st),
     h("div", { class: "mittel" }, F.euro(r.topf_eur)),
@@ -652,6 +667,8 @@ export function trend(Z) {
   const t = ok(d.trend_bot);
   if (!t) return [fehlerKarte("Trend-Bot", d.trend_bot)];
   const out = [];
+  const lageT = lageKarte(t.lage);
+  if (lageT) out.push(lageT);
   const st = t.status;
   const ma = ok(t.markt_ampel);
   out.push(karte("Markt-Ampel", ma ? ampel(ma.gruen ? "gruen" : "rot") : null,
