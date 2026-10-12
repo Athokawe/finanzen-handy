@@ -1,5 +1,6 @@
 // Hauptablauf: Verbinden (Token) → PIN festlegen → App; beim Öffnen und nach 5 min im Hintergrund PIN-Sperre.
 // 1.2.8: optional „Mit Face ID entsperren“ (js/faceid.js: Passkey mit PRF, zweiter Umschlag) – die PIN bleibt Rückfall.
+// 1.2.9: Face ID startet beim Sperrbildschirm einmal von selbst (lässt iOS das ohne Tipp nicht zu: still der Knopf).
 // Daten liegen nur im Arbeitsspeicher (Z), der Token nur verschlüsselt in localStorage und entschlüsselt in github.js.
 
 import { $, h, leeren } from "./dom.js";
@@ -14,7 +15,7 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.2.8";
+export const APP_VERSION = "1.2.9";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -30,6 +31,10 @@ let neuerToken = null;   // nur während der Einrichtung, bis die PIN steht (nie
 let pinModus = "eingeben";
 let ersterPin = "";
 let faceIdStatus = null; // null = noch unbekannt, "ja" | "ohne_prf" | "nein" (FI.pruefen)
+let faceIdAnfrage = null;     // AbortController der laufenden Face-ID-Anfrage – nie zwei get() gleichzeitig
+let faceIdAutoVersucht = false; // pro Sperre höchstens EIN automatischer Versuch (wieder frei: neu sperren/öffnen, zurück aus dem Hintergrund)
+let faceIdEndeUm = 0;         // wann die letzte Face-ID-Anfrage endete
+let verstecktBeiFaceId = false; // Seite wurde während/gleich nach einer Face-ID-Anfrage verdeckt (das iOS-Blatt selbst)
 
 const TITEL = { uebersicht: "Übersicht", kern: "Coin-Bot", raster: "Raster-Bot", trend: "Trend-Bot", news: "News", mehr: "Einstellungen" };
 const ANSICHT = { uebersicht: V.uebersicht, kern: V.kern, raster: V.raster, trend: V.trend, news: V.news };
@@ -64,6 +69,7 @@ function fehlerFeld(id, text) {
 // ------------------------------------------------------------------ Verbinden
 
 function verbindenZeigen(hinweis) {
+  faceIdAbbrechen();
   entsperrt = false;
   gh.tokenSetzen(null);
   $("token-feld").value = "";
@@ -123,24 +129,52 @@ function pinZeigen(modus, fehler) {
   }
   schirm("pin");
   if (!mitFaceId || fehler) setTimeout(() => $("pin-feld").focus(), 60);
+  if (mitFaceId && !fehler) faceIdAuto();
+}
+
+/** Laufende Face-ID-Anfrage abbrechen (PIN-Entsperren, Neu verbinden, Seitenwechsel). */
+function faceIdAbbrechen() {
+  if (faceIdAnfrage) faceIdAnfrage.abort();
+}
+
+/**
+ * 1.2.9: einmal pro Sperre automatisch Face ID starten – nur bei sichtbarer Seite, gezeigtem Sperrbildschirm und eingerichtetem
+ * Face ID, nie parallel zu einer laufenden Anfrage. Lässt iOS das ohne Tipp nicht zu, bleibt still der Knopf.
+ */
+function faceIdAuto() {
+  if (faceIdAutoVersucht || faceIdAnfrage || entsperrt || demo || pinModus !== "eingeben" || $("s-pin").hidden
+    || document.visibilityState !== "visible" || !FI.eingerichtet()) return;
+  faceIdStart(true);
 }
 
 /** Tipp auf „Mit Face ID entsperren“: get() muss sofort im Tipp starten (FI.oeffnen ruft es ohne vorheriges await auf). */
-async function faceIdEntsperren() {
+function faceIdEntsperren() {
+  if ($("faceid-knopf").disabled || entsperrt) return;
+  faceIdStart(false);
+}
+
+async function faceIdStart(auto) {
+  if (faceIdAnfrage || entsperrt) return;   // keine zweite Anfrage, solange eine läuft
+  faceIdAutoVersucht = true;                 // auch nach einem Tipp kein automatischer Versuch mehr in dieser Sperre
+  const ctrl = new AbortController();
+  faceIdAnfrage = ctrl;
   const knopf = $("faceid-knopf");
-  if (knopf.disabled || entsperrt) return;
-  fehlerFeld("pin-fehler", "");
+  if (!auto) fehlerFeld("pin-fehler", "");
   knopf.disabled = true;
   knopf.textContent = "Warte auf Face ID …";
   let r;
   try {
-    r = await FI.oeffnen();
+    r = await FI.oeffnen(ctrl.signal);
   } catch {
     r = { ok: false, art: "fehler" };
   }
+  if (faceIdAnfrage === ctrl) faceIdAnfrage = null;
+  faceIdEndeUm = Date.now();
   knopf.disabled = false;
   knopf.textContent = "Mit Face ID entsperren";
-  if (entsperrt || pinModus !== "eingeben") return; // inzwischen mit der PIN entsperrt
+  if (ctrl.signal.aborted || entsperrt || pinModus !== "eingeben") return; // abgebrochen / inzwischen mit der PIN entsperrt
+  // Automatischer Versuch von iOS abgelehnt (kein Tipp) oder Blatt abgebrochen: still – der Knopf bleibt, kein Zähler
+  if (!r.ok && auto && (r.art === "abgebrochen" || r.art === "sicherheit" || r.art === "fehler")) return;
   if (r.ok) {
     T.fehlerZuruecksetzen();
     gh.tokenSetzen(r.token);
@@ -217,7 +251,8 @@ function pinVergessen() {
   });
 }
 
-function sperren() {
+/** manuell = „Jetzt sperren“ getippt: dann KEIN automatisches Face ID (sonst wäre die App sofort wieder offen). */
+function sperren(manuell) {
   if (demo) return;
   entsperrt = false;
   gh.tokenSetzen(null);
@@ -227,6 +262,7 @@ function sperren() {
   A.dialogZu();
   K.vergessen();
   meldung("");
+  faceIdAutoVersucht = manuell === true; // neue Sperre: wieder ein automatischer Face-ID-Versuch (nicht nach „Jetzt sperren“)
   if (T.vorhanden()) pinZeigen("eingeben");
   else verbindenZeigen();
 }
@@ -234,6 +270,7 @@ function sperren() {
 // ------------------------------------------------------------------ App
 
 function appStarten() {
+  faceIdAbbrechen();
   entsperrt = true;
   schirm("app");
   $("demo-band").hidden = !demo;
@@ -256,7 +293,7 @@ function zeichnen() {
   const el = $("t-" + reiter);
   leeren(el);
   const teile = reiter === "mehr"
-    ? V.mehr(Z, { demo, pushHash, appVersion: APP_VERSION, onPushAn: pushAn, onPushAus: pushAus, onSperren: sperren, onAbmelden: abmelden,
+    ? V.mehr(Z, { demo, pushHash, appVersion: APP_VERSION, onPushAn: pushAn, onPushAus: pushAus, onSperren: () => sperren(true), onAbmelden: abmelden,
       faceId: demo ? null : { status: faceIdStatus, eingerichtet: FI.eingerichtet(), seit: FI.seit(), nichtMoeglich: FI.nichtMoeglichGemerkt() },
       onFaceIdEinrichten: faceIdEinrichten, onFaceIdEntfernen: faceIdEntfernen })
     : ANSICHT[reiter](Z);
@@ -568,14 +605,23 @@ function verdrahten() {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
       verstecktSeit = Date.now();
+      // verdeckt das iOS-Face-ID-Blatt selbst die Seite, ist das kein „zurück aus dem Hintergrund“ (sonst Endlosschleife)
+      verstecktBeiFaceId = !!faceIdAnfrage || Date.now() - faceIdEndeUm < 1000;
       return;
     }
     if (entsperrt && !demo && verstecktSeit && Date.now() - verstecktSeit > SPERRE_NACH_MS) {
       sperren();
       return;
     }
+    // gesperrt und zurück aus dem Hintergrund: wieder EIN automatischer Face-ID-Versuch
+    if (!entsperrt && !demo && !verstecktBeiFaceId && !faceIdAnfrage) {
+      faceIdAutoVersucht = false;
+      faceIdAuto();
+    }
+    verstecktBeiFaceId = false;
     if (entsperrt && Date.now() - Z.geladenUm > 2 * 60000) laden();
   });
+  window.addEventListener("pagehide", faceIdAbbrechen);
   window.addEventListener("pageshow", (e) => {
     if (e.persisted && entsperrt && !demo && verstecktSeit && Date.now() - verstecktSeit > SPERRE_NACH_MS) sperren();
   });

@@ -193,10 +193,10 @@ export async function anlegen() {
  * PRF-Ausgabe für diesen Passkey holen (Face ID). Muss direkt im Tipp aufgerufen werden.
  * -> {art: "prf", prf} | {art: "kein_prf"} | {art: "falscher_passkey"} | {art: "abgebrochen"|…}
  */
-export async function prfHolen(id, salz) {
+export async function prfHolen(id, salz, signal) {
   let cred;
   try {
-    cred = await navigator.credentials.get({ publicKey: holOptionen(id, salz) });
+    cred = await navigator.credentials.get({ publicKey: holOptionen(id, salz), signal });
   } catch (e) {
     return { art: fehlerArt(e) };
   }
@@ -226,10 +226,11 @@ export async function speichern(token, id, salz, prf) {
 }
 
 /**
- * Mit Face ID entsperren. Muss direkt im Tipp aufgerufen werden.
+ * Mit Face ID entsperren – im Tipp oder (1.2.9) automatisch beim Sperrbildschirm, wenn iOS das ohne Tipp zulässt.
+ * signal (AbortSignal, optional): bricht die laufende Anfrage ab (z. B. PIN-Entsperren, Seitenwechsel).
  * -> {ok: true, token} | {ok: false, art} – art: "abgebrochen", "kein_prf", "passt_nicht" (Umschlag gelöscht), "weg", …
  */
-export async function oeffnen() {
+export async function oeffnen(signal) {
   const u = laden();
   if (!u || u.tresor !== kennung()) {
     weg(FACEID_SPEICHER);
@@ -243,7 +244,7 @@ export async function oeffnen() {
     weg(FACEID_SPEICHER);
     return { ok: false, art: "passt_nicht" };
   }
-  const r = await prfHolen(id, salz);
+  const r = await prfHolen(id, salz, signal);
   if (r.art !== "prf") return { ok: false, art: r.art };
   try {
     const key = await schluessel(r.prf);

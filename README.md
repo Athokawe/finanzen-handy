@@ -4,6 +4,19 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.9
+
+* **Face ID startet von selbst:** Zeigt die App den Sperrbildschirm (beim Öffnen, nach 5 Minuten im Hintergrund, beim
+  Zurückkehren in die gesperrte App) und ist Face ID eingerichtet, fragt sie Face ID **einmal automatisch** an – nur bei
+  sichtbarer Seite. Nach „Jetzt sperren“ bewusst nicht (sonst wäre die App sofort wieder offen). Der Tipp auf
+  „Mit Face ID entsperren“ entfällt dann; das iOS-Blatt „Mit Passkey anmelden“ selbst kommt weiter von iOS. Lässt iOS die Anfrage
+  ohne Tipp nicht zu (oder bricht sie sofort ab), bleibt **still** der bisherige Knopf – ohne Fehlermeldung, ohne Zähler.
+* Brichst du das iOS-Blatt ab, startet Face ID in derselben Sperre nicht noch einmal von selbst (erst wieder nach erneutem
+  Sperren/Öffnen). Kommst du gesperrt aus dem Hintergrund zurück, gibt es wieder einen automatischen Versuch – aber nicht, wenn
+  nur das Face-ID-Blatt die Seite kurz verdeckt hat (keine Endlosschleife).
+* Nie zwei Face-ID-Anfragen gleichzeitig: die laufende Anfrage wird gemerkt und beim Entsperren mit der PIN, beim Neu-Verbinden
+  und beim Verlassen der Seite abgebrochen (`AbortController`).
+
 ## Neu in 1.2.8
 
 * **Mit Face ID entsperren** (optional): Einstellungen → Karte „Face ID“ → **Face ID einrichten** (nur sichtbar, wenn das Gerät
