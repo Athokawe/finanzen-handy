@@ -364,29 +364,73 @@ function passkeyLoeschenText() {
     + location.hostname + "“ suchen → Eintrag „Finanzen Handy …“ → Löschen.";
 }
 
+/**
+ * Einrichten in zwei Schritten: 1. App-PIN (T.oeffnen – falsche PIN zählt wie beim Entsperren, nach 5 ist der Token weg), damit
+ * niemand Face ID einrichtet, der nur das kurz entsperrte iPhone (und den iPhone-Code) hat; in den Face-ID-Umschlag kommt GENAU der
+ * mit dieser PIN entschlüsselte Token. 2. eigener Knopf „Weiter mit Face ID“ – iOS erlaubt create() nur direkt im Tipp.
+ */
 function faceIdEinrichten() {
-  if (demo || !entsperrt || !gh.tokenDa() || !T.vorhanden()) {
+  if (demo || !entsperrt || !T.vorhanden()) {
     toast("Face ID lässt sich nur einrichten, wenn die App mit Token und PIN entsperrt ist.");
     return;
   }
+  const feld = h("input", {
+    id: "faceid-pin", class: "pin-feld", type: "password", inputmode: "numeric", pattern: "[0-9]*", autocomplete: "off",
+    maxlength: 6, "aria-label": "App-PIN", enterkeyhint: "done",
+    oninput: () => { feld.value = feld.value.replace(/\D/g, "").slice(0, 6); },
+    onkeydown: (e) => { if (e.key === "Enter") $("dialog-ok").click(); },
+  });
   A.dialog({
     titel: "Face ID einrichten",
     inhalt: [
-      "Das iPhone legt dafür einen Passkey für diese App an und fragt Face ID ab. Mit einem Schlüssel aus dem Passkey wird dein Token zusätzlich verschlüsselt auf diesem iPhone gespeichert.",
-      "Dein Gesicht verlässt das iPhone nie. Der Passkey wird über den iCloud-Schlüsselbund synchronisiert. Die PIN bleibt als Rückfall.",
+      "Zuerst deine App-PIN – so kann niemand Face ID einrichten, der nur das entsperrte iPhone in der Hand hat. Eine falsche PIN zählt wie beim Entsperren (5 falsche löschen den Token).",
+      feld,
     ],
-    okText: "Weiter mit Face ID",
-    onOk: faceIdAnlegen, // create() startet sofort im Tipp auf „Weiter mit Face ID“
+    okText: "PIN prüfen",
+    onOk: async () => {
+      const pin = feld.value.trim();
+      if (!T.pinGueltig(pin)) throw new Error("Die PIN hat 4 bis 6 Ziffern.");
+      const r = await T.oeffnen(pin);
+      if (r.geloescht) {
+        tokenWegNachFehlversuchen();
+        return true;
+      }
+      if (!r.ok) {
+        feld.value = "";
+        throw new Error("Falsche PIN – noch " + r.rest + (r.rest === 1 ? " Versuch" : " Versuche") + ", dann wird der Token gelöscht.");
+      }
+      if (!entsperrt) return true; // inzwischen gesperrt
+      const token = r.token; // genau dieser Token kommt in den Face-ID-Umschlag
+      A.dialog({
+        titel: "PIN stimmt ✓",
+        inhalt: [
+          "Jetzt legt das iPhone einen Passkey für diese App an und fragt Face ID ab. Mit einem Schlüssel aus dem Passkey wird dein Token zusätzlich verschlüsselt auf diesem iPhone gespeichert.",
+          "Dein Gesicht verlässt das iPhone nie. Der Passkey wird über den iCloud-Schlüsselbund synchronisiert. Die PIN bleibt als Rückfall.",
+        ],
+        okText: "Weiter mit Face ID",
+        onOk: () => faceIdAnlegen(token), // create() startet sofort im Tipp auf „Weiter mit Face ID“
+      });
+      return true;
+    },
   });
 }
 
-async function faceIdAnlegen() {
+/** 5. falsche PIN im Einrichten-Dialog: Token ist gelöscht (wie beim Entsperren) -> alles weg, neu verbinden. */
+function tokenWegNachFehlversuchen() {
+  A.dialogZu();
+  Z.handy = Z.news = Z.verlauf = null;
+  for (const k of [...Object.keys(ANSICHT), "mehr"]) leeren($("t-" + k));
+  K.vergessen();
+  verbindenZeigen("5 falsche PINs – der Token wurde aus Sicherheitsgründen gelöscht. Bitte neu verbinden.");
+}
+
+async function faceIdAnlegen(token) {
   const a = await FI.anlegen();
-  if (a.art === "prf") return faceIdAbschliessen(a.id, a.salz, a.prf);
+  if (a.art === "prf") return faceIdAbschliessen(token, a.id, a.salz, a.prf);
   if (a.art !== "get_noetig") return faceIdNichtEingerichtet(a.art, false);
   // create() lieferte keine PRF-Ausgabe (iOS teils erst bei get()) -> gleich mit demselben Passkey holen
   const b = await FI.prfHolen(a.id, a.salz);
-  if (b.art === "prf") return faceIdAbschliessen(a.id, a.salz, b.prf);
+  if (b.art === "prf") return faceIdAbschliessen(token, a.id, a.salz, b.prf);
   if (b.art === "abgebrochen") {
     // iOS lässt get() direkt nach create() oft nicht ohne neuen Tipp zu -> eigener Schritt mit Knopf
     A.dialog({
@@ -396,7 +440,7 @@ async function faceIdAnlegen() {
       okText: "Mit Face ID bestätigen",
       onOk: async () => {
         const c = await FI.prfHolen(a.id, a.salz); // get() sofort im Tipp
-        return c.art === "prf" ? faceIdAbschliessen(a.id, a.salz, c.prf) : faceIdNichtEingerichtet(c.art, true);
+        return c.art === "prf" ? faceIdAbschliessen(token, a.id, a.salz, c.prf) : faceIdNichtEingerichtet(c.art, true);
       },
     });
     return true;
@@ -404,12 +448,12 @@ async function faceIdAnlegen() {
   return faceIdNichtEingerichtet(b.art, true);
 }
 
-async function faceIdAbschliessen(id, salz, prf) {
-  if (!entsperrt || !gh.tokenDa()) {
+async function faceIdAbschliessen(token, id, salz, prf) {
+  if (!entsperrt) {
     prf.fill(0);
     throw new Error("Die App wurde inzwischen gesperrt – bitte mit der PIN entsperren und Face ID neu einrichten.");
   }
-  await FI.speichern(gh.tokenHolen(), id, salz, prf);
+  await FI.speichern(token, id, salz, prf);
   toast("Face ID ist eingerichtet ✓ – beim nächsten Entsperren kannst du Face ID statt der PIN nehmen.");
   if (reiter === "mehr") zeichnen();
   return true;

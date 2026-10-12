@@ -7,8 +7,11 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
 ## Neu in 1.2.8
 
 * **Mit Face ID entsperren** (optional): Einstellungen → Karte „Face ID“ → **Face ID einrichten** (nur sichtbar, wenn das Gerät
-  einen Plattform-Authenticator mit Nutzerprüfung hat, also Face ID für Passkeys; und nur, solange die App mit Token und PIN
-  entsperrt ist). Das iPhone legt einen Passkey für `athokawe.github.io` an (WebAuthn, `residentKey`/`userVerification`
+  einen Plattform-Authenticator mit Nutzerprüfung hat, also Face ID für Passkeys; und nur in der entsperrten App). Zuerst
+  fragt die App die **App-PIN** ab (eine falsche zählt wie beim Entsperren, 5 löschen den Token) – wer nur das kurz entsperrte
+  iPhone und den iPhone-Code hat, kann Face ID also nicht einrichten; in den Umschlag kommt genau der mit dieser PIN
+  entschlüsselte Token. Danach startet ein eigener Knopf „Weiter mit Face ID“ (iOS erlaubt das Anlegen nur direkt im Tipp).
+  Das iPhone legt einen Passkey für `athokawe.github.io` an (WebAuthn, `residentKey`/`userVerification`
   required, Plattform-Authenticator, ES256/RS256) mit der Erweiterung **PRF**: nach Face ID liefert der Passkey 32 geheime Bytes
   zu einem zufälligen Salz. Daraus wird per HKDF-SHA-256 (info `finanzen-handy-faceid-v1`) ein nicht exportierbarer
   AES-GCM-256-Schlüssel, mit dem der Token **zusätzlich** in einem zweiten Umschlag verschlüsselt wird (`localStorage`
