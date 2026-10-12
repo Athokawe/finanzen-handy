@@ -10,8 +10,9 @@ import * as P from "./push.js";
 import * as F from "./format.js";
 import * as K from "./kifrage.js";
 import * as AL from "./alarme.js";
+import * as AB from "./ausblenden.js";
 
-export const APP_VERSION = "1.2.6";
+export const APP_VERSION = "1.2.7";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -412,6 +413,7 @@ function start() {
     navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => { /* ohne Offline-Hülle geht es auch */ });
   }
   AL.init({ neuZeichnen: () => { if (entsperrt) zeichnen(); }, toast, entsperrt: () => entsperrt }, demo);
+  AB.init({ neuZeichnen: () => { if (entsperrt) zeichnen(); }, toast, entsperrt: () => entsperrt }, demo);
   if (demo) {
     gh.demoSetzen(true);
     appStarten();

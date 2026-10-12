@@ -12,6 +12,14 @@ export const WORKFLOW = "ki.yml";
 export const EXPRESS_WORKFLOW = "express.yml";
 export const BRANCH = "main";
 
-// Bitpanda-Adressen (ohne Zugangsdaten). SWAP_URL = dieselbe Adresse wie in den Empfehlungs-Mails (cloud_ki.SWAP_URL).
-export const BITPANDA_URL = "https://web.bitpanda.com/";
-export const BITPANDA_SWAP_URL = "https://web.bitpanda.com/home(modal:trade/swap)";
+// Bitpanda-Adressen (ohne Zugangsdaten). 1.2.5: nur Pfade aus Bitpandas apple-app-site-association
+// (https://web.bitpanda.com/.well-known/apple-app-site-association, „applinks“: u. a. /home, /trade/deposit, /trade/swap, /fusion) –
+// nur die öffnen am iPhone als Universal Link direkt die Bitpanda-App (ohne Passwort + 2FA in Safari). Die nackte Wurzel „/“ und
+// die alte Swap-Adresse „/home(modal:trade/swap)“ stehen dort nicht. Universal Links greifen nur beim Antippen eines echten Links
+// (<a href>, js/dom.js aussenLink), nie bei einer Weiterleitung per JavaScript. Die Laptop-App und die Mails bleiben, wie sie sind.
+export const BITPANDA_URL = "https://web.bitpanda.com/home";
+export const BITPANDA_EINZAHLEN_URL = "https://web.bitpanda.com/trade/deposit";
+export const BITPANDA_SWAP_URL = "https://web.bitpanda.com/trade/swap";
+// Fusion: dort handeln Raster- und Trend-Bot (Paare COIN-EURCV, offene Orders des Raster-Bots)
+export const BITPANDA_FUSION_URL = "https://web.bitpanda.com/fusion";
+// Coin-Links: „/asset/*“ ist zwar freigegeben, das Pfadformat (Kürzel oder interne Nummer) aber nicht belegt -> BITPANDA_URL

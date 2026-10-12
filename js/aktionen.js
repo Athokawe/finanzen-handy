@@ -160,6 +160,21 @@ export const ERKLAERT = {
   stopp: "Nur die KI aus – das Regelwerk mit Notbremse schützt weiter.",
 };
 
+/** 1.2.5 (Nutzer 12.10.2026): wann welcher Bremsknopf sinnvoll ist – in Stichworten, gleiche Worte wie die Laptop-App
+ *  (static/markt.js BREMS_ERKLAERUNG). Unter den Knöpfen und in der Rückfrage. */
+export const BREMS_WANN = {
+  anhalten: {
+    wann: ["du selbst in Bitpanda handeln willst", "ein Bot sich seltsam verhält", "du einen Fehler vermutest",
+      "du keine Überraschungen willst, aber nicht verkaufen möchtest"],
+    dazu: "Bei Absturzangst stattdessen: „Alles parken“.",
+  },
+  allesstopp: {
+    wann: ["du einen Absturz fürchtest", "schlechte Nachrichten kommen", "du raus aus den Coins in EURCV willst"],
+    dazu: "Kostet Gebühren und Spread; Coins im Minus werden mit Verlust verkauft.",
+  },
+};
+const wannText = (m) => "Sinnvoll, wenn: " + BREMS_WANN[m].wann.join(" · ");
+
 const SPEZ = {
   einschaetzung: { titel: "Frische KI-Einschätzung", text: "Die Cloud holt eine neue Einschätzung des Coin-Bots und schickt sie dir per Mail. Es wird nicht gehandelt.", ok: "Anfordern" },
   bericht_jetzt: { titel: "Bericht jetzt", text: "Frische Einschätzung und Bericht per Mail – es wird nie gehandelt.", ok: "Anfordern" },
@@ -168,11 +183,13 @@ const SPEZ = {
   stopp: { titel: "Coin-Bot ausschalten", text: ERKLAERT.stopp + " Der Coin-Topf bleibt, wie er ist." },
   allesstopp: {
     titel: "Alles parken", gefahr: true, ok: "Alles parken",
-    text: ERKLAERT.allesstopp + " Der Coin-Topf wird über Fusion in EURCV verkauft (wie bei der Notbremse), Raster- und Trend-Bot verkaufen ihre Coins in EURCV (das EURCV bleibt in ihrem Topf) und werden pausiert; Coin-Bot und Regelwerk gehen aus. Scheitert ein Verkauf, ist trotzdem alles aus – die Mail sagt es je Bot.",
+    text: [ERKLAERT.allesstopp + " Der Coin-Topf wird über Fusion in EURCV verkauft (wie bei der Notbremse), Raster- und Trend-Bot verkaufen ihre Coins in EURCV (das EURCV bleibt in ihrem Topf) und werden pausiert; Coin-Bot und Regelwerk gehen aus. Scheitert ein Verkauf, ist trotzdem alles aus – die Mail sagt es je Bot.",
+      wannText("allesstopp"), BREMS_WANN.allesstopp.dazu],
   },
   anhalten: {
     titel: "Nur anhalten", gefahr: true, ok: "Anhalten",
-    text: ERKLAERT.anhalten + " Coin-Bot und Regelwerk gehen aus, Raster- und Trend-Bot werden pausiert (offene Orders storniert, Bestände bleiben liegen). Aktien bleiben.",
+    text: [ERKLAERT.anhalten + " Coin-Bot und Regelwerk gehen aus, Raster- und Trend-Bot werden pausiert (offene Orders storniert, Bestände bleiben liegen). Aktien bleiben.",
+      wannText("anhalten"), BREMS_WANN.anhalten.dazu],
   },
   regelwerk_ein: { titel: "Regelwerk einschalten", text: "Das Regelwerk ohne KI wird eingeschaltet." },
   euro_ein: { titel: "Euro-Automatik einschalten", text: "Euro-Guthaben bei Bitpanda wird dann automatisch eingesetzt." },
@@ -222,6 +239,8 @@ const SPEZ = {
   // 1.2.0: „An die KI“ ersetzt den Hinweis-Dialog – die KI merkt Bot-Relevantes selbst als Hinweis (js/kifrage.js)
   frage: { titel: "An die KI", ohneFrage: true },
   alarme_gelesen: { titel: "Alarme löschen", ohneFrage: true },
+  // 1.2.5: „Letzte Trades“/„Ereignisse“ ausblenden (✕ je Eintrag, „Liste leeren“) – eigene Logik in js/ausblenden.js, nichts wird gelöscht
+  liste_ausblenden: { titel: "Liste ausblenden", ohneFrage: true },
   // 1.2.2: kein Eingabefeld mehr – nur „✕“ in der Liste „Gemerkte Hinweise“ (eigene Bestätigung) und „Rückgängig“, beide mit
   // genau der Nummer aus handy.json bzw. der Antwort (js/kifrage.js)
   hinweis_loeschen: { titel: "Hinweis löschen", ohneFrage: true },

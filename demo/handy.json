@@ -10,19 +10,22 @@
  },
  "gesamt": {
   "name": "Gesamtvermögen",
-  "gesamt_eur": 1539.56,
+  "gesamt_eur": 1552.06,
   "coin_topf_eur": 1234.56,
   "trend_topf_eur": 0.0,
   "raster_topf_eur": 205.0,
   "aktien_eur": 100.0,
   "reserve_eur": 0.0,
+  "euro_eur": 12.5,
+  "euro_bekannt": true,
   "trend_echt": false,
   "raster_echt": true,
-  "anteil_coin_topf_prozent": 80.2,
+  "anteil_coin_topf_prozent": 79.5,
   "anteil_trend_topf_prozent": 0.0,
-  "anteil_raster_topf_prozent": 13.3,
-  "anteil_aktien_prozent": 6.5,
+  "anteil_raster_topf_prozent": 13.2,
+  "anteil_aktien_prozent": 6.4,
   "anteil_reserve_prozent": 0.0,
+  "anteil_euro_prozent": 0.8,
   "vollstaendig": true,
   "coin_topf_geschaetzt": false,
   "unvollstaendig_grund": null,
@@ -36,6 +39,7 @@
   "name": "Coin-Bot",
   "an": true,
   "regelwerk_an": true,
+  "euro_frei_eur": 12.5,
   "euro_automatik": true,
   "stufe": "normal",
   "stufe_automatik": true,
@@ -146,13 +150,15 @@
     "zeit": "2026-10-11T06:08:00+00:00",
     "coin": "SOL",
     "seite": "kauf",
-    "eur": 25.0
+    "eur": 25.0,
+    "ausblend_id": "5f27d7b69932"
    },
    {
     "zeit": "2026-10-10T22:41:00+00:00",
     "coin": "ADA",
     "seite": "verkauf",
-    "eur": 17.5
+    "eur": 17.5,
+    "ausblend_id": "2d775138a76d"
    }
   ],
   "letzter_trade": "2026-10-11T06:08:00+00:00",
@@ -161,14 +167,18 @@
    {
     "zeit": "2026-10-11T05:38:00+00:00",
     "art": "coin_rein",
-    "text": "Beispiel: SOL neu im Raster-Bot (4 Stufen)"
+    "text": "Beispiel: SOL neu im Raster-Bot (4 Stufen)",
+    "ausblend_id": "d40e3307f5eb"
    },
    {
     "zeit": "2026-10-09T06:00:00+00:00",
     "art": "ein",
-    "text": "Beispiel: Raster-Bot eingeschaltet (200 €)"
+    "text": "Beispiel: Raster-Bot eingeschaltet (200 €)",
+    "ausblend_id": "71f155a7b384"
    }
   ],
+  "trades_ausgeblendet": 0,
+  "ereignisse_ausgeblendet": 0,
   "letzter_lauf": "2026-10-11T06:20:55+00:00",
   "schatten": {
    "status": "an",
@@ -229,6 +239,8 @@
   "letzter_trade": null,
   "verlustdeckel_zeit": null,
   "ereignisse": [],
+  "trades_ausgeblendet": 0,
+  "ereignisse_ausgeblendet": 0,
   "letzter_lauf": "2026-10-11T06:21:50+00:00",
   "schatten": {
    "wert_eur": 296.5,
@@ -607,6 +619,15 @@
    "ja_noetig": false,
    "beispiel": "12,13",
    "text": "Alarme als gelesen markieren (ohne JA; „alle“ oder Nummern mit Komma) – nichts wird gelöscht",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "liste_ausblenden",
+   "bestaetigung": "bot=(trend|raster);liste=(trades|ereignisse);ids=(alle|[0-9a-f]{12}(,[0-9a-f]{12}){0,49})(;bis=\\d{9,10})?",
+   "ja_noetig": false,
+   "beispiel": "bot=trend;liste=trades;ids=alle",
+   "text": "Letzte Trades bzw. Ereignisse eines Bots in beiden Apps ausblenden (ohne JA; ids=alle = Liste leeren, sonst die „id“ der Einträge mit Komma) – nichts wird gelöscht, neue Einträge erscheinen wieder",
    "express": false,
    "express_bestaetigung": null
   },

@@ -312,3 +312,16 @@ svg.diagramm .l-trend { stroke: #c084fc; stroke-width: 1.2; opacity: .85; }
 svg.diagramm .l-raster { stroke: #fbbf24; stroke-width: 1.2; opacity: .85; }
 svg.diagramm .marke-punkt.l-trend { stroke: #c084fc; } svg.diagramm .marke-punkt.l-raster { stroke: #fbbf24; }
 .legende-strich.l-trend { border-top-color: #c084fc; border-top-width: 2px; } .legende-strich.l-raster { border-top-color: #fbbf24; border-top-width: 2px; }
+
+/* ---------- 1.2.5: Bedienung (Brems-Erklärung in Stichworten, Listen ausblenden, Euro-Guthaben) ---------- */
+.erklaer-text p { margin: 0 0 2px; }
+.erklaer-text .wann-titel { margin-top: 4px; font-weight: 600; }
+.erklaer-text ul.wann { margin: 0 0 2px; padding-left: 18px; }
+.erklaer-text ul.wann li { margin: 1px 0; }
+.eintrag-rechts { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.eintrag-weg { background: none; border: 1px solid var(--rand); border-radius: 50%; width: 32px; height: 32px; color: var(--gedimmt);
+  font-size: 15px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.eintrag-weg:active { color: var(--text); background: var(--karte2); }
+.liste .oben .text-links { min-width: 0; overflow-wrap: anywhere; }
+.anteil-euro { background: #2dd4bf; }
+.punkt.euro { background: #2dd4bf; }

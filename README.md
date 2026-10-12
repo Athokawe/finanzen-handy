@@ -4,6 +4,28 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.7
+
+* **Bitpanda-Links öffnen die Bitpanda-App** statt Safari (dort nervten Passwort und 2FA): „Zu Bitpanda“ → `/home`,
+  „Einzahlen“ → `/trade/deposit`, „Tauschen bei Bitpanda“ → `/trade/swap`, neu „Zu Fusion“ (Raster- und Trend-Ansicht, dort
+  handeln die Bots) → `/fusion` (`konfig.js`). Nur solche Pfade stehen in Bitpandas
+  `apple-app-site-association` – die nackte Adresse `https://web.bitpanda.com/` und die alte Swap-Adresse
+  `/home(modal:trade/swap)` nicht. Coin-Links gehen auf `/home` (`/asset/…` ist freigegeben, das Pfadformat aber nicht belegt).
+  Echte Links (`<a href>`), keine Weiterleitung per JavaScript – nur dann greift ein Universal Link. Hinweis unter den Knöpfen:
+  „falls Safari kommt: Link lange drücken → ‚In Bitpanda öffnen‘“. Die Laptop-App und die Mails bleiben, wie sie sind.
+* **Bremsknöpfe besser erklärt:** unter „Alles parken“ und „Nur anhalten“ (und in der Rückfrage) steht in Stichworten, wann
+  welcher Knopf sinnvoll ist und was er kostet – gleiche Worte wie in der Laptop-App.
+* **„Letzte Trades“ und „Ereignisse“ ausblenden** (Raster- und Trend-Bot): ✕ je Eintrag (sofort) und „Liste leeren“ (mit
+  Rückfrage, nur bis zum neuesten **gesehenen** Eintrag). Nichts wird gelöscht – Trades sind Buchhaltung. Auftrag `ki.yml` Modus
+  `liste_ausblenden` ohne JA (`bot=trend|raster;liste=trades|ereignisse;ids=<ausblend_id>,…` bzw. `ids=alle;bis=<Unix-Sekunden>`),
+  die Cloud merkt es in `cloud/ausgeblendet.json`, beide Apps zeigen danach dasselbe; neue Einträge erscheinen wieder. Läuft
+  gerade ein anderer Auftrag, sammelt die App die Klicks und schickt sie gebündelt, sobald die Warteschlange frei ist
+  (`js/ausblenden.js`, wie bei den Alarmen). „n ausgeblendet (nicht gelöscht)“ unter der Liste. Ältere Cloud ohne den Modus:
+  keine ✕, alles wie bisher.
+* **Gesamtvermögen mit freiem Euro-Guthaben:** eigene Zeile „Euro-Guthaben“ (türkis im Balken) aus `gesamt.euro_eur`, sobald die
+  Cloud es kennt (`euro_bekannt`); der Vermerk „ohne freies Euro-Guthaben“ steht nur noch, solange es unbekannt ist (auch bei
+  älterer Cloud). Damit stimmt die Summe mit Bitpanda überein.
+
 ## Neu in 1.2.6
 
 * **News mit Einordnung:** oben im Reiter „News“ die Karte „Gesamtbild“ (z. B. „leicht belastend für Bitcoin, neutral für den
@@ -164,6 +186,7 @@ Lokal: `python -m http.server` in einem Ordner, der dieses Repo als Unterordner 
 | `js/kifrage.js` | „An die KI“: schwebender Knopf, Eingabe-Blatt, Senden, Live-Status, Antworten (Artefakt), Rückgängig |
 | `js/zip.js` | ZIP-Leser für genau eine Datei (gespeichert/deflate, CRC-Prüfung) |
 | `js/alarme.js` | Alarme ausblenden und als gelesen melden (`alarme_gelesen`) |
+| `js/ausblenden.js` | „Letzte Trades“/„Ereignisse“ ausblenden (`liste_ausblenden`, nie löschen) |
 | `js/diagramm.js` | Statistik-Diagramme (SVG, Zeiträume, Antippen, Kennzahlen) |
 | `js/push.js`, `sw.js` | Web-Push-Abo, Service Worker (Hülle cachen, Mitteilungen) |
 | `manifest.webmanifest`, `icons/` | Home-Bildschirm-App |

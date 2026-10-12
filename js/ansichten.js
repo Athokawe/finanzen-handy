@@ -8,7 +8,8 @@ import * as P from "./push.js";
 import * as D from "./diagramm.js";
 import * as K from "./kifrage.js";
 import * as AL from "./alarme.js";
-import { BITPANDA_URL, BITPANDA_SWAP_URL } from "../konfig.js";
+import { BITPANDA_URL, BITPANDA_EINZAHLEN_URL, BITPANDA_SWAP_URL, BITPANDA_FUSION_URL } from "../konfig.js";
+import * as AB from "./ausblenden.js";
 
 const istObj = (x) => !!x && typeof x === "object" && !Array.isArray(x);
 const liste = (x) => (Array.isArray(x) ? x : []);
@@ -63,9 +64,20 @@ function bitpandaKnopf(text, url, klasse) {
   return aussenLink(url || BITPANDA_URL, { class: "knopf link " + (klasse || "") }, text);
 }
 
-/** Coin-Link: für Bitpanda gibt es keine sichere, aus dem Kürzel ableitbare Coin-Adresse – daher die allgemeine Seite. */
+/** Coin-Link: „/asset/*“ steht zwar in Bitpandas Universal-Link-Liste, das Pfadformat (Kürzel oder interne Nummer) ist aber nicht
+ *  belegt – daher die Startseite der App (/home, öffnet die Bitpanda-App). */
 function coinLink(coin) {
   return aussenLink(BITPANDA_URL, { class: "klein", "aria-label": F.text(coin) + " bei Bitpanda öffnen" }, "Bitpanda ↗");
+}
+
+/** 1.2.5: kurzer Hinweis unter den Bitpanda-Knöpfen (Universal Link statt Safari mit Passwort + 2FA) */
+function bitpandaHinweis() {
+  return h("p", { class: "klein gedimmt bitpanda-hinweis" }, "Öffnet die Bitpanda-App; falls Safari kommt: Link lange drücken → „In Bitpanda öffnen“.");
+}
+
+/** 1.2.5: Fuß der Raster-/Trend-Ansicht – beide Bots handeln über Fusion (COIN-EURCV), daher auch ein Fusion-Link */
+function botLinks() {
+  return [reihe(bitpandaKnopf("Zu Bitpanda"), bitpandaKnopf("Zu Fusion", BITPANDA_FUSION_URL)), bitpandaHinweis()];
 }
 
 function reihe(...knoepfe) {
@@ -91,20 +103,53 @@ function ergebnisZeile(label, eur, pz) {
   return [label, F.euroPlus(eur) + (F.istZahl(pz) ? " (" + F.prozent(pz) + ")" : ""), k];
 }
 
-function tradesListe(trades) {
-  const t = liste(trades);
-  if (!t.length) return leer("Noch keine echten Trades.");
-  return h("ul", { class: "liste" }, t.map((x) => h("li", null,
+/** „✕“ je Eintrag (1.2.5) – nur, wenn die Cloud den Modus kennt und der Eintrag eine ausblend_id trägt */
+function wegKnopf(bot, art, x, darf, was) {
+  if (!darf || !x || !AB.gueltigeId(x.ausblend_id)) return null;
+  return h("button", { type: "button", class: "eintrag-weg", "aria-label": was + " ausblenden", "data-weg": x.ausblend_id,
+    onclick: () => AB.eintragAusblenden(bot, art, x.ausblend_id) }, "✕");
+}
+
+function tradesListe(trades, bot, darf) {
+  const t = liste(trades).filter(istObj);
+  if (!t.length) return null;
+  return h("ul", { class: "liste" }, t.map((x) => h("li", { "data-eintrag": AB.gueltigeId(x.ausblend_id) ? x.ausblend_id : null },
     h("div", { class: "oben" }, h("span", { class: "titel" }, (x.seite === "verkauf" ? "Verkauf " : "Kauf ") + F.text(x.coin)),
-      h("span", { class: "zahl" }, F.euro(x.eur))),
+      h("span", { class: "eintrag-rechts" }, h("span", { class: "zahl" }, F.euro(x.eur)), wegKnopf(bot, "trades", x, darf, "Trade"))),
     h("div", { class: "unter" }, F.zeit(x.zeit)))));
 }
 
-function ereignisListe(ev) {
-  const e = liste(ev);
-  if (!e.length) return leer("Keine Ereignisse.");
-  return h("ul", { class: "liste" }, e.slice(0, 10).map((x) => h("li", null,
-    h("div", null, F.text(x.text)), h("div", { class: "unter" }, F.zeit(x.zeit)))));
+function ereignisListe(ev, bot, darf) {
+  const e = liste(ev).filter(istObj);
+  if (!e.length) return null;
+  return h("ul", { class: "liste" }, e.slice(0, 10).map((x) => h("li", { "data-eintrag": AB.gueltigeId(x.ausblend_id) ? x.ausblend_id : null },
+    h("div", { class: "oben" }, h("span", { class: "text-links" }, F.text(x.text)), wegKnopf(bot, "ereignisse", x, darf, "Ereignis")),
+    h("div", { class: "unter" }, F.zeit(x.zeit)))));
+}
+
+/**
+ * Karte „Letzte Trades“ bzw. „Ereignisse“ eines Bots (1.2.5): ✕ je Eintrag und „Liste leeren“ blenden in beiden Apps aus – nichts
+ * wird gelöscht (js/ausblenden.js, Modus liste_ausblenden). „n ausgeblendet“ aus handy.json (trades_/ereignisse_ausgeblendet).
+ */
+function listenKarte(titel, bot, art, teil) {
+  const roh = liste(teil[art === "trades" ? "trades_letzte" : "ereignisse"]);
+  const darf = AB.moeglich(roh);
+  const l = AB.sichtbar(roh, bot, art);
+  const gezeigt = art === "ereignisse" ? l.slice(0, 10) : l;
+  const zahl = teil[art + "_ausgeblendet"];
+  const anzahlWeg = (Number.isInteger(zahl) && zahl > 0 ? zahl : 0) + (roh.length - l.length);
+  // gesehen = gezeigt + die per ✕ schon lokal ausgeblendeten (auch sie hat der Nutzer gesehen; „Liste leeren“ deckt sie mit ab)
+  const gesehen = roh.filter((x) => istObj(x) && (!l.includes(x) || gezeigt.includes(x)));
+  const leerKnopf = darf && gezeigt.length
+    ? h("button", { type: "button", class: "knopf-text", "data-leeren": bot + "-" + art, onclick: () => AB.listeLeeren(bot, art, gezeigt, titel, gesehen) }, "Liste leeren")
+    : null;
+  const inhalt = art === "trades" ? tradesListe(gezeigt, bot, darf) : ereignisListe(gezeigt, bot, darf);
+  const leerText = anzahlWeg > 0 ? "Alles ausgeblendet – neue Einträge erscheinen hier wieder."
+    : art === "trades" ? "Noch keine echten Trades." : "Keine Ereignisse.";
+  return h("section", { class: "karte", id: bot + "-" + art + "-karte" }, h("div", { class: "karte-kopf" }, h("h2", null, titel), leerKnopf),
+    inhalt || leer(leerText),
+    anzahlWeg > 0 ? h("p", { class: "klein gedimmt ausgeblendet-zahl" }, anzahlWeg + " ausgeblendet (nicht gelöscht)") : null,
+    AB.wartet(bot, art) ? h("p", { class: "klein gedimmt" }, "Ausgeblendet – wird an die Cloud geschickt, sobald der laufende Auftrag fertig ist.") : null);
 }
 
 function schattenHinweis(s, name) {
@@ -253,12 +298,14 @@ const GESAMT_TEILE = [
   ["raster", "Raster-Topf", "raster_topf_eur", "anteil_raster_topf_prozent", "raster_echt"],
   ["aktien", "Aktien & ETFs", "aktien_eur", "anteil_aktien_prozent", null],
   ["reserve", "Aktien-Reserve", "reserve_eur", "anteil_reserve_prozent", null],
+  ["euro", "Euro-Guthaben", "euro_eur", "anteil_euro_prozent", null],     // 1.2.5: freies Euro-Guthaben (nur mit euro_bekannt)
 ];
 
-/** Sichtbare Teile: Coin-Topf und Aktien immer; ein Bot-Topf nur mit echtem Geld (oder Wert > 0); Reserve nur > 0. */
+/** Sichtbare Teile: Coin-Topf und Aktien immer; ein Bot-Topf nur mit echtem Geld (oder Wert > 0); Reserve nur > 0;
+ *  Euro-Guthaben (1.2.5), sobald die Cloud es kennt (euro_bekannt) – auch bei 0 €, dann stimmt die Summe sichtbar mit Bitpanda. */
 function gesamtTeile(g) {
-  return GESAMT_TEILE.filter(([k, , feld, , echt]) => k === "coin" || k === "aktien"
-    || (echt && g[echt] === true) || (F.istZahl(g[feld]) && g[feld] > 0))
+  return GESAMT_TEILE.filter(([k, , feld, , echt]) => k === "euro" ? g.euro_bekannt === true && F.istZahl(g[feld])
+    : k === "coin" || k === "aktien" || (echt && g[echt] === true) || (F.istZahl(g[feld]) && g[feld] > 0))
     .map(([k, name, feld, af]) => {
       const v = F.istZahl(g[feld]) ? g[feld] : null;
       const a = F.istZahl(g[af]) ? g[af] : v !== null && F.istZahl(g.gesamt_eur) && g.gesamt_eur > 0 ? v / g.gesamt_eur * 100 : null;
@@ -288,14 +335,14 @@ function gesamtKarte(d, Z) {
 
 /**
  * Vermerke unter dem Gesamtvermögen: unvollständig (Grund der Cloud, z. B. „Umbuchung – Coin-Topf folgt im nächsten Lauf“: zwischen
- * Bilanz-Punkt und Bot-Topf wurde umgebucht, der Coin-Topf ist geschätzt), ohne Aktien-Reserve (ältere Cloud) und immer „ohne freies
- * Euro-Guthaben“ – frisch eingezahltes Euro zählt erst, wenn es investiert ist (die Laptop-Übersicht zählt es sofort mit).
+ * Bilanz-Punkt und Bot-Topf wurde umgebucht, der Coin-Topf ist geschätzt), ohne Aktien-Reserve (ältere Cloud) und „ohne freies
+ * Euro-Guthaben“ – seit 1.2.5 nur noch, solange die Cloud das Euro-Guthaben nicht kennt (euro_bekannt nicht true, auch ältere Cloud).
  */
 function gesamtVermerk(g) {
   const grund = typeof g.unvollstaendig_grund === "string" && g.unvollstaendig_grund.trim()
     ? g.unvollstaendig_grund.trim().slice(0, 80) : "ein Teil ist gerade nicht lesbar";
   return (g.vollstaendig === false ? " · unvollständig (" + grund + ")" : "") + (g.ohne_reserve ? " · ohne Aktien-Reserve" : "")
-    + " · ohne freies Euro-Guthaben";
+    + (g.euro_bekannt === true ? "" : " · ohne freies Euro-Guthaben");
 }
 
 /** „Alles parken“ (groß, rot) und „Nur anhalten“ (klein) mit Erklärtexten */
@@ -304,8 +351,18 @@ function parkKnoepfe() {
   const klein = A.knopf("anhalten", "Nur anhalten", "gefahr-rand anhalten-knopf");
   if (!gross && !klein) return null;
   return h("div", { class: "park-knoepfe" },
-    gross, gross ? h("p", { class: "erklaer-text" }, A.ERKLAERT.allesstopp) : null,
-    klein, klein ? h("p", { class: "erklaer-text" }, A.ERKLAERT.anhalten) : null);
+    gross, gross ? bremsErklaerung("allesstopp") : null,
+    klein, klein ? bremsErklaerung("anhalten") : null);
+}
+
+/** 1.2.5: Erklärtext + „Sinnvoll, wenn:“ in Stichworten + Hinweis (A.BREMS_WANN) */
+function bremsErklaerung(m) {
+  const w = A.BREMS_WANN[m];
+  return h("div", { class: "erklaer-text", "data-erklaert": m },
+    h("p", null, A.ERKLAERT[m]),
+    h("p", { class: "wann-titel" }, "Sinnvoll, wenn:"),
+    h("ul", { class: "wann" }, w.wann.map((x) => h("li", null, x))),
+    h("p", { class: "wann-dazu" }, w.dazu));
 }
 
 export function uebersicht(Z) {
@@ -334,8 +391,8 @@ export function uebersicht(Z) {
     ));
   } else out.push(fehlerKarte("Coin-Topf", d.kern_bot));
 
-  out.push(reihe(bitpandaKnopf("Zu Bitpanda", BITPANDA_URL, "primaer"), bitpandaKnopf("Einzahlen", BITPANDA_URL)));
-  out.push(h("p", { class: "klein gedimmt" }, "Öffnet Bitpanda (mit installierter App meist direkt die Bitpanda-App). Einzahlen: dort auf „Einzahlen“ tippen."));
+  out.push(reihe(bitpandaKnopf("Zu Bitpanda", BITPANDA_URL, "primaer"), bitpandaKnopf("Einzahlen", BITPANDA_EINZAHLEN_URL)));
+  out.push(bitpandaHinweis());
 
   const ak = ok(d.aktien);
   if (ak) {
@@ -489,7 +546,7 @@ export function kern(Z) {
 
   out.push(karte("Selbst tauschen", null,
     h("p", { class: "klein gedimmt" }, "Steuerneutraler Tausch Krypto gegen Krypto direkt bei Bitpanda (Anmeldung dort nötig)."),
-    reihe(bitpandaKnopf("Tauschen bei Bitpanda", BITPANDA_SWAP_URL, "primaer"), bitpandaKnopf("Zu Bitpanda"))));
+    reihe(bitpandaKnopf("Tauschen bei Bitpanda", BITPANDA_SWAP_URL, "primaer"), bitpandaKnopf("Zu Bitpanda")), bitpandaHinweis()));
 
   out.push(karte("Statistik", null, h("p", { class: "klein gedimmt" }, "Coin-Topf gegen „Bitcoin halten“ in Prozent seit Beginn des Zeitraums – Ein- und Auszahlungen herausgerechnet."), ...coinStatistik(Z)));
 
@@ -549,11 +606,11 @@ export function raster(Z) {
   out.push(karte("Coins im Raster", null, coins.length ? h("ul", { class: "liste" }, coins.map((c) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(c.coin)), h("span", { class: "zahl" }, F.euro(c.wert_eur)), coinLink(c.coin)),
     h("div", { class: "unter" }, (F.istZahl(c.stufen) ? c.stufen + " Stufen" : "") + (c.sperre ? " · gesperrt" : "") + (c.auslaufend ? " · läuft aus" : ""))))) : leer("Keine Coins.")));
-  out.push(karte("Letzte Trades", null, tradesListe(r.trades_letzte)));
-  out.push(karte("Ereignisse", null, ereignisListe(r.ereignisse)));
+  out.push(listenKarte("Letzte Trades", "raster", "trades", r));
+  out.push(listenKarte("Ereignisse", "raster", "ereignisse", r));
 
   if (rEcht && ok(r.schatten)) out.push(schattenHinweis(r.schatten));
-  out.push(reihe(bitpandaKnopf("Zu Bitpanda")));
+  out.push(...botLinks());
   return out;
 }
 
@@ -619,10 +676,10 @@ export function trend(Z) {
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(x.rang) + ". " + F.text(x.coin)),
       h("span", { class: "zahl " + F.vorzeichenKlasse(x.r14_prozent) }, F.prozent(x.r14_prozent)), coinLink(x.coin))))) : leer("Keine Rangliste.")));
 
-  out.push(karte("Letzte Trades", null, tradesListe(t.trades_letzte)));
-  out.push(karte("Ereignisse", null, ereignisListe(t.ereignisse)));
+  out.push(listenKarte("Letzte Trades", "trend", "trades", t));
+  out.push(listenKarte("Ereignisse", "trend", "ereignisse", t));
   if (tEcht && ok(t.schatten)) out.push(schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", ")));
-  out.push(reihe(bitpandaKnopf("Zu Bitpanda")));
+  out.push(...botLinks());
   return out;
 }
 
