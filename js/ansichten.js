@@ -365,10 +365,25 @@ function bremsErklaerung(m) {
     h("p", { class: "wann-dazu" }, w.dazu));
 }
 
+/** Kurzes Eingabefeld „An die KI“ für den Anfang der Übersicht: Enter oder „Senden“ öffnet das Blatt mit Status und Antworten. */
+function kiSchnellKarte() {
+  const feld = h("input", { type: "text", class: "ki-schnell-feld", maxlength: "500", autocomplete: "off", enterkeyhint: "send",
+    placeholder: "Frage oder Hinweis an die KI …", "aria-label": "Frage oder Hinweis an die KI" });
+  const los = async () => {
+    const t = feld.value.trim();
+    if (!t) { feld.focus(); return; }
+    if (await K.schnellSenden(t)) feld.value = "";
+  };
+  feld.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); los(); } });
+  return h("section", { class: "karte ki-schnell-karte" },
+    h("div", { class: "ki-schnell" }, feld, h("button", { type: "button", class: "knopf primaer", onclick: los }, "Senden")));
+}
+
 export function uebersicht(Z) {
   const d = Z.handy;
   if (!d) return [Z.fehlerHandy ? h("p", { class: "leer" }, "Noch keine Daten.") : leer("Daten werden geladen …")];
   const out = [];
+  if (A.erlaubt("frage")) out.push(kiSchnellKarte());             // 1.2.10: Eingabefeld „An die KI“ ganz oben (Nutzer 12.10.2026)
   out.push(gesamtKarte(d, Z));
   out.push(parkKnoepfe());
 

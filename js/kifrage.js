@@ -94,6 +94,17 @@ export function oeffnen() {
   setTimeout(() => $("ki-feld").focus(), 60);
 }
 
+/** 1.2.10 (Nutzer 12.10.2026): Eingabefeld ganz oben auf der Übersicht – öffnet das Blatt (Status, Antworten) und schickt den Text
+ *  mit genau derselben Prüfung wie „Senden“ im Blatt. Gibt false zurück, wenn „An die KI“ gerade nicht erlaubt ist. */
+export async function schnellSenden(text) {
+  oeffnen();
+  if ($("ki-huelle").hidden) return false;
+  $("ki-feld").value = String(text || "");
+  zaehlerZeigen();
+  await senden();
+  return true;
+}
+
 export function schliessen() {
   $("ki-huelle").hidden = true;
   document.body.classList.remove("blatt-offen");

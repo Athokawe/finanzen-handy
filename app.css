@@ -327,3 +327,8 @@ svg.diagramm .marke-punkt.l-trend { stroke: #c084fc; } svg.diagramm .marke-punkt
 .liste .oben .text-links { min-width: 0; overflow-wrap: anywhere; }
 .anteil-euro { background: #2dd4bf; }
 .punkt.euro { background: #2dd4bf; }
+
+/* 1.2.10: Eingabefeld „An die KI“ ganz oben auf der Übersicht */
+.ki-schnell { display: flex; gap: 8px; align-items: center; }
+.ki-schnell .ki-schnell-feld { flex: 1; min-width: 0; margin: 0; }
+.ki-schnell .knopf { flex: none; }

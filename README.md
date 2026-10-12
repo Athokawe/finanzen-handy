@@ -4,6 +4,10 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.10
+
+* **„An die KI“ ganz oben:** Auf der Übersicht steht als Erstes ein Eingabefeld. Enter oder „Senden“ schickt die Frage (gleiche Prüfung wie im Blatt) und öffnet das Blatt mit Status und Antworten. Der Knopf 💬 unten rechts bleibt.
+
 ## Neu in 1.2.9
 
 * **Face ID startet von selbst:** Zeigt die App den Sperrbildschirm (beim Öffnen, nach 5 Minuten im Hintergrund, beim
