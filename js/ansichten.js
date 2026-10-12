@@ -650,6 +650,51 @@ function schlagzeile(s) {
   return sichereUrl(s.link) ? aussenLink(s.link, { class: "news-link" }, ...inhalt) : h("div", { class: "news-link" }, ...inhalt);
 }
 
+// 1.2.6 (Paket C): Einordnung je Meldung + Gesamtbild + Stand der Bots. Nur bekannte Werte (sonst kein Etikett), alle Texte als
+// Textknoten. Ältere news.json ohne diese Felder: Anzeige wie bisher.
+const RICHTUNG = { stuetzend: ["🟢", "stützend", "gruen"], belastend: ["🔴", "belastend", "rot"], neutral: ["⚪", "neutral", "aus"] };
+const STAERKE = { schwach: "schwach", mittel: "mittel", stark: "stark" };
+const ZEITRAUM = { kurzfristig: "kurzfristig (Tage)", langfristig: "langfristig (Monate)" };
+const OBJEKT = { bitcoin: "Bitcoin", welt_etf: "Welt-ETF", krypto: "Krypto allgemein", aktienmarkt: "Aktienmarkt", einzelaktie: "deine Aktie", allgemein: "allgemein" };
+const NEWS_HINWEIS = "Das ist eine Einschätzung, keine sichere Vorhersage. Gehandelt wird nur nach den Regeln der Bots oder nach deinem JA.";
+const textOder = (x) => (typeof x === "string" && x.trim() ? x : null);
+
+function richtungEtikett(r, zusatz) {
+  const a = RICHTUNG[r];
+  return a ? h("span", { class: "etikett " + a[2], "data-richtung": r }, a[0] + " " + a[1] + (zusatz ? " · " + zusatz : "")) : null;
+}
+
+function einordnungTeil(e) {
+  if (!istObj(e) || !RICHTUNG[e.richtung]) return null;
+  const objekt = textOder(e.objekt_name) || OBJEKT[e.objekt] || null;
+  const bots = textOder(e.bots);
+  return h("div", { class: "news-einordnung" },
+    h("div", { class: "etiketten" },
+      richtungEtikett(e.richtung),
+      STAERKE[e.staerke] ? etikett(STAERKE[e.staerke], "") : null,
+      ZEITRAUM[e.zeitraum] ? etikett(ZEITRAUM[e.zeitraum], "") : null,
+      objekt ? etikett(objekt, "objekt") : null),
+    bots ? h("p", { class: "news-bots" }, h("span", { class: "label" }, "Für deine Bots: "), bots) : null);
+}
+
+function gesamtbildKarte(g, lage) {
+  const zeilen_ = liste(lage).filter((x) => istObj(x) && textOder(x.text));
+  const gb = istObj(g) ? g : null;
+  const text = gb && textOder(gb.text), bots = gb && textOder(gb.bots);
+  const teile = gb ? [["bitcoin", "Bitcoin"], ["welt_etf", "Welt-ETF"]]
+    .filter(([k]) => istObj(gb[k]) && RICHTUNG[gb[k].richtung])
+    .map(([k, name]) => richtungEtikett(gb[k].richtung, name + (STAERKE[gb[k].staerke] ? " · " + STAERKE[gb[k].staerke] : ""))) : [];
+  if (!text && !bots && !teile.length && !zeilen_.length) return null;
+  return h("section", { class: "karte", id: "news-gesamtbild" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "Gesamtbild")),
+    teile.length ? h("div", { class: "etiketten" }, teile) : null,
+    text ? h("p", { class: "gesamt-text" }, text) : null,
+    bots ? h("p", { class: "gesamt-bots" }, bots) : null,
+    zeilen_.length ? h("div", { class: "bot-lage" }, h("span", { class: "label" }, "Stand deiner Bots"),
+      h("ul", { class: "liste" }, zeilen_.map((x) => h("li", null, x.text)))) : null,
+    h("p", { class: "klein gedimmt" }, (gb && textOder(gb.hinweis)) || NEWS_HINWEIS));
+}
+
 export function news(Z) {
   const out = [];
   out.push(reihe(A.knopf("news_jetzt", "News aktualisieren", "primaer")));
@@ -661,11 +706,12 @@ export function news(Z) {
   out.push(h("p", { class: "klein gedimmt" }, "Abgerufen " + F.vor(n.zeit) + " (" + F.zeit(n.zeit) + ", " + (n.anlass === "news_jetzt" ? "von Hand" : "für den Bericht") + "). Neu holen geht höchstens alle 30 Minuten."));
   if (n.fehler) out.push(h("p", { class: "fehlerteil" }, F.text(n.fehler)));
   const z = ok(n.zusammenfassung);
+  out.push(gesamtbildKarte(z && z.gesamtbild, n.bot_lage));
   if (z) {
     const wichtig = liste(z.wichtigste);
     out.push(karte("Das Wichtigste", null,
       liste(z.rubriken).filter((r) => r.id === "einordnung").map((r) => erklaert(F.text(r.name), r.text)),
-      wichtig.length ? h("div", null, wichtig.map(schlagzeile)) : null));
+      wichtig.length ? h("div", null, wichtig.map((s) => [schlagzeile(s), istObj(s) ? einordnungTeil(s.einordnung) : null])) : null));
     for (const r of liste(z.rubriken).filter((r) => r.id !== "einordnung")) {
       out.push(karte(F.text(r.name), etikett("KI", ""), h("p", { class: "rubrik-text" }, F.text(r.text))));
     }

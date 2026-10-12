@@ -4,6 +4,18 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.6
+
+* **News mit Einordnung:** oben im Reiter „News“ die Karte „Gesamtbild“ (z. B. „leicht belastend für Bitcoin, neutral für den
+  Welt-ETF“), ob eine Bot-Regel kurz vor dem Auslösen steht, „Stand deiner Bots“ (Coin-Bot: Notbremse-Abstand,
+  Gewinnschutz-Grenze; Trend-Bot: Markt-Ampel, 50-Tage-Linie; Raster-Bot; Aktien-Autopilot) und der Hinweis, dass das eine
+  Einschätzung ist und nur nach den Regeln der Bots oder nach deinem JA gehandelt wird. Unter jeder wichtigen Meldung kleine
+  Etiketten (🟢 stützend / 🔴 belastend / ⚪ neutral, Stärke, kurzfristig (Tage) / langfristig (Monate), betroffenes Objekt) und
+  die Zeile „Für deine Bots: …“. Die Zahlen darin rechnet die Cloud aus dem gespeicherten Stand der Bots, nicht die KI.
+* Felder `zusammenfassung.wichtigste[].einordnung`, `zusammenfassung.gesamtbild` und `bot_lage` in `cloud/news.json` (Finanz-App,
+  `news.py`) – alle optional: eine ältere `news.json` ohne sie zeigt die App wie bisher. Nur bekannte Werte werden als Etikett
+  gezeigt, alle Texte als Text (nie als HTML).
+
 ## Neu in 1.2.4
 
 * **Zwischen den Bots umschichten:** in der Trend-Ansicht „Zum Raster-Bot umschichten“, in der Raster-Ansicht „Zum Trend-Bot

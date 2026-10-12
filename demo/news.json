@@ -18,7 +18,7 @@
    {
     "id": "einordnung",
     "name": "Was davon für dein Geld zählt",
-    "text": "Beispiel: Nichts davon verlangt heute eine Entscheidung. (erfunden)"
+    "text": "Beispiel: Für Bitcoin überwiegt leicht das Belastende (schwächere Nachfrage), für den Welt-ETF ist nichts Neues dabei. Keine Bot-Regel steht kurz vor dem Auslösen. (erfunden)"
    }
   ],
   "wichtigste": [
@@ -26,10 +26,73 @@
     "titel": "Beispiel-Schlagzeile: Bitcoin hält sich über 70.000 €",
     "quelle": "Beispiel-Quelle",
     "zeit": "2026-10-11T03:10+00:00",
-    "link": "https://example.com/beispiel-1"
+    "link": "https://example.com/beispiel-1",
+    "einordnung": {
+     "objekt": "bitcoin",
+     "objekt_name": "Bitcoin",
+     "richtung": "stuetzend",
+     "staerke": "schwach",
+     "zeitraum": "kurzfristig",
+     "bots": "Stützend: der Coin-Bot bleibt investiert, der Trend-Bot behält seine Coins (Beispiel, erfunden)."
+    }
+   },
+   {
+    "titel": "Beispiel-Schlagzeile: Weniger Zuflüsse in Bitcoin-Fonds",
+    "quelle": "Beispiel-Zeitung",
+    "zeit": "2026-10-11T02:40+00:00",
+    "link": "https://example.org/beispiel-4",
+    "einordnung": {
+     "objekt": "bitcoin",
+     "objekt_name": "Bitcoin",
+     "richtung": "belastend",
+     "staerke": "mittel",
+     "zeitraum": "kurzfristig",
+     "bots": "Belastend, aber Bitcoin müsste noch 5,1 % fallen, bevor die Notbremse des Coin-Bots parkt – er bleibt investiert (Beispiel, erfunden)."
+    }
+   },
+   {
+    "titel": "Beispiel-Schlagzeile: Notenbank lässt Zinsen unverändert",
+    "quelle": "Beispiel-Portal",
+    "zeit": "2026-10-10T18:00+00:00",
+    "link": "https://example.net/beispiel-5",
+    "einordnung": {
+     "objekt": "welt_etf",
+     "objekt_name": "Welt-ETF",
+     "richtung": "neutral",
+     "staerke": "mittel",
+     "zeitraum": "langfristig",
+     "bots": "Für den Aktien-Autopiloten ändert sich dadurch nichts (Beispiel, erfunden)."
+    }
    }
-  ]
+  ],
+  "gesamtbild": {
+   "bitcoin": {
+    "richtung": "belastend",
+    "staerke": "schwach"
+   },
+   "welt_etf": {
+    "richtung": "neutral",
+    "staerke": "mittel"
+   },
+   "text": "Gesamtbild: leicht belastend für Bitcoin, neutral für den Welt-ETF. (Beispiel, erfunden)",
+   "bots": "Keine Bot-Regel steht kurz vor dem Auslösen – kein Handlungsbedarf für die Bots. (Beispiel, erfunden)",
+   "hinweis": "Das ist eine Einschätzung, keine sichere Vorhersage. Gehandelt wird nur nach den Regeln der Bots oder nach deinem JA."
+  }
  },
+ "bot_lage": [
+  {
+   "bot": "Coin-Bot",
+   "text": "Coin-Bot (Stufe normal): hält Bitcoin; Notbremse erst nach weiteren 5,1 % (Grenze −7 % an einem Tag). (Beispiel, erfunden)"
+  },
+  {
+   "bot": "Trend-Bot",
+   "text": "Trend-Bot: Markt-Ampel grün, Bitcoin 4,2 % über der 50-Tage-Linie; aus (nur Schattendepot). (Beispiel, erfunden)"
+  },
+  {
+   "bot": "Raster-Bot",
+   "text": "Raster-Bot: an, handelt SOL und ADA. (Beispiel, erfunden)"
+  }
+ ],
  "fehler": null,
  "rubriken": [
   {

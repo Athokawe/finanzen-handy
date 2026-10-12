@@ -183,6 +183,18 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .news-link .unter { font-size: 14px; color: var(--gedimmt); margin-top: 3px; }
 a.news-link .titel::after { content: " ↗"; color: var(--akzent); font-weight: 400; }
 .rubrik-text { white-space: pre-line; }
+/* 1.2.6: Einordnung je Meldung, Gesamtbild, Stand der Bots */
+.etiketten { display: flex; flex-wrap: wrap; gap: 6px; }
+.news-einordnung .etikett, #news-gesamtbild .etikett { font-size: 13px; padding: 2px 9px; white-space: normal; }
+.etikett.objekt { background: transparent; border: 1px solid var(--rand); color: var(--gedimmt); }
+.news-einordnung { margin: -2px 0 10px; }
+.news-bots { font-size: 14px; line-height: 1.4; margin: 8px 0 0; }
+.news-bots .label, .bot-lage .label { color: var(--gedimmt); font-weight: 600; }
+.gesamt-text { font-weight: 600; line-height: 1.4; margin: 10px 0 0; }
+.gesamt-bots { line-height: 1.4; margin: 6px 0 0; }
+.bot-lage { margin-top: 12px; }
+.bot-lage .label { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+.bot-lage .liste li { font-size: 14px; line-height: 1.4; padding: 7px 0; }
 
 /* ---------- Dialog ---------- */
 .dialog-huelle { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .65); display: flex; align-items: flex-end; justify-content: center; }
