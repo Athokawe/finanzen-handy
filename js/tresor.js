@@ -1,8 +1,11 @@
 // Token-Tresor: das GitHub-Token liegt NUR verschlüsselt in localStorage.
 // AES-GCM (256 Bit), Schlüssel per PBKDF2 (SHA-256, RUNDEN Runden, zufälliges Salz) aus der PIN; Schlüssel nicht exportierbar.
 // 5 falsche PINs hintereinander -> Tresor gelöscht (neu verbinden nötig).
+// 1.2.8: Der Face-ID-Umschlag (js/faceid.js, FACEID_SPEICHER) gilt nur zusammen mit DIESEM Tresor: neuer Tresor (neuer Token/PIN)
+// oder gelöschter Tresor -> Face-ID-Umschlag wird mitgelöscht (fail-closed).
 
 const SPEICHER = "fh_tresor_v1";
+export const FACEID_SPEICHER = "fh_faceid_v1";
 const FEHLER = "fh_pin_fehler";
 export const RUNDEN = 310000;
 export const MAX_FEHLVERSUCHE = 5;
@@ -18,12 +21,12 @@ function weg(k) {
   try { localStorage.removeItem(k); } catch { /* egal */ }
 }
 
-function b64(bytes) {
+export function b64(bytes) {
   let s = "";
   for (const b of new Uint8Array(bytes)) s += String.fromCharCode(b);
   return btoa(s);
 }
-function unb64(s) {
+export function unb64(s) {
   const bin = atob(s);
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -57,6 +60,12 @@ export function vorhanden() {
   return !!laden();
 }
 
+/** Kennung des gespeicherten Tresors (sein zufälliges Salz – kein Geheimnis) oder null; bindet den Face-ID-Umschlag an ihn. */
+export function kennung() {
+  const t = laden();
+  return t ? t.salz : null;
+}
+
 export function fehlversuche() {
   const n = parseInt(lies(FEHLER) || "0", 10);
   return Number.isFinite(n) && n > 0 ? n : 0;
@@ -65,6 +74,7 @@ export function fehlversuche() {
 /** Token mit der PIN verschlüsseln und speichern. Wirft bei ungültiger PIN oder vollem/gesperrtem Speicher. */
 export async function speichern(token, pin) {
   if (!pinGueltig(pin)) throw new Error("Die PIN muss 4 bis 6 Ziffern haben.");
+  weg(FACEID_SPEICHER); // neuer Token/neue PIN -> ein alter Face-ID-Umschlag gilt nicht mehr (neu einrichten)
   const salz = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await schluessel(pin, salz, RUNDEN);
@@ -97,7 +107,13 @@ export async function oeffnen(pin) {
   }
 }
 
+/** Nach erfolgreichem Entsperren mit Face ID: die Folge falscher PINs ist unterbrochen. */
+export function fehlerZuruecksetzen() {
+  weg(FEHLER);
+}
+
 export function loeschen() {
   weg(SPEICHER);
   weg(FEHLER);
+  weg(FACEID_SPEICHER);
 }

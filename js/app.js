@@ -1,4 +1,5 @@
 // Hauptablauf: Verbinden (Token) → PIN festlegen → App; beim Öffnen und nach 5 min im Hintergrund PIN-Sperre.
+// 1.2.8: optional „Mit Face ID entsperren“ (js/faceid.js: Passkey mit PRF, zweiter Umschlag) – die PIN bleibt Rückfall.
 // Daten liegen nur im Arbeitsspeicher (Z), der Token nur verschlüsselt in localStorage und entschlüsselt in github.js.
 
 import { $, h, leeren } from "./dom.js";
@@ -11,8 +12,9 @@ import * as F from "./format.js";
 import * as K from "./kifrage.js";
 import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
+import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.2.7";
+export const APP_VERSION = "1.2.8";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -27,6 +29,7 @@ let pushHash = null;
 let neuerToken = null;   // nur während der Einrichtung, bis die PIN steht (nie gespeichert)
 let pinModus = "eingeben";
 let ersterPin = "";
+let faceIdStatus = null; // null = noch unbekannt, "ja" | "ohne_prf" | "nein" (FI.pruefen)
 
 const TITEL = { uebersicht: "Übersicht", kern: "Coin-Bot", raster: "Raster-Bot", trend: "Trend-Bot", news: "News", mehr: "Einstellungen" };
 const ANSICHT = { uebersicht: V.uebersicht, kern: V.kern, raster: V.raster, trend: V.trend, news: V.news };
@@ -110,8 +113,45 @@ function pinZeigen(modus, fehler) {
   $("pin-vergessen").textContent = modus === "eingeben" ? "PIN vergessen – neu verbinden" : "Abbrechen";
   $("pin-feld").value = "";
   fehlerFeld("pin-fehler", fehler || "");
+  // Face ID eingerichtet: zuerst „Mit Face ID entsperren“ anbieten (Knopf – iOS verlangt dafür einen Tipp), PIN darunter
+  const mitFaceId = modus === "eingeben" && FI.eingerichtet();
+  $("faceid-block").hidden = !mitFaceId;
+  $("pin-knopf").className = "knopf voll" + (mitFaceId ? "" : " primaer");
+  if (mitFaceId) {
+    $("pin-titel").textContent = "Entsperren";
+    $("pin-text").textContent = "Mit Face ID oder mit deiner PIN.";
+  }
   schirm("pin");
-  setTimeout(() => $("pin-feld").focus(), 60);
+  if (!mitFaceId || fehler) setTimeout(() => $("pin-feld").focus(), 60);
+}
+
+/** Tipp auf „Mit Face ID entsperren“: get() muss sofort im Tipp starten (FI.oeffnen ruft es ohne vorheriges await auf). */
+async function faceIdEntsperren() {
+  const knopf = $("faceid-knopf");
+  if (knopf.disabled || entsperrt) return;
+  fehlerFeld("pin-fehler", "");
+  knopf.disabled = true;
+  knopf.textContent = "Warte auf Face ID …";
+  let r;
+  try {
+    r = await FI.oeffnen();
+  } catch {
+    r = { ok: false, art: "fehler" };
+  }
+  knopf.disabled = false;
+  knopf.textContent = "Mit Face ID entsperren";
+  if (entsperrt || pinModus !== "eingeben") return; // inzwischen mit der PIN entsperrt
+  if (r.ok) {
+    T.fehlerZuruecksetzen();
+    gh.tokenSetzen(r.token);
+    appStarten();
+    return;
+  }
+  // Fehlversuche mit Face ID zählen NICHT zu den PIN-Fehlversuchen – einfach die PIN anbieten
+  const nochDa = FI.eingerichtet();
+  pinZeigen("eingeben", FI.text(r.art) + (nochDa
+    ? " Entsperre mit deiner PIN – oder versuch es noch einmal mit Face ID."
+    : " Entsperre mit deiner PIN und richte Face ID in den Einstellungen neu ein."));
 }
 
 async function pinWeiter() {
@@ -171,7 +211,7 @@ function pinVergessen() {
   }
   A.dialog({
     titel: "Neu verbinden?",
-    inhalt: ["Der gespeicherte Token wird von diesem iPhone gelöscht. Danach brauchst du einen Token (den alten auf github.com widerrufen und einen neuen anlegen) und legst eine neue PIN fest."],
+    inhalt: ["Der gespeicherte Token wird von diesem iPhone gelöscht (auch Face ID, falls eingerichtet). Danach brauchst du einen Token (den alten auf github.com widerrufen und einen neuen anlegen) und legst eine neue PIN fest."],
     okText: "Löschen", okKlasse: "gefahr",
     onOk: async () => { T.loeschen(); verbindenZeigen(); return true; },
   });
@@ -216,7 +256,9 @@ function zeichnen() {
   const el = $("t-" + reiter);
   leeren(el);
   const teile = reiter === "mehr"
-    ? V.mehr(Z, { demo, pushHash, appVersion: APP_VERSION, onPushAn: pushAn, onPushAus: pushAus, onSperren: sperren, onAbmelden: abmelden })
+    ? V.mehr(Z, { demo, pushHash, appVersion: APP_VERSION, onPushAn: pushAn, onPushAus: pushAus, onSperren: sperren, onAbmelden: abmelden,
+      faceId: demo ? null : { status: faceIdStatus, eingerichtet: FI.eingerichtet(), seit: FI.seit(), nichtMoeglich: FI.nichtMoeglichGemerkt() },
+      onFaceIdEinrichten: faceIdEinrichten, onFaceIdEntfernen: faceIdEntfernen })
     : ANSICHT[reiter](Z);
   for (const t of teile) if (t) el.appendChild(t);
   standZeigen();
@@ -302,14 +344,107 @@ async function laden() {
 function abmelden() {
   A.dialog({
     titel: "Abmelden?",
-    inhalt: ["Token und PIN werden von diesem iPhone gelöscht. Zum Wiederverbinden brauchst du einen Token (am besten den alten auf github.com widerrufen und einen neuen anlegen)."],
+    inhalt: ["Token und PIN (und Face ID, falls eingerichtet) werden von diesem iPhone gelöscht. Zum Wiederverbinden brauchst du einen Token (am besten den alten auf github.com widerrufen und einen neuen anlegen)."],
     okText: "Abmelden", okKlasse: "gefahr",
     onOk: async () => {
-      T.loeschen();
+      T.loeschen(); // löscht auch den Face-ID-Umschlag
       Z.handy = Z.news = Z.verlauf = null;
       for (const k of [...Object.keys(ANSICHT), "mehr"]) leeren($("t-" + k));
       K.vergessen();
       verbindenZeigen("Abgemeldet – Token und PIN sind gelöscht.");
+      return true;
+    },
+  });
+}
+
+// ------------------------------------------------------------------ Face ID (1.2.8)
+
+function passkeyLoeschenText() {
+  return "Den Passkey selbst kannst du in der App „Passwörter“ löschen (älteres iOS: Einstellungen → Passwörter): nach „"
+    + location.hostname + "“ suchen → Eintrag „Finanzen Handy …“ → Löschen.";
+}
+
+function faceIdEinrichten() {
+  if (demo || !entsperrt || !gh.tokenDa() || !T.vorhanden()) {
+    toast("Face ID lässt sich nur einrichten, wenn die App mit Token und PIN entsperrt ist.");
+    return;
+  }
+  A.dialog({
+    titel: "Face ID einrichten",
+    inhalt: [
+      "Das iPhone legt dafür einen Passkey für diese App an und fragt Face ID ab. Mit einem Schlüssel aus dem Passkey wird dein Token zusätzlich verschlüsselt auf diesem iPhone gespeichert.",
+      "Dein Gesicht verlässt das iPhone nie. Der Passkey wird über den iCloud-Schlüsselbund synchronisiert. Die PIN bleibt als Rückfall.",
+    ],
+    okText: "Weiter mit Face ID",
+    onOk: faceIdAnlegen, // create() startet sofort im Tipp auf „Weiter mit Face ID“
+  });
+}
+
+async function faceIdAnlegen() {
+  const a = await FI.anlegen();
+  if (a.art === "prf") return faceIdAbschliessen(a.id, a.salz, a.prf);
+  if (a.art !== "get_noetig") return faceIdNichtEingerichtet(a.art, false);
+  // create() lieferte keine PRF-Ausgabe (iOS teils erst bei get()) -> gleich mit demselben Passkey holen
+  const b = await FI.prfHolen(a.id, a.salz);
+  if (b.art === "prf") return faceIdAbschliessen(a.id, a.salz, b.prf);
+  if (b.art === "abgebrochen") {
+    // iOS lässt get() direkt nach create() oft nicht ohne neuen Tipp zu -> eigener Schritt mit Knopf
+    A.dialog({
+      titel: "Noch ein Schritt",
+      inhalt: ["Der Passkey ist angelegt. Bestätige jetzt noch einmal mit Face ID, damit er den Schlüssel liefert.",
+        "Brichst du ab, bleibt es bei der PIN. " + passkeyLoeschenText()],
+      okText: "Mit Face ID bestätigen",
+      onOk: async () => {
+        const c = await FI.prfHolen(a.id, a.salz); // get() sofort im Tipp
+        return c.art === "prf" ? faceIdAbschliessen(a.id, a.salz, c.prf) : faceIdNichtEingerichtet(c.art, true);
+      },
+    });
+    return true;
+  }
+  return faceIdNichtEingerichtet(b.art, true);
+}
+
+async function faceIdAbschliessen(id, salz, prf) {
+  if (!entsperrt || !gh.tokenDa()) {
+    prf.fill(0);
+    throw new Error("Die App wurde inzwischen gesperrt – bitte mit der PIN entsperren und Face ID neu einrichten.");
+  }
+  await FI.speichern(gh.tokenHolen(), id, salz, prf);
+  toast("Face ID ist eingerichtet ✓ – beim nächsten Entsperren kannst du Face ID statt der PIN nehmen.");
+  if (reiter === "mehr") zeichnen();
+  return true;
+}
+
+function faceIdNichtEingerichtet(art, passkeyAngelegt) {
+  if (art === "kein_prf") {
+    FI.nichtMoeglichMerken();
+    A.dialog({
+      titel: "Face ID hier nicht möglich",
+      inhalt: ["Face ID ist auf diesem Gerät nicht möglich – die PIN bleibt.",
+        "Dein iPhone hat für den Passkey keinen Schlüssel geliefert (Passkey-Erweiterung „PRF“, braucht ein neueres iOS). Ohne diesen Schlüssel könnte die App den Token nicht sicher verschlüsseln – eine schwächere Variante gibt es bewusst nicht.",
+        passkeyLoeschenText()],
+      okText: "Verstanden", nurOk: true,
+    });
+    if (reiter === "mehr") zeichnen();
+    return true;
+  }
+  if (art === "abgebrochen") {
+    toast("Face ID wurde nicht eingerichtet – es bleibt bei der PIN." + (passkeyAngelegt ? " " + passkeyLoeschenText() : ""));
+    return true;
+  }
+  throw new Error(FI.text(art) + " Face ID wurde nicht eingerichtet – es bleibt bei der PIN.");
+}
+
+function faceIdEntfernen() {
+  A.dialog({
+    titel: "Face ID entfernen?",
+    inhalt: ["Der Face-ID-Umschlag wird von diesem iPhone gelöscht – entsperren geht dann nur noch mit der PIN.",
+      "Der Passkey bleibt im iCloud-Schlüsselbund. " + passkeyLoeschenText()],
+    okText: "Entfernen", okKlasse: "gefahr",
+    onOk: async () => {
+      FI.entfernen();
+      toast("Face ID entfernt – es gilt wieder nur die PIN.");
+      zeichnen();
       return true;
     },
   });
@@ -381,6 +516,7 @@ function verdrahten() {
   $("pin-feld").addEventListener("keydown", (e) => { if (e.key === "Enter") pinWeiter(); });
   $("pin-feld").addEventListener("input", () => { $("pin-feld").value = $("pin-feld").value.replace(/\D/g, "").slice(0, 6); });
   $("pin-vergessen").addEventListener("click", pinVergessen);
+  $("faceid-knopf").addEventListener("click", faceIdEntsperren);
   $("knopf-aktualisieren").addEventListener("click", () => laden());
   $("knopf-mehr").addEventListener("click", () => reiterZeigen(reiter === "mehr" ? "uebersicht" : "mehr"));
   for (const b of document.querySelectorAll(".reiter")) b.addEventListener("click", () => reiterZeigen(b.dataset.reiter));
@@ -425,6 +561,10 @@ function start() {
     $("verbinden-knopf").disabled = true;
     return;
   }
+  FI.pruefen().then((s) => {
+    faceIdStatus = s;
+    if (entsperrt && reiter === "mehr") zeichnen();
+  });
   if (T.vorhanden()) pinZeigen("eingeben");
   else verbindenZeigen();
 }

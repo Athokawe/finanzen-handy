@@ -20,6 +20,8 @@ export class ApiFehler extends Error {
 
 export function tokenSetzen(t) { token = t || null; }
 export function tokenDa() { return !!token; }
+/** Nur fürs Einrichten von Face ID (1.2.8): der Token wird dort sofort in den zweiten Umschlag verschlüsselt (js/faceid.js). */
+export function tokenHolen() { return token; }
 export function demoSetzen(b) { demo = !!b; }
 export function istDemo() { return demo; }
 export function demoAuftragsliste() { return demoAuftraege.slice(); }

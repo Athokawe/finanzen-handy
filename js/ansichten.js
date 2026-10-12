@@ -784,6 +784,36 @@ export function news(Z) {
 
 // ------------------------------------------------------------------ Einstellungen
 
+/**
+ * 1.2.8: Karte „Face ID“ – nur, wenn ein Plattform-Authenticator (Face ID) für Passkeys da ist oder Face ID schon eingerichtet ist.
+ * ctx.faceId: {status: null|"ja"|"ohne_prf"|"nein", eingerichtet, seit, nichtMoeglich} (null im Demo-Modus).
+ */
+function faceIdKarte(ctx) {
+  const f = ctx.faceId;
+  if (!f) return null;
+  if (!f.eingerichtet && f.status !== "ja" && f.status !== "ohne_prf") return null;
+  const teile = [];
+  if (f.eingerichtet) {
+    teile.push(h("p", { id: "faceid-stand" }, "✓ Face ID ist eingerichtet" + (f.seit ? " (seit " + F.tag(f.seit) + ")" : "")
+      + ". Beim Öffnen und nach 5 Minuten im Hintergrund kannst du mit Face ID statt mit der PIN entsperren."));
+    teile.push(h("button", { type: "button", class: "knopf voll gefahr-rand", id: "faceid-entfernen", onclick: ctx.onFaceIdEntfernen }, "Face ID entfernen"));
+  } else if (f.nichtMoeglich || f.status === "ohne_prf") {
+    teile.push(h("p", { id: "faceid-stand" }, "Face ID ist auf diesem Gerät nicht möglich – die PIN bleibt."));
+    teile.push(h("p", { class: "klein gedimmt" }, "Dein iPhone liefert für Passkeys keinen Schlüssel (Erweiterung „PRF“, braucht ein neueres iOS). Ohne ihn könnte die App den Token nicht sicher verschlüsseln – eine schwächere Variante gibt es bewusst nicht. Nach einem iOS-Update bietet die App Face ID wieder an."));
+    return karte("Face ID", null, ...teile);
+  } else {
+    teile.push(h("p", { id: "faceid-stand" }, "Entsperre die App mit Face ID statt mit der PIN."));
+    teile.push(h("button", { type: "button", class: "knopf voll primaer", id: "faceid-einrichten", onclick: ctx.onFaceIdEinrichten }, "Face ID einrichten"));
+  }
+  teile.push(h("ul", { class: "liste klein" },
+    h("li", null, "Face ID ersetzt nur die PIN-Eingabe. Die PIN bleibt immer als Rückfall; Fehlversuche mit Face ID zählen nicht zu den 5 PIN-Versuchen."),
+    h("li", null, "Der Token bleibt verschlüsselt auf diesem iPhone – zusätzlich in einem zweiten Umschlag, den nur dein Passkey nach Face ID öffnet (Passkey-Erweiterung PRF, AES-GCM)."),
+    h("li", null, "Dein Gesicht verlässt das iPhone nie: Face ID prüft das iPhone selbst, die App bekommt nur einen Schlüssel vom Passkey."),
+    h("li", null, "Der Passkey wird über den iCloud-Schlüsselbund mit deinen Apple-Geräten synchronisiert. Ohne den verschlüsselten Umschlag auf diesem iPhone öffnet er dort nichts."),
+    h("li", null, "Erkennt dich Face ID nicht, bietet das iPhone den iPhone-Code an – wer ihn kennt, kommt damit auch in die App.")));
+  return karte("Face ID", null, ...teile);
+}
+
 export function mehr(Z, ctx) {
   const out = [];
   const d = Z.handy || {};
@@ -817,6 +847,7 @@ export function mehr(Z, ctx) {
   out.push(karte("Benachrichtigungen", null, ...pk));
 
   out.push(kiKarte("Fragen an die KI und Hinweise für den Bot – auch über den Knopf 💬 unten rechts. Die KI löst nie selbst eine Order aus.", d));
+  out.push(faceIdKarte(ctx));
 
   const lauf = ok(d.lauf);
   out.push(karte("Verbindung", null,
@@ -832,11 +863,12 @@ export function mehr(Z, ctx) {
       ? reihe(h("a", { class: "knopf", href: "./" }, "Demo beenden"))
       : reihe(h("button", { type: "button", class: "knopf", id: "knopf-sperren", onclick: ctx.onSperren }, "Jetzt sperren"),
         h("button", { type: "button", class: "knopf gefahr-rand", id: "knopf-abmelden", onclick: ctx.onAbmelden }, "Abmelden")),
-    ctx.demo ? null : h("p", { class: "klein gedimmt" }, "„Abmelden“ löscht den verschlüsselten Token und die PIN von diesem iPhone. Den Token selbst kannst du auf github.com → Settings → Developer settings → Fine-grained tokens jederzeit widerrufen.")));
+    ctx.demo ? null : h("p", { class: "klein gedimmt" }, "„Abmelden“ löscht den verschlüsselten Token und die PIN (und Face ID) von diesem iPhone. Den Token selbst kannst du auf github.com → Settings → Developer settings → Fine-grained tokens jederzeit widerrufen.")));
 
   out.push(karte("Sicherheit", null,
     h("ul", { class: "liste" },
       h("li", null, "Der Token liegt nur auf diesem iPhone, mit deiner PIN verschlüsselt (AES-GCM, PBKDF2)."),
+      h("li", null, "Optional Face ID: ein zweiter verschlüsselter Umschlag, den nur dein Passkey öffnet – ohne Passkey-Erweiterung PRF gibt es kein Face ID."),
       h("li", null, "Er darf nur Athokawe/finanzen lesen und Cloud-Aufträge starten – kein Geld bewegen, keine anderen Repos."),
       h("li", null, "Schaltbefehle brauchen ein getipptes JA; die Cloud prüft jede Bestätigung noch einmal selbst."),
       h("li", null, "Die App sperrt sich beim Öffnen und nach 5 Minuten im Hintergrund. 5 falsche PINs löschen den Token."),

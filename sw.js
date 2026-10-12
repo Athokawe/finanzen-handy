@@ -4,7 +4,7 @@
 // * zeigt Web-Pushes der Finanz-App ({titel, text, art, zeit}) und öffnet beim Antippen die App.
 // Neue Version = VERSION hochzählen (alter Cache wird beim Aktivieren gelöscht).
 
-const VERSION = "1.2.7";
+const VERSION = "1.2.8";
 const CACHE = "finanzen-huelle-v" + VERSION;
 const HUELLE = [
   "./",
@@ -19,6 +19,7 @@ const HUELLE = [
   "js/ausblenden.js",
   "js/diagramm.js",
   "js/dom.js",
+  "js/faceid.js",
   "js/format.js",
   "js/github.js",
   "js/kifrage.js",

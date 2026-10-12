@@ -68,6 +68,11 @@
     <img src="icons/icon-192.png" alt="" class="logo klein" width="64" height="64">
     <h1 id="pin-titel">PIN eingeben</h1>
     <p id="pin-text" class="gedimmt">Gib deine PIN ein, um die App zu entsperren.</p>
+    <!-- 1.2.8: nur sichtbar, wenn Face ID eingerichtet ist (js/faceid.js) – die PIN darunter bleibt immer -->
+    <div id="faceid-block" class="faceid-block" hidden>
+      <button id="faceid-knopf" class="knopf voll primaer" type="button">Mit Face ID entsperren</button>
+      <p class="oder klein gedimmt">oder mit deiner PIN</p>
+    </div>
     <div class="pin-punkte" id="pin-punkte" aria-hidden="true"></div>
     <input id="pin-feld" class="pin-feld" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6"
            aria-label="PIN" enterkeyhint="done">

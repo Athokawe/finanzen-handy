@@ -4,6 +4,32 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.8
+
+* **Mit Face ID entsperren** (optional): Einstellungen → Karte „Face ID“ → **Face ID einrichten** (nur sichtbar, wenn das Gerät
+  einen Plattform-Authenticator mit Nutzerprüfung hat, also Face ID für Passkeys; und nur, solange die App mit Token und PIN
+  entsperrt ist). Das iPhone legt einen Passkey für `athokawe.github.io` an (WebAuthn, `residentKey`/`userVerification`
+  required, Plattform-Authenticator, ES256/RS256) mit der Erweiterung **PRF**: nach Face ID liefert der Passkey 32 geheime Bytes
+  zu einem zufälligen Salz. Daraus wird per HKDF-SHA-256 (info `finanzen-handy-faceid-v1`) ein nicht exportierbarer
+  AES-GCM-256-Schlüssel, mit dem der Token **zusätzlich** in einem zweiten Umschlag verschlüsselt wird (`localStorage`
+  `fh_faceid_v1`: Credential-ID, PRF-Salz, iv, Chiffrat, Kennung des PIN-Tresors, Version, Datum – kein Klartext, nie die
+  PRF-Ausgabe oder der Schlüssel). Liefert `create()` noch keine PRF-Ausgabe (iOS teils erst bei `get()`), holt die App sie
+  gleich mit demselben Passkey; lässt iOS das ohne neuen Tipp nicht zu, kommt „Noch ein Schritt“ mit Knopf.
+* **Entsperren:** Ist Face ID eingerichtet, zeigt der Sperrbildschirm zuerst **„Mit Face ID entsperren“** (ein Knopf – iOS
+  verlangt für Passkeys einen Tipp), die PIN steht darunter. Abgebrochen, nicht erkannt, kein Schlüssel oder Umschlag passt
+  nicht → klare Meldung, PIN. **Fehlversuche mit Face ID zählen nicht zu den 5 PIN-Fehlversuchen**; ein erfolgreiches Face ID
+  unterbricht die Folge falscher PINs (Zähler auf 0). Ein Umschlag, der sich nicht entschlüsseln lässt, wird gelöscht.
+* **Kein PRF (älteres iOS) → kein Face ID:** keine schwächere Variante ohne Verschlüsselung; Hinweis „auf diesem Gerät nicht
+  möglich – die PIN bleibt“ (nach einem iOS-Update wird es wieder angeboten).
+* **Face ID entfernen** löscht nur den zweiten Umschlag. Der Passkey bleibt im iCloud-Schlüsselbund – löschen in der App
+  „Passwörter“ (älteres iOS: Einstellungen → Passwörter) → `athokawe.github.io` → „Finanzen Handy …“. Abmelden, „PIN vergessen
+  – neu verbinden“ und 5 falsche PINs löschen den Umschlag mit; ein neuer Token/PIN-Tresor macht ihn ungültig (fail-closed:
+  der Umschlag ist an die Kennung des PIN-Tresors gebunden, auch über die „additional data“ von AES-GCM).
+* Ehrlich: Face ID ersetzt nur die PIN-Eingabe, der Token bleibt verschlüsselt auf dem iPhone, das Gesicht verlässt das iPhone
+  nie (die App bekommt nur den Schlüssel des Passkeys), der Passkey wird über den iCloud-Schlüsselbund synchronisiert (ohne den
+  Umschlag auf diesem iPhone öffnet er nichts). Erkennt Face ID dich nicht, bietet iOS den iPhone-Code an – wer ihn kennt, kommt
+  damit auch in die App. Neues Modul `js/faceid.js`; der PIN-Tresor (`js/tresor.js`, Format v1) bleibt unverändert.
+
 ## Neu in 1.2.7
 
 * **Bitpanda-Links öffnen die Bitpanda-App** statt Safari (dort nervten Passwort und 2FA): „Zu Bitpanda“ → `/home`,
@@ -138,7 +164,9 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
   and write) wird nie angezeigt und liegt nur verschlüsselt in `localStorage`: AES-GCM 256, Schlüssel per PBKDF2-SHA-256 mit
   310 000 Runden und zufälligem Salz aus der PIN (Web Crypto, Schlüssel nicht exportierbar).
 * **PIN-Sperre** beim Öffnen und nach 5 Minuten im Hintergrund; **5 falsche PINs löschen den Token** (neu verbinden nötig).
-  „Abmelden“ löscht Token und PIN.
+  „Abmelden“ löscht Token und PIN (und Face ID).
+* **Face ID (optional, ab 1.2.8):** zweiter Umschlag für den Token, Schlüssel per HKDF-SHA-256 aus der PRF-Ausgabe eines
+  Passkeys (Face ID), AES-GCM 256, nicht exportierbar. Ohne PRF kein Face ID. Die PIN bleibt immer der Rückfall.
 * **Keine Daten am Gerät gespeichert:** Zahlen, Nachrichten, Fragen und Antworten an die KI liegen nur im Arbeitsspeicher; der Service Worker cacht nur die
   App-Hülle (HTML/CSS/JS/Icons), nie Antworten der GitHub-API.
 * **Strenge Content-Security-Policy** (nur eigene Dateien, Verbindungen nur zu `api.github.com` und zum Artefakt-Speicher
@@ -180,6 +208,7 @@ Lokal: `python -m http.server` in einem Ordner, der dieses Repo als Unterordner 
 | `konfig.js` | Repo, Ablauf, Bitpanda-Adressen, öffentlicher VAPID-Schlüssel (nicht geheim) |
 | `js/app.js` | Ablauf: Verbinden → PIN → App, Sperre, Laden, Push |
 | `js/tresor.js` | Token-Verschlüsselung (AES-GCM/PBKDF2) |
+| `js/faceid.js` | Face ID: Passkey mit PRF, zweiter Umschlag (HKDF → AES-GCM), Einrichten/Entsperren/Entfernen |
 | `js/github.js` | GitHub-API (lesen, Aufträge, Lauf-Status), Demo-Modus |
 | `js/aktionen.js` | erlaubte Modi, JA-Dialog, Bestätigung bauen/prüfen, Weg (Express/ki.yml), Live-Rückmeldung und Neu-Senden |
 | `js/ansichten.js` | die Reiter |
