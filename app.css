@@ -337,3 +337,5 @@ svg.diagramm .marke-punkt.l-trend { stroke: #c084fc; } svg.diagramm .marke-punkt
 .lage-liste { margin: 0; padding-left: 18px; display: grid; gap: 6px; line-height: 1.4; }
 details.lage-karte > summary { cursor: pointer; font-weight: 600; }
 details.lage-karte[open] > summary { margin-bottom: 8px; }
+/* 1.2.14: Zeile „KI: …“ in den Bot-Karten der Übersicht */
+.ki-einschaetzung { margin: 10px 0 0; color: var(--text); }

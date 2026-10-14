@@ -162,6 +162,16 @@ function vorschlagKarte(v, teil, deckel, kurz) {
     reihe(knopf));
 }
 
+/** 1.2.14: eine Zeile „KI: …“ in den Karten Raster-Bot und Trend-Bot der Übersicht – auch bei „so lassen“ (die Karte „KI-Vorschlag“
+ *  erscheint auf der Übersicht nur bei einem aktiven Vorschlag). Fehlt die Einschätzung: nichts. */
+function kiZeile(v) {
+  if (!ok(v)) return null;
+  const a = v.aktion;
+  const was = a === "einschalten" ? (F.istZahl(v.betrag_eur) && v.betrag_eur > 0 ? "mit " + F.euro(v.betrag_eur) + " einschalten" : "fortsetzen")
+    : a === "pausieren" ? "pausieren" : a === "ausschalten" ? "ausschalten" : "so lassen";
+  return h("p", { class: "klein ki-einschaetzung" }, h("b", null, "KI: " + was), v.begruendung ? " – " + F.text(v.begruendung) : "");
+}
+
 function listenKarte(titel, bot, art, teil) {
   const roh = liste(teil[art === "trades" ? "trades_letzte" : "ereignisse"]);
   const darf = AB.moeglich(roh);
@@ -445,7 +455,8 @@ export function uebersicht(Z) {
     out.push(karte(F.text(r.name, "Raster-Bot"), statusEtikett(r.status),
       zeilen([["Topf", F.euro(r.topf_eur)], ergebnisZeile("Ergebnis", r.ergebnis_eur, r.ergebnis_prozent),
         ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
-      schattenHinweis(r.schatten)));
+      schattenHinweis(r.schatten),
+      kiZeile(r.ki_vorschlag)));
   } else out.push(fehlerKarte("Raster-Bot", d.raster_bot));
 
   const t = ok(d.trend_bot);
@@ -458,7 +469,8 @@ export function uebersicht(Z) {
         t.modus === "echt" ? ergebnisZeile("Ergebnis", t.ergebnis_eur, t.ergebnis_prozent) : null,
         ["Nächste Umschichtung", F.text(t.naechste_umschichtung)],
       ]),
-      schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", "))));
+      schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", ")),
+      kiZeile(t.ki_vorschlag)));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
 
   // 1.2.13 (Paket E): nur ein AKTIVER KI-Vorschlag erscheint auch hier (sonst steht die Einschätzung auf der Bot-Seite)
