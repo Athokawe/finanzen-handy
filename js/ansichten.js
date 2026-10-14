@@ -418,25 +418,6 @@ export function uebersicht(Z) {
   out.push(reihe(bitpandaKnopf("Zu Bitpanda", BITPANDA_URL, "primaer"), bitpandaKnopf("Einzahlen", BITPANDA_EINZAHLEN_URL)));
   out.push(bitpandaHinweis());
 
-  const ak = ok(d.aktien);
-  if (ak) {
-    out.push(karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
-      h("div", { class: "mittel" }, F.euro(ak.wert_eur)),
-      zeilen([
-        ["Modus", ak.modus === "etf" ? "ETF" : ak.modus === "aktiv" ? "aktiv" : F.text(ak.modus)],
-        ["Status", F.text(ak.status)],
-        F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? ["Reserve", F.euro(ak.reserve_eur)] : null,
-        ["Gewinnschutz", anAus(ak.gewinnschutz_an)],
-        ["Stand", F.zeit(ak.wert_zeit)],
-      ]),
-      ok(ak.ki) ? erklaert("Aktien-KI einfach erklärt", ak.ki.einfach_erklaert) : null,
-      reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein"),
-        ak.gewinnschutz_an ? A.knopf("gewinnschutz_aktien_aus", "Gewinnschutz aus") : A.knopf("gewinnschutz_aktien_ein", "Gewinnschutz ein")),
-    ));
-    const lageA = lageKarte(ak.lage, "Lage Aktien-Autopilot", true);   // 1.2.11: eingeklappt, die Übersicht bleibt kurz
-    if (lageA) out.push(lageA);
-  } else out.push(fehlerKarte("Aktien-Autopilot", d.aktien));
-
   const r = ok(d.raster_bot);
   if (r) {
     out.push(karte(F.text(r.name, "Raster-Bot"), statusEtikett(r.status),
@@ -457,6 +438,26 @@ export function uebersicht(Z) {
       ]),
       schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", "))));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
+
+  // 1.2.12: Aktien & ETFs unter dem Krypto-Teil, direkt vor „Letzte Alarme“ – langfristiges Geld, am wenigsten angeschaut (Nutzer 14.10.2026)
+  const ak = ok(d.aktien);
+  if (ak) {
+    out.push(karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
+      h("div", { class: "mittel" }, F.euro(ak.wert_eur)),
+      zeilen([
+        ["Modus", ak.modus === "etf" ? "ETF" : ak.modus === "aktiv" ? "aktiv" : F.text(ak.modus)],
+        ["Status", F.text(ak.status)],
+        F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? ["Reserve", F.euro(ak.reserve_eur)] : null,
+        ["Gewinnschutz", anAus(ak.gewinnschutz_an)],
+        ["Stand", F.zeit(ak.wert_zeit)],
+      ]),
+      ok(ak.ki) ? erklaert("Aktien-KI einfach erklärt", ak.ki.einfach_erklaert) : null,
+      reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein"),
+        ak.gewinnschutz_an ? A.knopf("gewinnschutz_aktien_aus", "Gewinnschutz aus") : A.knopf("gewinnschutz_aktien_ein", "Gewinnschutz ein")),
+    ));
+    const lageA = lageKarte(ak.lage, "Lage Aktien-Autopilot", true);   // 1.2.11: eingeklappt, die Übersicht bleibt kurz
+    if (lageA) out.push(lageA);
+  } else out.push(fehlerKarte("Aktien-Autopilot", d.aktien));
 
   out.push(alarmKarte(d));
   return out;

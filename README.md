@@ -4,6 +4,10 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.12
+
+* **Aktien & ETFs weiter unten:** Auf der Übersicht stehen der Aktien-Autopilot und seine Lage-Karte jetzt unter dem Krypto-Teil (Coin-Topf, Raster-Bot, Trend-Bot), direkt vor „Letzte Alarme“ – langfristig angelegtes Geld, das man am seltensten anschaut.
+
 ## Neu in 1.2.11
 
 * **Lagebericht je Bot:** oben auf Coin-Bot, Raster und Trend eine Karte „Lage – warum es gerade so ist“ (kurze Sätze aus `handy.json` `<bot>.lage`, von der Cloud regelbasiert gerechnet); beim Aktien-Autopiloten auf der Übersicht eingeklappt. Fehlt der Block (ältere Cloud), gibt es keine Karte.
