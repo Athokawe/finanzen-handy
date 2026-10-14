@@ -339,3 +339,5 @@ details.lage-karte > summary { cursor: pointer; font-weight: 600; }
 details.lage-karte[open] > summary { margin-bottom: 8px; }
 /* 1.2.14: Zeile „KI: …“ in den Bot-Karten der Übersicht */
 .ki-einschaetzung { margin: 10px 0 0; color: var(--text); }
+/* 1.2.15: Schalt-Knöpfe in den Bot-Karten der Übersicht */
+.bot-knoepfe { margin-top: 12px; }

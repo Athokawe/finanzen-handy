@@ -172,6 +172,16 @@ function kiZeile(v) {
   return h("p", { class: "klein ki-einschaetzung" }, h("b", null, "KI: " + was), v.begruendung ? " – " + F.text(v.begruendung) : "");
 }
 
+/** 1.2.15: Schalt-Knöpfe auch in den Bot-Karten der Übersicht (Nutzerwunsch 14.10.2026) – dieselben Dialoge mit JA wie auf den
+ *  Bot-Seiten; bei „aus“ dazu der freie Rest unter dem 50-%-Deckel (handy.json bot_deckel, nur Anzeige – die Cloud prüft hart). */
+function botKnoepfe(st, ein, pause, aus, deckel) {
+  const frei = st === "aus" && ok(deckel) && F.istZahl(deckel.frei_eur)
+    ? h("p", { class: "klein gedimmt" }, "Frei für Trend- und Raster-Topf (50-%-Deckel): " + F.euro(deckel.frei_eur)) : null;
+  const k = reihe(st !== "an" ? A.knopf(ein, st === "pausiert" ? "Wieder einschalten" : "Einschalten", "primaer") : A.knopf(pause, "Pausieren"),
+    st !== "aus" ? A.knopf(aus, "Ausschalten", "gefahr-rand") : null);
+  return frei || k ? h("div", { class: "bot-knoepfe" }, frei, k) : null;
+}
+
 function listenKarte(titel, bot, art, teil) {
   const roh = liste(teil[art === "trades" ? "trades_letzte" : "ereignisse"]);
   const darf = AB.moeglich(roh);
@@ -456,7 +466,8 @@ export function uebersicht(Z) {
       zeilen([["Topf", F.euro(r.topf_eur)], ergebnisZeile("Ergebnis", r.ergebnis_eur, r.ergebnis_prozent),
         ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
       schattenHinweis(r.schatten),
-      kiZeile(r.ki_vorschlag)));
+      kiZeile(r.ki_vorschlag),
+      botKnoepfe(r.status, "surfen_ein", "surfen_pause", "surfen_aus", d.bot_deckel)));
   } else out.push(fehlerKarte("Raster-Bot", d.raster_bot));
 
   const t = ok(d.trend_bot);
@@ -470,7 +481,8 @@ export function uebersicht(Z) {
         ["Nächste Umschichtung", F.text(t.naechste_umschichtung)],
       ]),
       schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", ")),
-      kiZeile(t.ki_vorschlag)));
+      kiZeile(t.ki_vorschlag),
+      botKnoepfe(t.status, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel)));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
 
   // 1.2.13 (Paket E): nur ein AKTIVER KI-Vorschlag erscheint auch hier (sonst steht die Einschätzung auf der Bot-Seite)
