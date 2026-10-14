@@ -4,6 +4,10 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.13
+
+* **KI-Vorschläge für Trend- und Raster-Bot (Paket E):** Auf der Raster- und der Trend-Seite steht unter der Lage die Karte „KI-Vorschlag“ bzw. „KI-Einschätzung“ (`handy.json` `<bot>.ki_vorschlag`): einschalten (mit Betrag), pausieren, ausschalten oder so lassen – mit Begründung. „Vorschlag übernehmen …“ öffnet den bekannten Dialog mit vorausgefülltem Betrag und JA; ohne JA passiert nichts. Ein aktiver Vorschlag erscheint auch auf der Übersicht, dazu der freie Rest unter dem 50-%-Deckel (`bot_deckel`). Push kommt aus der Cloud nur, wenn sich der Vorschlag ändert.
+
 ## Neu in 1.2.12
 
 * **Aktien & ETFs weiter unten:** Auf der Übersicht stehen der Aktien-Autopilot und seine Lage-Karte jetzt unter dem Krypto-Teil (Coin-Topf, Raster-Bot, Trend-Bot), direkt vor „Letzte Alarme“ – langfristig angelegtes Geld, das man am seltensten anschaut.

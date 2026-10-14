@@ -201,7 +201,18 @@
   "lage": [
    "Raster-Bot EIN mit 1 Coin: SOL, Eignung 70, 4 Stufen.",
    "Heute 1 von 4 Käufen und 0 von 4 Verkäufen."
-  ]
+  ],
+  "ki_vorschlag": {
+   "aktion": "keine",
+   "betrag_eur": null,
+   "zuversicht": 66,
+   "begruendung": "Der Raster-Bot läuft mit zwei geeigneten Coins in einem ruhigen Markt – so lassen.",
+   "hinweis": null,
+   "zeit": "2026-10-11T06:38:34+00:00",
+   "erledigt": false,
+   "titel": "Raster-Bot so lassen",
+   "modus": null
+  }
  },
  "trend_bot": {
   "name": "Trend-Bot",
@@ -270,7 +281,18 @@
   "lage": [
    "Markt-Ampel grün: Bitcoin liegt +4,0 % über der 50-Tage-Linie.",
    "Schattendepot: hält SOL (Rang 1) – bleibt bis Rang 5."
-  ]
+  ],
+  "ki_vorschlag": {
+   "aktion": "einschalten",
+   "betrag_eur": 150.0,
+   "zuversicht": 62,
+   "begruendung": "Die Markt-Ampel ist seit Tagen grün (+5 % zur 50-Tage-Linie) und das Schattendepot liegt vor „Bitcoin halten“.",
+   "hinweis": null,
+   "zeit": "2026-10-11T06:38:34+00:00",
+   "erledigt": false,
+   "titel": "Trend-Bot mit 150 € einschalten",
+   "modus": "trend_ein"
+  }
  },
  "alarme": [
   {
@@ -661,5 +683,11 @@
  "push": {
   "abos": [],
   "vapid_eingerichtet": true
+ },
+ "bot_deckel": {
+  "anteil_prozent": 50,
+  "frei_eur": 160.0,
+  "coin_topf_eur": 1234.56,
+  "bot_toepfe_eur": 205.0
  }
 }

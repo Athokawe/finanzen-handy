@@ -140,6 +140,28 @@ function lageKarte(lage, titel, zu) {
   return karte(titel || "Lage – warum es gerade so ist", null, ul);
 }
 
+/**
+ * 1.2.13 (Paket E): Karte „KI-Vorschlag“ – die KI schlägt vor, Trend-/Raster-Bot ein-, auszuschalten oder zu pausieren (handy.json
+ * <bot>.ki_vorschlag). Nur ein Vorschlag: „Vorschlag übernehmen …“ öffnet den bekannten Dialog (surfen_ein/trend_ein mit
+ * vorausgefülltem Betrag, *_pause, *_aus) mit JA. Bei „keine“ steht die Einschätzung da (warum gerade nicht). Fehlt sie: nichts.
+ */
+function vorschlagKarte(v, teil, deckel, kurz) {
+  if (!ok(v)) return null;
+  const aktiv = v.aktion && v.aktion !== "keine";
+  if (kurz && !aktiv) return null;
+  const betrag = v.aktion === "einschalten" ? (F.istZahl(v.betrag_eur) && v.betrag_eur > 0 ? v.betrag_eur : teil && teil.topf_eur) : null;
+  const knopf = aktiv && v.modus ? A.knopf(v.modus, "Vorschlag übernehmen …", "primaer",
+    F.istZahl(betrag) ? { betrag: String(Math.round(betrag * 100) / 100).replace(".", ",") } : undefined) : null;
+  const sicher = F.istZahl(v.zuversicht) ? v.zuversicht + " % sicher" : null;
+  const frei = ok(deckel) && F.istZahl(deckel.frei_eur) ? "50-%-Deckel: noch " + F.euro(deckel.frei_eur) + " frei für Trend- und Raster-Topf." : null;
+  return karte(aktiv ? "KI-Vorschlag" : "KI-Einschätzung", sicher ? h("span", { class: "klein gedimmt" }, sicher) : null,
+    h("p", { class: aktiv ? "vorschlag-titel" : "" }, h("b", null, F.text(v.titel))),
+    v.begruendung ? h("p", null, F.text(v.begruendung)) : null,
+    v.hinweis ? h("p", { class: "klein gedimmt" }, F.text(v.hinweis)) : null,
+    h("p", { class: "klein gedimmt" }, "Nur ein Vorschlag der KI (" + F.zeit(v.zeit) + ") – geschaltet wird erst mit deinem JA." + (frei && !kurz ? " " + frei : "")),
+    reihe(knopf));
+}
+
 function listenKarte(titel, bot, art, teil) {
   const roh = liste(teil[art === "trades" ? "trades_letzte" : "ereignisse"]);
   const darf = AB.moeglich(roh);
@@ -439,6 +461,12 @@ export function uebersicht(Z) {
       schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", "))));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
 
+  // 1.2.13 (Paket E): nur ein AKTIVER KI-Vorschlag erscheint auch hier (sonst steht die Einschätzung auf der Bot-Seite)
+  for (const teil of [ok(d.raster_bot), ok(d.trend_bot)]) {
+    const vk = teil ? vorschlagKarte(teil.ki_vorschlag, teil, d.bot_deckel, true) : null;
+    if (vk) out.push(vk);
+  }
+
   // 1.2.12: Aktien & ETFs unter dem Krypto-Teil, direkt vor „Letzte Alarme“ – langfristiges Geld, am wenigsten angeschaut (Nutzer 14.10.2026)
   const ak = ok(d.aktien);
   if (ak) {
@@ -604,6 +632,8 @@ export function raster(Z) {
   const out = [];
   const lageR = lageKarte(r.lage);
   if (lageR) out.push(lageR);
+  const vR = vorschlagKarte(r.ki_vorschlag, r, d.bot_deckel);
+  if (vR) out.push(vR);
   const st = r.status;
   out.push(karte(F.text(r.name, "Raster-Bot"), statusEtikett(st),
     h("div", { class: "mittel" }, F.euro(r.topf_eur)),
@@ -670,6 +700,8 @@ export function trend(Z) {
   const out = [];
   const lageT = lageKarte(t.lage);
   if (lageT) out.push(lageT);
+  const vT = vorschlagKarte(t.ki_vorschlag, t, d.bot_deckel);
+  if (vT) out.push(vT);
   const st = t.status;
   const ma = ok(t.markt_ampel);
   out.push(karte("Markt-Ampel", ma ? ampel(ma.gruen ? "gruen" : "rot") : null,
