@@ -4,6 +4,10 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.16
+
+* **Zweites Schattendepot „straff“:** Auf der Trend-Seite unter dem bisherigen Schattendepot die Karte „Schattendepot neu („straff“)“ (`handy.json` `trend_bot.schatten_straff`): die schnellere Regel aus dem Backtest mit Rechengeld – Wert gegen „Bitcoin halten“ und das alte Schattendepot, Positionen, letzte Trades; auf der Übersicht eine Zeile in der Trend-Karte.
+
 ## Neu in 1.2.15
 
 * **Einschalten direkt auf der Übersicht:** Die Karten Raster-Bot und Trend-Bot haben jetzt dieselben Knöpfe wie die Bot-Seiten („Einschalten“ bzw. „Wieder einschalten“, „Pausieren“, „Ausschalten“ – Dialog mit JA). Ist ein Bot aus, steht darüber der freie Rest unter dem 50-%-Deckel.

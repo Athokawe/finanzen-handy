@@ -481,6 +481,7 @@ export function uebersicht(Z) {
         ["Nächste Umschichtung", F.text(t.naechste_umschichtung)],
       ]),
       schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", ")),
+      straffZeile(t.schatten_straff),
       kiZeile(t.ki_vorschlag),
       botKnoepfe(t.status, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel)));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
@@ -754,6 +755,8 @@ export function trend(Z) {
 
   const tEcht = t.modus === "echt";
   if (!tEcht) out.push(trendSchatten(t));
+  const stk = straffKarte(t);                       // 1.2.16: zweites Schattendepot „straff“ direkt darunter
+  if (stk) out.push(stk);
   out.push(karte("Statistik", null, botStatistik(Z, "trend")));
   const pos = liste(t.positionen);
   out.push(karte("Positionen", null, pos.length ? h("ul", { class: "liste" }, pos.map((p) => h("li", null,
@@ -785,6 +788,41 @@ function trendSchatten(t) {
       ["Start", F.euro(s.start_eur) + " am " + F.tag(s.start_zeit)],
       ["Stand", F.zeit(s.zeit)],
     ]) : leer("Kein Schattendepot."));
+}
+
+/** 1.2.16: eine Zeile „Neu (straff)“ in der Trend-Karte der Übersicht. */
+function straffZeile(st) {
+  if (!ok(st) || !st.gestartet || !F.istZahl(st.wert_eur)) return null;
+  return h("p", { class: "klein gedimmt" }, "Neues Schattendepot (straff): " + F.euro(st.wert_eur) +
+    (F.istZahl(st.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(st.bitcoin_halten_eur) : "") +
+    " · hält " + (liste(st.positionen).map((p) => F.text(p.coin)).join(", ") || "nichts"));
+}
+
+/** 1.2.16: zweites Schattendepot „straff“ (trend_straff.py, 16.10.2026) – schnellere Regel als Test mit Rechengeld:
+ *  Vergleich mit dem alten Schattendepot und „Bitcoin halten“, Positionen mit Kaufkurs, letzte Trades. Fehlt der Teil: nichts. */
+function straffKarte(t) {
+  const st = ok(t.schatten_straff);
+  if (!st) return null;
+  if (!st.gestartet) return karte("Schattendepot neu („straff“)", null, h("p", { class: "klein gedimmt" }, "Startet mit dem nächsten Stundenlauf. Regel: " + F.text(st.regel)));
+  const alt = ok(t.schatten);
+  const diff = F.istZahl(st.wert_eur) && F.istZahl(st.bitcoin_halten_eur) ? st.wert_eur - st.bitcoin_halten_eur : null;
+  const pos = liste(st.positionen);
+  const tr = liste(st.trades_letzte).slice(-5).reverse();
+  return karte("Schattendepot neu („straff“)", null,
+    h("p", { class: "klein gedimmt" }, "Test der schnelleren Regel mit Rechengeld (kein echtes Geld): " + F.text(st.regel) + "."),
+    zeilen([
+      ["Wert", F.euro(st.wert_eur)],
+      ["„Bitcoin halten“", F.euro(st.bitcoin_halten_eur)],
+      ["Unterschied", diff === null ? "–" : F.euroPlus(diff), diff === null ? "" : F.vorzeichenKlasse(diff)],
+      alt && F.istZahl(alt.wert_eur) ? ["altes Schattendepot", F.euro(alt.wert_eur)] : null,
+      ["hält", pos.map((p) => F.text(p.coin)).join(", ") || "nichts (bar)"],
+      ["Start", F.euro(st.start_eur) + " am " + F.tag((st.start || {}).zeit)],
+      ["Stand", F.zeit(st.letzter_lauf)],
+    ]),
+    st.hinweis ? h("p", { class: "klein gedimmt" }, F.text(st.hinweis)) : null,
+    tr.length ? h("ul", { class: "liste" }, tr.map((x) => h("li", null, h("div", { class: "coin-zeile" },
+      h("span", { class: "titel" }, (x.seite === "buy" ? "Kauf " : "Verkauf ") + F.text(x.coin)), h("span", { class: "zahl" }, F.euro(x.betrag))),
+      h("div", { class: "unter" }, F.zeit(x.zeit) + (x.seite === "sell" && F.istZahl(x.gv) ? " · " + F.euroPlus(x.gv) + " · " + F.text(x.grund) : ""))))) : null);
 }
 
 // ------------------------------------------------------------------ Nachrichten

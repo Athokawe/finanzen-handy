@@ -292,6 +292,73 @@
    "erledigt": false,
    "titel": "Trend-Bot mit 150 € einschalten",
    "modus": "trend_ein"
+  },
+  "schatten_straff": {
+   "gestartet": true,
+   "regel": "stündlich: kaufen nur Coins, die über 24 h UND 3 Tage im Plus sind (Top 3 nach 24 h); raus bei 5 % unter dem Kaufkurs; Gewinner laufen lassen, bis die Markt-Ampel rot ist",
+   "start": {
+    "zeit": "2026-10-16T08:20:00+00:00",
+    "eur": 300.0,
+    "btc_kurs": 74100.0
+   },
+   "wert_eur": 304.12,
+   "start_eur": 300.0,
+   "bitcoin_halten_eur": 301.05,
+   "vorsprung_prozent": 1.02,
+   "bar_eur": 0.0,
+   "positionen": [
+    {
+     "coin": "OP",
+     "wert_eur": 103.4,
+     "einstand_eur": 100.0,
+     "kaufkurs": 0.137,
+     "seit": "2026-10-16T08:20:00+00:00"
+    },
+    {
+     "coin": "FIL",
+     "wert_eur": 99.8,
+     "einstand_eur": 100.0,
+     "kaufkurs": 1.05,
+     "seit": "2026-10-16T08:20:00+00:00"
+    },
+    {
+     "coin": "INJ",
+     "wert_eur": 100.92,
+     "einstand_eur": 100.0,
+     "kaufkurs": 9.1,
+     "seit": "2026-10-16T09:20:00+00:00"
+    }
+   ],
+   "trades_letzte": [
+    {
+     "zeit": "2026-10-16T08:20:00+00:00",
+     "coin": "ATOM",
+     "seite": "buy",
+     "betrag": 100.0,
+     "kurs": 1.62,
+     "grund": "kauf"
+    },
+    {
+     "zeit": "2026-10-16T09:20:00+00:00",
+     "coin": "ATOM",
+     "seite": "sell",
+     "betrag": 94.6,
+     "kurs": 1.53,
+     "grund": "Stopp −5 % unter Kaufkurs",
+     "gv": -5.4
+    },
+    {
+     "zeit": "2026-10-16T09:20:00+00:00",
+     "coin": "INJ",
+     "seite": "buy",
+     "betrag": 100.0,
+     "kurs": 9.1,
+     "grund": "kauf"
+    }
+   ],
+   "letzter_lauf": "2026-10-11T06:38:34+00:00",
+   "hinweis": null,
+   "verlauf": []
   }
  },
  "alarme": [
