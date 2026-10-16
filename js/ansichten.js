@@ -286,11 +286,14 @@ function coinStatistik(Z) {
 }
 
 /** Raster/Trend: echter Topf (falls im Verlauf) sonst Schattendepot – jeweils gegen „Bitcoin halten“. */
-function botStatistik(Z, bot) {
+export function botStatistik(Z, bot) {   // export: Handy-Tests (B13)
   const hinweis = verlaufHinweis(Z);
   if (hinweis) return hinweis;
   const punkte = D.punkteLesen(Z.verlauf);
-  const echt = punkte.some((p) => F.istZahl(p[bot + "_echt_eur"]));
+  // Gesamtprüfung 16.10.2026 (B13): der echte Topf nur, solange der Bot echt läuft (jüngster Punkt trägt *_echt_eur und es gibt
+  // mindestens zwei echte Punkte) – drei alte „echt“-Punkte vom 11.10. verdrängten sonst für immer das laufende Schattendepot
+  const letzte = punkte.length ? punkte[punkte.length - 1] : null;
+  const echt = !!letzte && F.istZahl(letzte[bot + "_echt_eur"]) && D.reihe(punkte, bot + "_echt_eur").length >= 2;
   const feld = bot + (echt ? "_echt" : "_schatten");
   return h("div", null,
     h("p", { class: "klein gedimmt" }, echt ? "Echter Topf gegen „Bitcoin halten“ mit demselben Startbetrag."

@@ -9,6 +9,9 @@
 // anhand des Lauf-Titels verfolgt („Express: <modus>“ bzw. „Hand: <modus>“): gesendet → angekommen → läuft → erledigt ✓ /
 // fehlgeschlagen ✗. Verwirft GitHub einen Auftrag (nach ~90 s kein passender Lauf oder Lauf „abgebrochen“), schickt die App ihn
 // automatisch noch einmal (Brems-Befehle bis zu 3-mal), danach eine klare Meldung.
+// 1.2.18 (Gesamtprüfung B7): Aufträge, die Geld bewegen (Umschichten, Teil zurück, Einschalten bzw. Betrag ändern), gehen NIE
+// automatisch noch einmal, und ein schon gestarteter Lauf, der „abgebrochen“ endet, wird nur bei Brems-Befehlen neu gesendet –
+// sonst Meldung „Ausgang unklar – bitte nachsehen“.
 
 import { h, $, leeren } from "./dom.js";
 import * as gh from "./github.js";
@@ -24,6 +27,9 @@ const WARTEN_MAX_MIN = 30;                    // danach wird ein Auftrag nicht m
 const NEU_SENDEN = { normal: 1, bremse: 3 };  // wie oft ein verworfener Auftrag automatisch neu geht
 const FERTIG_ZEIGEN_MS = 2 * 60000;           // ✓/✗ bleibt so lange im Band stehen
 const BREMSEN = new Set(["allesstopp", "anhalten", "stopp", "surfen_pause", "trend_pause", "einstellung"]);
+// Gesamtprüfung 16.10.2026 (B7): Aufträge, die Geld zwischen Töpfen bewegen – nicht wiederholbar (jeder Lauf bewegt den Betrag
+// erneut). Sie gehen NIE automatisch noch einmal: weder „kein Lauf nach 90 s“ (GitHub legt ihn oft nur später an) noch „abgebrochen“.
+const GELD = new Set(["bot_umschichten", "surfen_zurueck", "trend_zurueck", "surfen_ein", "trend_ein", "surfen_betrag", "trend_betrag"]);
 
 export function init(h0) {
   hooks = Object.assign(hooks, h0);
@@ -507,7 +513,7 @@ function speichern() {
   } catch { /* egal */ }
 }
 
-const FINAL = new Set(["erledigt", "fehlgeschlagen", "verloren"]);
+const FINAL = new Set(["erledigt", "fehlgeschlagen", "verloren", "unklar"]);
 function istFinal(a) {
   return FINAL.has(a.status);
 }
@@ -527,7 +533,9 @@ function verfolgen(a) {
   a.nr = ++naechsteNr;
   a.status = "gesendet";
   a.runId = null;
-  a.max = (BREMSEN.has(a.modus) && a.weg === "express") || a.modus === "allesstopp" || a.modus === "anhalten" ? NEU_SENDEN.bremse : NEU_SENDEN.normal;
+  a.max = (BREMSEN.has(a.modus) && a.weg === "express") || a.modus === "allesstopp" || a.modus === "anhalten" ? NEU_SENDEN.bremse
+    : GELD.has(a.modus) ? 0 : NEU_SENDEN.normal;
+  a.gestartet = false;
   auftraege = auftraege.filter((x) => !istFinal(x) || Date.now() - (x.ende || 0) < FERTIG_ZEIGEN_MS).concat([a]).slice(-6);
   speichern();
   bandZeichnen();
@@ -544,6 +552,7 @@ const STATUS_TEXT = {
   erledigt: "erledigt ✓",
   fehlgeschlagen: "fehlgeschlagen ✗",
   verloren: "NICHT angekommen ✗",
+  unklar: "Ausgang unklar – bitte nachsehen ✗",
 };
 
 function abschliessen(a, status, text) {
@@ -551,7 +560,17 @@ function abschliessen(a, status, text) {
   a.ende = Date.now();
   a.best = undefined;
   speichern();
-  if (status === "verloren") {
+  if (status === "unklar") {
+    // B7: geldbewegender Auftrag – NICHT blind neu senden (sonst würde der Betrag womöglich zweimal bewegt)
+    dialog({
+      titel: "Auftrag: Ausgang unklar",
+      inhalt: ["„" + name(a.modus) + "“: " + (a.gestartet ? "der Lauf wurde nach dem Start abgebrochen."
+        : "bei GitHub ist (noch) kein Lauf zu sehen."),
+        "Dieser Auftrag bewegt Geld und wird deshalb NICHT automatisch noch einmal geschickt. Bitte in der Mail bzw. auf github.com → "
+        + "Athokawe/finanzen → Actions nachsehen, ob er gelaufen ist – erst dann (falls nötig) noch einmal drücken."],
+      okText: "Verstanden", nurOk: true,
+    });
+  } else if (status === "verloren") {
     dialog({
       titel: "Auftrag nicht angekommen",
       inhalt: ["„" + name(a.modus) + "“ ist nicht in der Cloud angekommen – GitHub hat ihn " + (a.versuche > 1 ? a.versuche + "-mal" : "") + " verworfen.",
@@ -617,7 +636,8 @@ export async function pruefen(handy) {
       if (!lauf) {
         if (Date.now() - a.zeit > VERWORFEN_NACH_MS) {
           if (a.versuche - 1 < a.max) await neuSenden(a, "wurde von GitHub verworfen");
-          else abschliessen(a, "verloren");
+          else if (!GELD.has(a.modus)) abschliessen(a, "verloren");
+          // B7: ein Geld-Auftrag wartet weiter (bis WARTEN_MAX_MIN) – GitHub legt angenommene Läufe oft nur verspätet an
         }
         continue;
       }
@@ -629,15 +649,18 @@ export async function pruefen(handy) {
         }
         if (lauf.ergebnis === "success") abschliessen(a, "erledigt");
         else if (lauf.ergebnis === "cancelled" || lauf.ergebnis === "skipped") {
-          if (a.versuche - 1 < a.max) await neuSenden(a, "wurde abgebrochen");
-          else abschliessen(a, "verloren");
+          // B7: nur ein Lauf, der nie lief (in der Warteschlange verdrängt), darf neu gehen – ein schon gestarteter nur bei Bremsen
+          const bremse = a.max === NEU_SENDEN.bremse;
+          if (a.versuche - 1 < a.max && (bremse || !a.gestartet)) await neuSenden(a, "wurde abgebrochen");
+          else abschliessen(a, GELD.has(a.modus) ? "unklar" : "verloren");
         } else abschliessen(a, "fehlgeschlagen", "fehlgeschlagen ✗ – Details in der Mail bzw. bei GitHub (" + (lauf.ergebnis || "Fehler") + ")");
       } else {
         a.status = lauf.status === "in_progress" ? "laeuft" : "angekommen";
+        if (lauf.status === "in_progress") a.gestartet = true;
       }
     }
     for (const a of laufendeAuftraege()) {
-      if ((Date.now() - a.zeit) / 60000 > WARTEN_MAX_MIN) abschliessen(a, "verloren");
+      if ((Date.now() - a.zeit) / 60000 > WARTEN_MAX_MIN) abschliessen(a, GELD.has(a.modus) ? "unklar" : "verloren");
     }
     speichern();
   } finally {

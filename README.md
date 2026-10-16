@@ -7,6 +7,8 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
 ## Neu in 1.2.18
 
 * **Auftrag klären:** Hat der Raster- oder Trend-Bot einen Auftrag mit unklarem Ausgang (Alarm „BITTE PRÜFEN“), steht oben auf seiner Seite die Karte „Aufträge mit unklarem Ausgang“ mit „Klären“: im Dialog die Fusion-Order-ID eintragen (ausgeführt) oder „nie ausgeführt – verwerfen“ wählen, dann JA (Modus `order_klaeren`). Die Cloud prüft Paar, Seite, Menge und Zeit; es wird nie eine Order gesendet.
+* **Geld-Aufträge nie doppelt:** Umschichten, „Teil zurück“, Einschalten mit Betrag und Betrag ändern gehen nicht mehr automatisch ein zweites Mal an GitHub – weder wenn der Lauf erst spät erscheint noch wenn ein schon gestarteter Lauf abgebrochen wird. Stattdessen die Meldung „Ausgang unklar – bitte nachsehen“. Brems-Befehle werden wie bisher bis zu 3-mal neu gesendet.
+* **Statistik der Bot-Seiten:** zeigt den echten Topf nur, solange der Bot echt läuft – sonst wieder das laufende Schattendepot (vorher verdrängten drei alte Echt-Punkte vom 11.10. es dauerhaft).
 
 ## Neu in 1.2.17
 
