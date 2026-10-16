@@ -120,6 +120,31 @@ function zielText(nach) {
   return "Ist der " + n + " aus, wird er mit dem Betrag eingeschaltet; ist er pausiert, bleibt er pausiert.";
 }
 
+/**
+ * 1.2.18 (M2e): Dialog „Auftrag klären“ für einen Auftrag mit unklarem Ausgang – Vorgaben {bot, nr} aus der Karte „Aufträge mit
+ * unklarem Ausgang“. Ergebnis: einer Fusion-Order zuordnen (ID) oder verwerfen; die Cloud prüft alles (order_klaeren.py), nie eine Order.
+ */
+function klaerSpez(vorgaben) {
+  const bot = vorgaben.bot === "raster" || vorgaben.bot === "trend" ? vorgaben.bot : null;
+  const nr = Number.isInteger(vorgaben.nr) && vorgaben.nr >= 0 ? vorgaben.nr : null;
+  if (!bot || nr === null) return null;
+  return {
+    titel: "Auftrag Nr. " + nr + " klären (" + BOT_NAME[bot] + ")",
+    text: [
+      "Schau in Bitpanda Fusion unter „Orders“ nach, ob dieser Auftrag ausgeführt wurde.",
+      "Ausgeführt: die Fusion-Order-ID eintragen – die Cloud prüft Paar, Seite, Menge und Zeit und bucht ihn dann ganz normal.",
+      "Nie ausgeführt: „verwerfen“ – die Reservierung wird frei. Es wird nie eine Order gesendet.",
+    ],
+    felder: [
+      { name: "wie", art: "wahl", label: "Ergebnis in Fusion", optionen: [["id", "ausgeführt – Order-ID eintragen"], ["verworfen", "nie ausgeführt – verwerfen"]] },
+      { name: "id", art: "zeile", label: "Fusion-Order-ID (nur bei „ausgeführt“)" },
+    ],
+    pruefen: (w) => (w.wie === "verworfen" || /^[A-Za-z0-9_-]{1,64}$/.test(String(w.id || "").trim()) ? null
+      : "Bitte die Fusion-Order-ID eintragen (Buchstaben, Ziffern, - oder _) – oder „nie ausgeführt“ wählen."),
+    bauen: (w) => "JA;bot=" + bot + ";nr=" + nr + ";" + (w.wie === "verworfen" ? "verworfen" : "id=" + String(w.id || "").trim()),
+  };
+}
+
 /** Dialog für eine Richtung („von“ = abgebender Bot) – null bei unbekannter Richtung. */
 function umschichtSpez(vorgaben) {
   const von = vorgaben.von === "trend" || vorgaben.von === "raster" ? vorgaben.von : null;
@@ -235,6 +260,8 @@ const SPEZ = {
 
   // 1.2.4: Knopf „Zum Raster-Bot umschichten“ (Trend-Ansicht, Vorgabe von: "trend") bzw. „Zum Trend-Bot umschichten“ (Raster-Ansicht)
   bot_umschichten: { titel: "Zwischen den Bots umschichten", fuer: umschichtSpez },
+  // 1.2.18 (M2e): Auftrag mit unklarem Ausgang klären – Vorgaben {bot, nr} aus der Karte der Bot-Seite
+  order_klaeren: { titel: "Auftrag klären", fuer: klaerSpez },
 
   // 1.2.0: „An die KI“ ersetzt den Hinweis-Dialog – die KI merkt Bot-Relevantes selbst als Hinweis (js/kifrage.js)
   frage: { titel: "An die KI", ohneFrage: true },
@@ -332,7 +359,7 @@ function feldBauen(f, vorgaben) {
   } else {
     eingabe = h("input", {
       id, name: f.name, type: "text", value: String(wert),
-      inputmode: f.art === "betrag" ? "decimal" : "numeric", autocomplete: "off", enterkeyhint: "done",
+      inputmode: f.art === "betrag" ? "decimal" : f.art === "zeile" ? "text" : "numeric", autocomplete: "off", enterkeyhint: "done",
     });
   }
   return h("div", { class: "formfeld" }, h("label", { for: id }, f.label), eingabe, f.hilfe ? h("div", { class: "hilfe" }, f.hilfe) : null);

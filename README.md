@@ -4,6 +4,10 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.18
+
+* **Auftrag klären:** Hat der Raster- oder Trend-Bot einen Auftrag mit unklarem Ausgang (Alarm „BITTE PRÜFEN“), steht oben auf seiner Seite die Karte „Aufträge mit unklarem Ausgang“ mit „Klären“: im Dialog die Fusion-Order-ID eintragen (ausgeführt) oder „nie ausgeführt – verwerfen“ wählen, dann JA (Modus `order_klaeren`). Die Cloud prüft Paar, Seite, Menge und Zeit; es wird nie eine Order gesendet.
+
 ## Neu in 1.2.17
 
 * **Alle Schattendepots an einem Ort:** Auf der Übersicht die Karte „Schattendepots“ (`handy.json` `schattendepots`): jedes laufende Schattendepot (nur Rechengeld) als aufklappbarer Punkt – Coin-Bot (Rückkauf einfach, heutige Regeln, Regeln alt/neu), Welt-ETF, Trend-Bot (heutige Regeln, „straff“) und Raster-Bot. Die Cloud vergleicht automatisch mit der Referenz ab einem gemeinsamen Startpunkt; das Urteil („zu früh“, „gleichauf“, „vorne“, „klar vorne“ …) steht schon in der Kopfzeile, bei „klar vorne/hinten“ kommt ein Push.

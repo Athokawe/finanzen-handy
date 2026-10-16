@@ -131,6 +131,19 @@ function ereignisListe(ev, bot, darf) {
  * Karte „Letzte Trades“ bzw. „Ereignisse“ eines Bots (1.2.5): ✕ je Eintrag und „Liste leeren“ blenden in beiden Apps aus – nichts
  * wird gelöscht (js/ausblenden.js, Modus liste_ausblenden). „n ausgeblendet“ aus handy.json (trades_/ereignisse_ausgeblendet).
  */
+/** 1.2.18 (M2e): Karte „Aufträge mit unklarem Ausgang“ (handy.json <bot>.unklare_auftraege) mit Knopf „Klären“ je Auftrag. */
+function unklarKarte(roh, bot) {
+  const l = liste(roh).filter(istObj);
+  if (!l.length) return null;
+  return karte("Aufträge mit unklarem Ausgang", etikett(l.length + " offen", "sd-klar-hinten"),
+    h("p", { class: "klein gedimmt" }, "Bitte in Bitpanda Fusion prüfen und klären – der Auftrag bleibt bis dahin reserviert. Es wird nie eine Order gesendet."),
+    h("ul", { class: "liste" }, l.map((o) => h("li", { "data-unklar": Number.isInteger(o.nr) ? String(o.nr) : null },
+      h("div", { class: "oben" }, h("span", { class: "text-links" }, "Nr. " + F.text(o.nr) + ": " + F.text(o.seite) + " " + F.text(o.pair)
+        + " · Menge " + F.text(o.menge) + " · Betrag " + F.text(o.betrag)),
+        Number.isInteger(o.nr) ? A.knopf("order_klaeren", "Klären", "", { bot, nr: o.nr }) : null),
+      h("div", { class: "unter" }, "gesendet " + F.zeit(o.gesendet) + (o.grund ? " · " + F.text(o.grund) : ""))))));
+}
+
 /** 1.2.11: Lagebericht je Bot (handy.json <bot>.lage – Liste kurzer Sätze, regelbasiert aus der Cloud). Fehlt er: nichts zeigen. */
 function lageKarte(lage, titel, zu) {
   const saetze = liste(lage).filter((x) => typeof x === "string" && x.trim());
@@ -698,6 +711,8 @@ export function raster(Z) {
   const r = ok(d.raster_bot);
   if (!r) return [fehlerKarte("Raster-Bot", d.raster_bot)];
   const out = [];
+  const uR = unklarKarte(r.unklare_auftraege, "raster");          // 1.2.18 (M2e): ganz oben, solange etwas offen ist
+  if (uR) out.push(uR);
   const lageR = lageKarte(r.lage);
   if (lageR) out.push(lageR);
   const vR = vorschlagKarte(r.ki_vorschlag, r, d.bot_deckel);
@@ -766,6 +781,8 @@ export function trend(Z) {
   const t = ok(d.trend_bot);
   if (!t) return [fehlerKarte("Trend-Bot", d.trend_bot)];
   const out = [];
+  const uT = unklarKarte(t.unklare_auftraege, "trend");           // 1.2.18 (M2e): ganz oben, solange etwas offen ist
+  if (uT) out.push(uT);
   const lageT = lageKarte(t.lage);
   if (lageT) out.push(lageT);
   const vT = vorschlagKarte(t.ki_vorschlag, t, d.bot_deckel);

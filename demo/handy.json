@@ -212,7 +212,20 @@
    "erledigt": false,
    "titel": "Raster-Bot so lassen",
    "modus": null
-  }
+  },
+  "unklare_auftraege": [
+   {
+    "nr": 42,
+    "pair": "SOL-EURCV",
+    "seite": "sell",
+    "typ": "markt",
+    "menge": 0.21,
+    "betrag": 31.5,
+    "preis": null,
+    "gesendet": "2026-11-20T08:20+00:00",
+    "grund": "passt auch zu einem unklaren Auftrag des Trend-Bots"
+   }
+  ]
  },
  "trend_bot": {
   "name": "Trend-Bot",
@@ -359,7 +372,8 @@
    "letzter_lauf": "2026-10-11T06:38:34+00:00",
    "hinweis": null,
    "verlauf": []
-  }
+  },
+  "unklare_auftraege": []
  },
  "alarme": [
   {
@@ -743,6 +757,15 @@
    "ja_noetig": false,
    "beispiel": "{\"endpoint\":\"https://web.push.apple.com/…\",\"keys\":{\"p256dh\":\"…\",\"auth\":\"…\"}}",
    "text": "Web-Push-Abo speichern (JSON des Abos) oder löschen (loeschen:<Hash>), ohne JA",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "order_klaeren",
+   "bestaetigung": "JA;bot=(raster|trend);nr=(\\d{1,7});(?:id=([A-Za-z0-9_-]{1,64})|(verworfen))",
+   "ja_noetig": true,
+   "beispiel": "JA;bot=raster;nr=12;verworfen",
+   "text": "Auftrag mit unklarem Ausgang klären: einer Fusion-Order zuordnen (id=…) oder verwerfen (nie ausgeführt) – nie eine Order",
    "express": false,
    "express_bestaetigung": null
   }
