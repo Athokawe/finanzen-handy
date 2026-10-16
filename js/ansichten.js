@@ -492,6 +492,9 @@ export function uebersicht(Z) {
     if (vk) out.push(vk);
   }
 
+  const sk = schattenKarte(d.schattendepots);                       // 1.2.17: alle Schattendepots, automatisch verglichen
+  if (sk) out.push(sk);
+
   // 1.2.12: Aktien & ETFs unter dem Krypto-Teil, direkt vor „Letzte Alarme“ – langfristiges Geld, am wenigsten angeschaut (Nutzer 14.10.2026)
   const ak = ok(d.aktien);
   if (ak) {
@@ -514,6 +517,46 @@ export function uebersicht(Z) {
 
   out.push(alarmKarte(d));
   return out;
+}
+
+/**
+ * 1.2.17: Karte „Schattendepots“ (handy.json schattendepots, Cloud: schattendepots.py) – jedes laufende Schattendepot (nur
+ * Rechengeld) als aufklappbarer Punkt; das Urteil der automatischen Auswertung steht schon in der Kopfzeile. Fehlt der Teil: nichts.
+ */
+const SD_KLASSE = { klar_vorne: "sd-klar-vorne", klar_hinten: "sd-klar-hinten", vorne: "sd-vorne", hinten: "sd-hinten" };
+const sdOffen = new Set();                                         // aufgeklappte Depots überleben das Neuzeichnen
+const sdTag = (iso) => {
+  const d = F.datum(iso);
+  return d ? d.toLocaleDateString("de-AT", { timeZone: "Europe/Vienna", day: "numeric", month: "numeric" }) : "–";
+};
+function schattenKarte(sd) {
+  if (fehlerVon(sd)) return fehlerKarte("Schattendepots", sd);
+  const s = ok(sd);
+  if (!s || !Array.isArray(s.liste)) return null;
+  const eintraege = s.liste.filter(istObj);
+  const klar = eintraege.filter((e) => ["klar_vorne", "klar_hinten"].includes((ok(e.auswertung) || {}).urteil)).length;
+  return karte("Schattendepots", klar ? etikett(klar + " mit klarem Urteil", "sd-klar-vorne") : null,
+    h("p", { class: "klein gedimmt" }, "Nur Rechengeld, keine Orders. Die Cloud vergleicht jedes Depot laufend mit seiner Referenz und meldet "
+      + "sich per Push, sobald eines klar vorne oder klar hinten liegt."),
+    eintraege.length ? eintraege.map((e) => {
+      const a = ok(e.auswertung) || {};
+      const ref = ok(e.referenz) || {};
+      const weitere = liste(e.weitere).filter(istObj).map((w) => F.text(w.name) + " " + F.euro(w.wert_eur)).join(" · ");
+      const kennung = F.text(e.kennung, "");
+      return h("details", { class: "sd-eintrag", "data-sd": kennung, open: sdOffen.has(kennung) || null,
+        ontoggle: (ev) => { if (ev.target.open) sdOffen.add(kennung); else sdOffen.delete(kennung); } },
+        h("summary", null, h("span", { class: "klein gedimmt" }, F.text(e.bot, "")), " ", h("b", null, F.text(e.name)), " ",
+          etikett(F.text(a.urteil_text), SD_KLASSE[a.urteil] || ""),
+          F.istZahl(a.vorsprung_prozent) ? h("span", { class: "klein" }, " " + F.prozent(a.vorsprung_prozent, 1)) : null),
+        h("div", { class: "sd-inhalt klein" },
+          e.testet ? h("p", null, F.text(e.testet)) : null,
+          h("p", null, h("b", null, F.euro(e.wert_eur)), " gegen " + F.text(ref.name, "Referenz") + " " + F.euro(ref.wert_eur)
+            + (weitere ? " · " + weitere : "") + (e.status ? " · " + F.text(e.status) : "")),
+          a.text ? h("p", null, F.text(a.text)) : null,
+          h("p", { class: "gedimmt" }, "läuft seit " + sdTag(e.seit) + " · Vergleich seit " + (a.seit ? sdTag(a.seit) : "jetzt")
+            + (e.stand ? " · Stand " + F.zeit(e.stand) : ""))));
+    }) : h("p", { class: "leer" }, "Gerade läuft kein Schattendepot."),
+    s.regel ? h("p", { class: "klein gedimmt" }, F.text(s.regel)) : null);
 }
 
 /** „Letzte Alarme“ (1.2.0): je Alarm „✕“, oben „Alle löschen“ – sofort ausgeblendet, Auftrag alarme_gelesen (js/alarme.js) */

@@ -341,3 +341,13 @@ details.lage-karte[open] > summary { margin-bottom: 8px; }
 .ki-einschaetzung { margin: 10px 0 0; color: var(--text); }
 /* 1.2.15: Schalt-Knöpfe in den Bot-Karten der Übersicht */
 .bot-knoepfe { margin-top: 12px; }
+
+/* 1.2.17: Schattendepots (Übersicht) – aufklappbare Einträge mit Urteil */
+details.sd-eintrag { border-top: 1px solid var(--linie, rgba(255,255,255,.08)); padding: 8px 0; }
+details.sd-eintrag > summary { cursor: pointer; }
+details.sd-eintrag[open] > summary { margin-bottom: 6px; }
+.sd-inhalt p { margin: 4px 0; }
+.etikett.sd-vorne { background: var(--gruen-bg); color: var(--gruen-hell); }
+.etikett.sd-hinten { background: var(--rot-bg); color: var(--rot); }
+.etikett.sd-klar-vorne { background: var(--gruen-bg); color: var(--gruen); font-weight: 700; }
+.etikett.sd-klar-hinten { background: var(--rot-bg); color: var(--rot); font-weight: 700; }

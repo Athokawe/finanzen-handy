@@ -756,5 +756,123 @@
   "frei_eur": 160.0,
   "coin_topf_eur": 1234.56,
   "bot_toepfe_eur": 205.0
+ },
+ "schattendepots": {
+  "liste": [
+   {
+    "bot": "Coin-Bot",
+    "name": "Rückkauf einfach",
+    "testet": "Gleiche Notbremse wie heute, aber Rückkauf schon, wenn Bitcoin über der 100- und der 200-Tage-Linie liegt (statt erst bei bestätigtem Aufwärtstrend).",
+    "seit": "2026-10-16T09:20+00:00",
+    "wert_eur": 301.4,
+    "referenz": {
+     "name": "heutige Regeln",
+     "wert_eur": 284.1
+    },
+    "weitere": [
+     {
+      "name": "Bitcoin halten seit Start",
+      "wert_eur": 297.0
+     }
+    ],
+    "status": "investiert",
+    "regel": null,
+    "stand": "2026-11-20T09:20+00:00",
+    "auswertung": {
+     "urteil": "klar_vorne",
+     "urteil_text": "klar vorne",
+     "tage": 35,
+     "vorsprung_prozent": 6.1,
+     "seit": "2026-10-16T09:20+00:00",
+     "gegen": "heutige Regeln",
+     "text": "Seit 35 Tagen +6,1 % vor „heutige Regeln“ und seit mindestens 14 Tagen durchgehend vorne – klar besser. Vorschlag: Umstellung prüfen."
+    },
+    "kennung": "coin_einfach"
+   },
+   {
+    "bot": "Trend-Bot",
+    "name": "„straff“: raus 5 % unter dem Kaufkurs",
+    "testet": "Stündlich: nur Coins mit 24 h UND 3 Tagen im Plus, Verkauf 5 % unter dem Kaufkurs – gegen die heutigen Trend-Regeln (Rechengeld).",
+    "seit": "2026-10-16T08:20+00:00",
+    "wert_eur": 318.2,
+    "referenz": {
+     "name": "Trend heutige Regeln",
+     "wert_eur": 305.9
+    },
+    "weitere": [
+     {
+      "name": "Bitcoin halten",
+      "wert_eur": 299.4
+     }
+    ],
+    "status": "hält OP, FIL, INJ",
+    "regel": null,
+    "stand": "2026-11-20T09:20+00:00",
+    "auswertung": {
+     "urteil": "vorne",
+     "urteil_text": "vorne",
+     "tage": 35,
+     "vorsprung_prozent": 3.2,
+     "seit": "2026-10-16T09:20+00:00",
+     "gegen": "Trend heutige Regeln",
+     "text": "Seit 35 Tagen +3,2 % vor „Trend heutige Regeln“ – noch kein klares Urteil."
+    },
+    "kennung": "trend_straff"
+   },
+   {
+    "bot": "Raster-Bot",
+    "name": "Raster nach den aktuellen Regeln (Rechengeld)",
+    "testet": "Der Raster-Bot mit 300 € Rechengeld nach seiner wirksamen Kaufregel („Einbruch“) – gegen einfaches Halten von Bitcoin.",
+    "seit": "2026-10-11T06:00+00:00",
+    "wert_eur": 302.6,
+    "referenz": {
+     "name": "Bitcoin halten",
+     "wert_eur": 303.1
+    },
+    "weitere": [],
+    "status": "läuft",
+    "regel": null,
+    "stand": "2026-11-20T09:20+00:00",
+    "auswertung": {
+     "urteil": "gleichauf",
+     "urteil_text": "gleichauf",
+     "tage": 20,
+     "vorsprung_prozent": -0.4,
+     "seit": "2026-10-31T09:20+00:00",
+     "gegen": "Bitcoin halten",
+     "text": "Seit 20 Tagen gleichauf mit „Bitcoin halten“ (−0,4 %)."
+    },
+    "kennung": "raster_schatten"
+   },
+   {
+    "bot": "Coin-Bot",
+    "name": "Heutige Regeln (Rechengeld)",
+    "testet": "Die Regeln, nach denen der echte Coin-Bot parkt (Notbremse und Gewinnschutz der aktuellen Stufe, Rückkauf bei bestätigtem Aufwärtstrend) – gegen einfaches Halten.",
+    "seit": "2026-10-11T07:20+00:00",
+    "wert_eur": 284.1,
+    "referenz": {
+     "name": "Bitcoin halten",
+     "wert_eur": 300.2
+    },
+    "weitere": [],
+    "status": "geparkt seit 02.11.",
+    "regel": null,
+    "stand": "2026-11-20T09:20+00:00",
+    "auswertung": {
+     "urteil": "zu_frueh",
+     "urteil_text": "zu früh",
+     "tage": 9,
+     "vorsprung_prozent": -5.4,
+     "seit": "2026-11-11T09:20+00:00",
+     "gegen": "Bitcoin halten",
+     "text": "Seit 9 Tagen −5,4 % gegenüber „Bitcoin halten“ – zu früh für ein Urteil (ab 14 Tagen, klar ab 28)."
+    },
+    "kennung": "coin_leiter"
+   }
+  ],
+  "regel": "Automatischer Vergleich ab einem gemeinsamen Startpunkt: Urteil ab 14 Tagen; „klar“ ab 28 Tagen bei mindestens 5 % Abstand UND an den letzten 14 Tagen durchgehend mindestens 2 % in dieselbe Richtung – dann kommt ein Push.",
+  "klar": [
+   "coin_einfach"
+  ]
  }
 }
