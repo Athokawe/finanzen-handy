@@ -1166,7 +1166,8 @@ export function mehr(Z, ctx) {
       h("li", null, "Der Token liegt nur auf diesem iPhone, mit deiner PIN verschlüsselt (AES-GCM, PBKDF2; neue PINs 6 bis 8 Ziffern, 600 000 Runden)."),
       h("li", null, "Ehrlich: Kopiert jemand den App-Speicher, sind 4 Stellen in Minuten durchprobierbar, 6 Stellen in Stunden bis Tagen. Face ID ist der empfohlene Weg."),
       h("li", null, "Optional Face ID: ein zweiter verschlüsselter Umschlag, den nur dein Passkey öffnet – ohne Passkey-Erweiterung PRF gibt es kein Face ID."),
-      h("li", null, "Er darf nur Athokawe/finanzen lesen und Cloud-Aufträge starten – kein Geld bewegen, keine anderen Repos."),
+      h("li", null, "Er darf nur Athokawe/finanzen lesen und Cloud-Aufträge starten, keine anderen Repos. Aufträge, die Geld bewegen "
+        + "(einschalten, umschichten, nachkaufen), führt die Cloud nur mit wörtlich getipptem JA aus."),
       h("li", null, "Schaltbefehle brauchen ein getipptes JA; die Cloud prüft jede Bestätigung noch einmal selbst."),
       h("li", null, "Die App sperrt sich beim Öffnen und nach 5 Minuten im Hintergrund. 5 falsche PINs löschen den Token."),
       h("li", null, "Zahlen werden nur im Arbeitsspeicher gehalten, nie im App-Speicher."))));

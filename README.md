@@ -250,7 +250,7 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
   `productionresultssa0…19.blob.core.windows.net`, keine Inline-Skripte),
   `noindex`, kein Referrer. Fremde Texte (Schlagzeilen, KI-Texte) werden nur als Text angezeigt; Links nur `http(s)`, in neuem
   Fenster mit `rel="noopener noreferrer"`.
-* Der Token kann kein Geld bewegen und kommt an keine anderen Repos. Grenze: Wer das entsperrte iPhone **und** die PIN hat,
+* Der Token kommt an keine anderen Repos. Er kann aber Cloud-Aufträge starten, die Geld bewegen (Bots einschalten, umschichten, Teil zurück, und über die alten GitHub-Abläufe auch nachkaufen/umschichten) – die Cloud führt solche Aufträge nur mit wörtlich getipptem JA aus. Grenze: Wer das entsperrte iPhone **und** die PIN hat,
   kann Aufträge schicken – darum bleibt die iPhone-Sperre die erste Schutzschicht. Ehrlich: Die Sperre nach 5 falschen PINs gilt
   nur in der App. Kopiert jemand den Speicher des Geräts (z. B. aus einem unverschlüsselten Backup), sind **4 Stellen in Minuten
   durchprobierbar, 6 Stellen in Stunden bis Tagen**. **Face ID ist der empfohlene Weg.** Im Zweifel den Token auf github.com
