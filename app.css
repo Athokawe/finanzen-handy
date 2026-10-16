@@ -351,3 +351,16 @@ details.sd-eintrag[open] > summary { margin-bottom: 6px; }
 .etikett.sd-hinten { background: var(--rot-bg); color: var(--rot); }
 .etikett.sd-klar-vorne { background: var(--gruen-bg); color: var(--gruen); font-weight: 700; }
 .etikett.sd-klar-hinten { background: var(--rot-bg); color: var(--rot); font-weight: 700; }
+
+/* 1.2.19: „mehr“ zum Aufklappen (Übersicht, Alarme, Nachrichten) */
+.klapp-kurz { margin: 4px 0 0; font-size: 15px; color: var(--gedimmt); }
+details.klapp-mehr { margin-top: 6px; }
+details.klapp-mehr > summary { cursor: pointer; list-style: none; display: inline-block; padding: 10px 0 4px; color: var(--akzent);
+  font-size: 15px; font-weight: 600; -webkit-tap-highlight-color: transparent; }
+details.klapp-mehr > summary::-webkit-details-marker { display: none; }
+details.klapp-mehr > summary .wenn-zu::after { content: " ▾"; }
+details.klapp-mehr > summary .wenn-offen::after { content: " ▴"; }
+details.klapp-mehr[open] > summary .wenn-zu, details.klapp-mehr:not([open]) > summary .wenn-offen { display: none; }
+details.klapp-mehr[open] > summary { margin-bottom: 6px; }
+.erklaer-text details.klapp-mehr { margin-top: 0; }
+.erklaer-text details.klapp-mehr > summary { font-size: 13px; padding: 4px 0 2px; }

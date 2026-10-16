@@ -22,6 +22,24 @@ function karte(titel, rechts, ...kinder) {
   return h("section", { class: "karte" }, h("div", { class: "karte-kopf" }, h("h2", null, titel), rechts || null), ...kinder);
 }
 
+/**
+ * 1.2.19 (Nutzer 16.10.2026): „mehr“ zum Aufklappen – die Übersicht zeigt je Rubrik zuerst nur Status und Stand, Nachrichten und
+ * Alarme nur das Neueste. Aufgeklappt bleibt aufgeklappt, solange die App offen ist (sie zeichnet laufend neu); nach dem Sperren
+ * ist alles wieder zu. Dringendes (Park-Knöpfe, aktiver KI-Vorschlag, unklare Aufträge) steht nie im „mehr“.
+ */
+const klappOffen = new Set();
+export function klappAllesZu() {
+  klappOffen.clear();
+}
+function mehrTeil(schluessel, inhalt, zuText) {
+  const kinder = (Array.isArray(inhalt) ? inhalt : [inhalt]).flat(Infinity).filter(Boolean);
+  if (!kinder.length) return null;
+  return h("details", { class: "klapp-mehr", "data-klapp": schluessel, open: klappOffen.has(schluessel) || null,
+    ontoggle: (ev) => { if (ev.target.open) klappOffen.add(schluessel); else klappOffen.delete(schluessel); } },
+    h("summary", null, h("span", { class: "wenn-zu" }, zuText || "mehr"), h("span", { class: "wenn-offen" }, "weniger")),
+    h("div", { class: "klapp-inhalt" }, kinder));
+}
+
 function fehlerKarte(titel, x) {
   const f = fehlerVon(x);
   return karte(titel, null, h("p", { class: "fehlerteil" }, f ? "Dieser Teil ist gerade nicht lesbar: " + f : "Noch keine Daten."));
@@ -392,12 +410,12 @@ function gesamtKarte(d, Z) {
   return h("section", { class: "karte gesamt-karte", id: "gesamt-karte" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Gesamtvermögen"), h("span", { class: "klein gedimmt" }, "Coin-Topf + Bots + Aktien & ETFs")),
     h("div", { class: "gross", id: "gesamt-wert" }, F.euro(g.gesamt_eur)),
-    balken,
-    zeilen(teile.map((t) => [h("span", { "data-teil": t.k }, h("span", { class: "punkt " + t.k }),
-      " " + t.name + (t.k === "coin" && g.coin_topf_geschaetzt === true ? " (geschätzt)" : "")),
-      F.euro(t.v) + (t.a !== null ? " · " + F.prozent(t.a, 1, false) : "")])),
     h("p", { class: "klein gedimmt", id: "gesamt-stand" }, "Stand " + F.zeit(g.zeit) + gesamtVermerk(g)),
-    gesamtStatistik(Z));
+    mehrTeil("gesamt", [balken,
+      zeilen(teile.map((t) => [h("span", { "data-teil": t.k }, h("span", { class: "punkt " + t.k }),
+        " " + t.name + (t.k === "coin" && g.coin_topf_geschaetzt === true ? " (geschätzt)" : "")),
+        F.euro(t.v) + (t.a !== null ? " · " + F.prozent(t.a, 1, false) : "")])),
+      gesamtStatistik(Z)], "mehr – Aufteilung und Verlauf"));
 }
 
 /**
@@ -427,9 +445,10 @@ function bremsErklaerung(m) {
   const w = A.BREMS_WANN[m];
   return h("div", { class: "erklaer-text", "data-erklaert": m },
     h("p", null, A.ERKLAERT[m]),
-    h("p", { class: "wann-titel" }, "Sinnvoll, wenn:"),
-    h("ul", { class: "wann" }, w.wann.map((x) => h("li", null, x))),
-    h("p", { class: "wann-dazu" }, w.dazu));
+    mehrTeil("park-" + m, [                                       // 1.2.19: die Übersicht bleibt kurz
+      h("p", { class: "wann-titel" }, "Sinnvoll, wenn:"),
+      h("ul", { class: "wann" }, w.wann.map((x) => h("li", null, x))),
+      h("p", { class: "wann-dazu" }, w.dazu)], "wann sinnvoll?"));
 }
 
 /** Kurzes Eingabefeld „An die KI“ für den Anfang der Übersicht: Enter oder „Senden“ öffnet das Blatt mit Status und Antworten. */
@@ -446,6 +465,20 @@ function kiSchnellKarte() {
     h("div", { class: "ki-schnell" }, feld, h("button", { type: "button", class: "knopf primaer", onclick: los }, "Senden")));
 }
 
+/** 1.2.19: Kurzzeile einer Bot-Karte der Übersicht – läuft der echte Topf: sein Stand (+ Ergebnis), sonst das Schattendepot. */
+function botKurz(status, topf, ergEur, ergPz, schatten, id) {
+  if (status !== "aus" && F.istZahl(topf)) {
+    const erg = F.istZahl(ergEur) || F.istZahl(ergPz)
+      ? h("p", { class: "klapp-kurz " + F.vorzeichenKlasse(F.istZahl(ergEur) ? ergEur : ergPz) },
+        "Ergebnis " + (F.istZahl(ergEur) ? F.euroPlus(ergEur) : "–") + (F.istZahl(ergPz) ? " (" + F.prozent(ergPz) + ")" : ""))
+      : null;
+    return [h("div", { class: "mittel", id }, F.euro(topf)), erg];
+  }
+  const s = ok(schatten);
+  return h("p", { class: "klapp-kurz", id }, "nur Schattendepot (Rechengeld)" + (s && F.istZahl(s.wert_eur) ? ": " + F.euro(s.wert_eur)
+    + (F.istZahl(s.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur) : "") : ""));
+}
+
 export function uebersicht(Z) {
   const d = Z.handy;
   if (!d) return [Z.fehlerHandy ? h("p", { class: "leer" }, "Noch keine Daten.") : leer("Daten werden geladen …")];
@@ -460,16 +493,19 @@ export function uebersicht(Z) {
     const pos = k.geparkt ? "geparkt in EURCV" : k.position ? F.text(k.position) : "–";
     out.push(karte(F.text(k.topf_name, "Coin-Topf"), statusEtikett(k.an ? "an" : "aus"),
       h("div", { class: "gross", id: "kern-wert" }, F.euro(k.wert_eur)),
-      h("p", { class: "klein gedimmt" }, "Stand " + F.zeit(k.wert_zeit) + (F.istZahl(k.bitcoin_kurs_eur) ? " · Bitcoin " + F.euro(k.bitcoin_kurs_eur) : "")),
-      zeilen([
-        [F.text(k.name, "Coin-Bot"), anAus(k.an)],
-        ["Stufe", F.text(k.stufe) + (k.stufe_automatik ? " (Automatik)" : "")],
-        ["Bitcoin-Ampel", ampel(k.ampel)],
-        ["Hält", pos],
-        ki ? ["KI-Urteil", entscheidungText(ki.entscheidung) + (F.istZahl(ki.zuversicht) ? " · " + ki.zuversicht + " % sicher" : "")] : null,
+      h("p", { class: "klapp-kurz" }, F.text(k.name, "Coin-Bot") + " " + anAus(k.an) + " · hält " + pos),
+      mehrTeil("kern", [
+        h("p", { class: "klein gedimmt" }, "Stand " + F.zeit(k.wert_zeit) + (F.istZahl(k.bitcoin_kurs_eur) ? " · Bitcoin " + F.euro(k.bitcoin_kurs_eur) : "")),
+        zeilen([
+          [F.text(k.name, "Coin-Bot"), anAus(k.an)],
+          ["Stufe", F.text(k.stufe) + (k.stufe_automatik ? " (Automatik)" : "")],
+          ["Bitcoin-Ampel", ampel(k.ampel)],
+          ["Hält", pos],
+          ki ? ["KI-Urteil", entscheidungText(ki.entscheidung) + (F.istZahl(ki.zuversicht) ? " · " + ki.zuversicht + " % sicher" : "")] : null,
+        ]),
+        ki ? erklaert("Einfach erklärt", ki.einfach_erklaert) : null,
+        ok(d.bilanz) && d.bilanz.text ? h("p", { class: "klein gedimmt" }, d.bilanz.text) : null,
       ]),
-      ki ? erklaert("Einfach erklärt", ki.einfach_erklaert) : null,
-      ok(d.bilanz) && d.bilanz.text ? h("p", { class: "klein gedimmt" }, d.bilanz.text) : null,
     ));
   } else out.push(fehlerKarte("Coin-Topf", d.kern_bot));
 
@@ -479,27 +515,31 @@ export function uebersicht(Z) {
   const r = ok(d.raster_bot);
   if (r) {
     out.push(karte(F.text(r.name, "Raster-Bot"), statusEtikett(r.status),
-      zeilen([["Topf", F.euro(r.topf_eur)], ergebnisZeile("Ergebnis", r.ergebnis_eur, r.ergebnis_prozent),
-        ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
-      schattenHinweis(r.schatten),
-      kiZeile(r.ki_vorschlag),
-      botKnoepfe(r.status, "surfen_ein", "surfen_pause", "surfen_aus", d.bot_deckel)));
+      botKurz(r.status, r.topf_eur, r.ergebnis_eur, r.ergebnis_prozent, r.schatten, "raster-wert"),
+      mehrTeil("raster", [
+        zeilen([["Topf", F.euro(r.topf_eur)], ergebnisZeile("Ergebnis", r.ergebnis_eur, r.ergebnis_prozent),
+          ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
+        schattenHinweis(r.schatten),
+        kiZeile(r.ki_vorschlag),
+        botKnoepfe(r.status, "surfen_ein", "surfen_pause", "surfen_aus", d.bot_deckel)])));
   } else out.push(fehlerKarte("Raster-Bot", d.raster_bot));
 
   const t = ok(d.trend_bot);
   if (t) {
     const ma = ok(t.markt_ampel);
     out.push(karte(F.text(t.name, "Trend-Bot"), statusEtikett(t.status),
-      zeilen([
-        ["Markt-Ampel", ma ? ampel(ma.gruen ? "gruen" : "rot") : "–"],
-        t.modus === "echt" ? ["Topf", F.euro(t.topf_eur)] : ["Modus", "nur Schattendepot"],
-        t.modus === "echt" ? ergebnisZeile("Ergebnis", t.ergebnis_eur, t.ergebnis_prozent) : null,
-        ["Nächste Umschichtung", F.text(t.naechste_umschichtung)],
-      ]),
-      schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", ")),
-      straffZeile(t.schatten_straff),
-      kiZeile(t.ki_vorschlag),
-      botKnoepfe(t.status, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel)));
+      botKurz(t.modus === "echt" ? t.status : "aus", t.topf_eur, t.ergebnis_eur, t.ergebnis_prozent, t.schatten, "trend-wert"),
+      mehrTeil("trend", [
+        zeilen([
+          ["Markt-Ampel", ma ? ampel(ma.gruen ? "gruen" : "rot") : "–"],
+          t.modus === "echt" ? ["Topf", F.euro(t.topf_eur)] : ["Modus", "nur Schattendepot"],
+          t.modus === "echt" ? ergebnisZeile("Ergebnis", t.ergebnis_eur, t.ergebnis_prozent) : null,
+          ["Nächste Umschichtung", F.text(t.naechste_umschichtung)],
+        ]),
+        schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", ")),
+        straffZeile(t.schatten_straff),
+        kiZeile(t.ki_vorschlag),
+        botKnoepfe(t.status, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel)])));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
 
   // 1.2.13 (Paket E): nur ein AKTIVER KI-Vorschlag erscheint auch hier (sonst steht die Einschätzung auf der Bot-Seite)
@@ -515,17 +555,20 @@ export function uebersicht(Z) {
   const ak = ok(d.aktien);
   if (ak) {
     out.push(karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
-      h("div", { class: "mittel" }, F.euro(ak.wert_eur)),
-      zeilen([
-        ["Modus", ak.modus === "etf" ? "ETF" : ak.modus === "aktiv" ? "aktiv" : F.text(ak.modus)],
-        ["Status", F.text(ak.status)],
-        F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? ["Reserve", F.euro(ak.reserve_eur)] : null,
-        ["Gewinnschutz", anAus(ak.gewinnschutz_an)],
-        ["Stand", F.zeit(ak.wert_zeit)],
+      h("div", { class: "mittel", id: "aktien-wert" }, F.euro(ak.wert_eur)),
+      F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
+      mehrTeil("aktien", [
+        zeilen([
+          ["Modus", ak.modus === "etf" ? "ETF" : ak.modus === "aktiv" ? "aktiv" : F.text(ak.modus)],
+          ["Status", F.text(ak.status)],
+          F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? ["Reserve", F.euro(ak.reserve_eur)] : null,
+          ["Gewinnschutz", anAus(ak.gewinnschutz_an)],
+          ["Stand", F.zeit(ak.wert_zeit)],
+        ]),
+        ok(ak.ki) ? erklaert("Aktien-KI einfach erklärt", ak.ki.einfach_erklaert) : null,
+        reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein"),
+          ak.gewinnschutz_an ? A.knopf("gewinnschutz_aktien_aus", "Gewinnschutz aus") : A.knopf("gewinnschutz_aktien_ein", "Gewinnschutz ein")),
       ]),
-      ok(ak.ki) ? erklaert("Aktien-KI einfach erklärt", ak.ki.einfach_erklaert) : null,
-      reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein"),
-        ak.gewinnschutz_an ? A.knopf("gewinnschutz_aktien_aus", "Gewinnschutz aus") : A.knopf("gewinnschutz_aktien_ein", "Gewinnschutz ein")),
     ));
     const lageA = lageKarte(ak.lage, "Lage Aktien-Autopilot", true);   // 1.2.11: eingeklappt, die Übersicht bleibt kurz
     if (lageA) out.push(lageA);
@@ -551,10 +594,19 @@ function schattenKarte(sd) {
   if (!s || !Array.isArray(s.liste)) return null;
   const eintraege = s.liste.filter(istObj);
   const klar = eintraege.filter((e) => ["klar_vorne", "klar_hinten"].includes((ok(e.auswertung) || {}).urteil)).length;
+  const urteile = new Map();                                       // 1.2.19: Kurzzeile „6 laufen · 4 zu früh, 2 gleichauf“
+  for (const e of eintraege) {
+    const u = F.text((ok(e.auswertung) || {}).urteil_text, "ohne Urteil");
+    urteile.set(u, (urteile.get(u) || 0) + 1);
+  }
   return karte("Schattendepots", klar ? etikett(klar + " mit klarem Urteil", "sd-klar-vorne") : null,
+    h("p", { class: "klapp-kurz", id: "sd-kurz" }, eintraege.length
+      ? eintraege.length + (eintraege.length === 1 ? " läuft" : " laufen") + " · " + [...urteile].map(([u, n]) => n + " " + u).join(", ")
+      : "Gerade läuft kein Schattendepot."),
+    mehrTeil("schattendepots", eintraege.length ? [
     h("p", { class: "klein gedimmt" }, "Nur Rechengeld, keine Orders. Die Cloud vergleicht jedes Depot laufend mit seiner Referenz und meldet "
       + "sich per Push, sobald eines klar vorne oder klar hinten liegt."),
-    eintraege.length ? eintraege.map((e) => {
+    eintraege.map((e) => {
       const a = ok(e.auswertung) || {};
       const ref = ok(e.referenz) || {};
       const weitere = liste(e.weitere).filter(istObj).map((w) => F.text(w.name) + " " + F.euro(w.wert_eur)).join(" · ");
@@ -571,11 +623,12 @@ function schattenKarte(sd) {
           a.text ? h("p", null, F.text(a.text)) : null,
           h("p", { class: "gedimmt" }, "läuft seit " + sdTag(e.seit) + " · Vergleich seit " + (a.seit ? sdTag(a.seit) : "jetzt")
             + (e.stand ? " · Stand " + F.zeit(e.stand) : ""))));
-    }) : h("p", { class: "leer" }, "Gerade läuft kein Schattendepot."),
-    s.regel ? h("p", { class: "klein gedimmt" }, F.text(s.regel)) : null);
+    }),
+    s.regel ? h("p", { class: "klein gedimmt" }, F.text(s.regel)) : null] : null, "mehr – alle Depots"));
 }
 
 /** „Letzte Alarme“ (1.2.0): je Alarm „✕“, oben „Alle löschen“ – sofort ausgeblendet, Auftrag alarme_gelesen (js/alarme.js) */
+const ALARME_KURZ = 3;
 function alarmKarte(d) {
   const roh = liste(d.alarme);
   const darf = AL.moeglich(roh);
@@ -583,13 +636,16 @@ function alarmKarte(d) {
   const alle = darf && al.some((x) => Number.isInteger(x.id))
     ? h("button", { type: "button", class: "knopf-text", id: "alarme-alle", onclick: () => AL.ausblenden(al.map((x) => x.id)) }, "Alle löschen")
     : null;
+  const eintrag = (x) => h("li", { class: "alarm " + F.text(x.stufe, ""), "data-alarm": Number.isInteger(x.id) ? String(x.id) : null },
+    h("div", { class: "oben" }, h("span", { class: "titel" }, F.text(x.titel)),
+      h("span", { class: "alarm-rechts" }, h("span", { class: "klein gedimmt" }, F.zeit(x.zeit)),
+        darf && Number.isInteger(x.id) ? h("button", { type: "button", class: "alarm-weg", "aria-label": "Alarm löschen", "data-weg": String(x.id),
+          onclick: () => AL.ausblenden([x.id]) }, "✕") : null)),
+    x.text ? h("div", { class: "unter" }, x.text) : null);
+  const rest = al.slice(ALARME_KURZ);                               // 1.2.19: die neuesten drei, der Rest im „mehr“
   return h("section", { class: "karte", id: "alarm-karte" }, h("div", { class: "karte-kopf" }, h("h2", null, "Letzte Alarme"), alle),
-    al.length ? h("ul", { class: "liste" }, al.slice(0, 5).map((x) => h("li", { class: "alarm " + F.text(x.stufe, ""), "data-alarm": Number.isInteger(x.id) ? String(x.id) : null },
-      h("div", { class: "oben" }, h("span", { class: "titel" }, F.text(x.titel)),
-        h("span", { class: "alarm-rechts" }, h("span", { class: "klein gedimmt" }, F.zeit(x.zeit)),
-          darf && Number.isInteger(x.id) ? h("button", { type: "button", class: "alarm-weg", "aria-label": "Alarm löschen", "data-weg": String(x.id),
-            onclick: () => AL.ausblenden([x.id]) }, "✕") : null)),
-      x.text ? h("div", { class: "unter" }, x.text) : null)))
+    al.length ? [h("ul", { class: "liste" }, al.slice(0, ALARME_KURZ).map(eintrag)),
+      rest.length ? mehrTeil("alarme", h("ul", { class: "liste" }, rest.map(eintrag)), "mehr (" + rest.length + " weitere)") : null]
       : leer(fehlerVon(d.alarme) || (roh.length ? "Alle Alarme gelöscht." : "Keine Alarme.")),
     AL.wartet() ? h("p", { class: "klein gedimmt" }, "Ausgeblendet – wird an die Cloud geschickt, sobald der laufende Auftrag fertig ist.") : null);
 }
@@ -937,9 +993,19 @@ function gesamtbildKarte(g, lage) {
     teile.length ? h("div", { class: "etiketten" }, teile) : null,
     text ? h("p", { class: "gesamt-text" }, text) : null,
     bots ? h("p", { class: "gesamt-bots" }, bots) : null,
-    zeilen_.length ? h("div", { class: "bot-lage" }, h("span", { class: "label" }, "Stand deiner Bots"),
-      h("ul", { class: "liste" }, zeilen_.map((x) => h("li", null, x.text)))) : null,
-    h("p", { class: "klein gedimmt" }, (gb && textOder(gb.hinweis)) || NEWS_HINWEIS));
+    mehrTeil("news-gesamtbild", [
+      zeilen_.length ? h("div", { class: "bot-lage" }, h("span", { class: "label" }, "Stand deiner Bots"),
+        h("ul", { class: "liste" }, zeilen_.map((x) => h("li", null, x.text)))) : null,
+      h("p", { class: "klein gedimmt" }, (gb && textOder(gb.hinweis)) || NEWS_HINWEIS)], "mehr – Stand deiner Bots"));
+}
+
+const NEWS_WICHTIG_KURZ = 2;
+/** 1.2.19: ein KI-Text in [erster Satz, Rest] – kurze Texte (bis 160 Zeichen) bleiben ganz (Rest null) */
+function textTeilen(t) {
+  const s = String(t || "");
+  if (s.length <= 160) return [s, null];
+  const m = /^(.{40,}?[.!?])\s+(.+)$/s.exec(s);
+  return m ? [m[1], m[2]] : [s, null];
 }
 
 export function news(Z) {
@@ -956,17 +1022,25 @@ export function news(Z) {
   out.push(gesamtbildKarte(z && z.gesamtbild, n.bot_lage));
   if (z) {
     const wichtig = liste(z.wichtigste);
+    // 1.2.19: je Karte nur das Neueste, der Rest im „mehr“
+    const meldung = (s) => [schlagzeile(s), istObj(s) ? einordnungTeil(s.einordnung) : null];
     out.push(karte("Das Wichtigste", null,
       liste(z.rubriken).filter((r) => r.id === "einordnung").map((r) => erklaert(F.text(r.name), r.text)),
-      wichtig.length ? h("div", null, wichtig.map((s) => [schlagzeile(s), istObj(s) ? einordnungTeil(s.einordnung) : null])) : null));
+      wichtig.length ? h("div", null, wichtig.slice(0, NEWS_WICHTIG_KURZ).map(meldung)) : null,
+      wichtig.length > NEWS_WICHTIG_KURZ ? mehrTeil("news-wichtig", h("div", null, wichtig.slice(NEWS_WICHTIG_KURZ).map(meldung)),
+        "mehr (" + (wichtig.length - NEWS_WICHTIG_KURZ) + " weitere)") : null));
     for (const r of liste(z.rubriken).filter((r) => r.id !== "einordnung")) {
-      out.push(karte(F.text(r.name), etikett("KI", ""), h("p", { class: "rubrik-text" }, F.text(r.text))));
+      const [kurz, lang] = textTeilen(F.text(r.text));
+      out.push(karte(F.text(r.name), etikett("KI", ""), h("p", { class: "rubrik-text" }, kurz),
+        lang ? mehrTeil("news-ki-" + F.text(r.id, r.name), h("p", { class: "rubrik-text" }, lang)) : null));
     }
   }
   for (const r of liste(n.rubriken)) {
     const s = liste(r.schlagzeilen);
     out.push(karte(F.text(r.name), h("span", { class: "klein gedimmt" }, s.length + (s.length === 1 ? " Schlagzeile" : " Schlagzeilen")),
-      s.length ? h("div", null, s.map(schlagzeile)) : leer("Keine Schlagzeilen.")));
+      s.length ? h("div", null, schlagzeile(s[0])) : leer("Keine Schlagzeilen."),
+      s.length > 1 ? mehrTeil("news-" + F.text(r.id, r.name), h("div", null, s.slice(1).map(schlagzeile)),
+        "mehr (" + (s.length - 1) + " weitere)") : null));
   }
   out.push(h("p", { class: "klein gedimmt" }, "Schlagzeilen sind fremde Texte; Links öffnen in einem neuen Fenster."));
   return out;

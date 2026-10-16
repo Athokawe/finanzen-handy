@@ -15,7 +15,7 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.2.18";
+export const APP_VERSION = "1.2.19";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -259,6 +259,7 @@ function sperren(manuell) {
   Z.handy = Z.news = Z.verlauf = null;
   Z.fehlerHandy = Z.fehlerNews = Z.fehlerVerlauf = null;
   for (const k of [...Object.keys(ANSICHT), "mehr"]) leeren($("t-" + k));
+  V.klappAllesZu();                    // 1.2.19: nach dem Entsperren ist die Übersicht wieder kurz
   A.dialogZu();
   K.vergessen();
   meldung("");
