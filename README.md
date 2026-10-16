@@ -4,6 +4,10 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.20
+
+* **Abgebrochene Läufe sicherer erkannt:** Ob ein Auftrag in der Cloud schon lief, erkennt die App jetzt auch an den Schritten des Laufs – auch wenn sie den Zustand „läuft gerade“ im Hintergrund verpasst hat. Ein schon gestarteter, dann abgebrochener Lauf wird nie automatisch neu gesendet (außer Brems-Befehlen).
+
 ## Neu in 1.2.19
 
 * **Kurze Übersicht:** Beim Öffnen zeigt jede Rubrik (Gesamtvermögen, Coin-Topf, Raster-Bot, Trend-Bot, Schattendepots, Aktien) nur Status und aktuellen Stand; „mehr“ klappt die Details auf (Aufteilung, Verlauf, Positionen, Knöpfe), „weniger“ wieder zu. Aufgeklappt bleibt aufgeklappt, solange die App offen ist; nach dem Sperren ist alles wieder kurz.

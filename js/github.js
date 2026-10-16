@@ -206,10 +206,22 @@ export async function frageArtefakt(id, entpacken) {
  * Ein Lauf kann zusätzlich den Job „aufraeumen“ haben – ob ein Auftrag geklappt hat, entscheidet nur der Job „ki“.
  */
 export async function jobErgebnis(id, name = "ki") {
+  const j = await jobInfo(id, name);
+  return j ? j.ergebnis : null;
+}
+
+/** 1.2.20: Ergebnis des Jobs (nur wenn fertig) und ob er je gelaufen ist (ein Schritt begonnen/fertig – ein in der Warteschlange
+ *  abgebrochener Job hat keine Schritte). null im Demo-Modus bzw. ohne passenden Job. */
+export async function jobInfo(id, name = "ki") {
   if (demo) return null;
   const r = await anfrage("/repos/" + REPO + "/actions/runs/" + encodeURIComponent(id) + "/jobs?per_page=20",
     { headers: { Accept: "application/vnd.github+json" } }, "laeufe");
   const d = await r.json();
   const j = (d.jobs || []).find((x) => x && x.name === name);
-  return j && j.status === "completed" && typeof j.conclusion === "string" ? j.conclusion : null;
+  if (!j) return null;
+  const schritte = Array.isArray(j.steps) ? j.steps : [];
+  return {
+    ergebnis: j.status === "completed" && typeof j.conclusion === "string" ? j.conclusion : null,
+    gestartet: schritte.some((s) => s && (s.status === "in_progress" || s.status === "completed")),
+  };
 }

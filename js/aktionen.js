@@ -644,8 +644,9 @@ export async function pruefen(handy) {
       if (lauf.status === "completed") {
         // 1.2.0: ein ki.yml-Lauf kann zusätzlich den Job „aufraeumen“ haben – ob der Auftrag geklappt hat, sagt der Job „ki“
         if (a.weg === "ki" && lauf.ergebnis !== "success") {
-          const jk = await gh.jobErgebnis(lauf.id).catch(() => null);
-          if (jk) lauf = Object.assign({}, lauf, { ergebnis: jk });
+          const jk = await gh.jobInfo(lauf.id).catch(() => null);
+          if (jk && jk.ergebnis) lauf = Object.assign({}, lauf, { ergebnis: jk.ergebnis });
+          if (jk && jk.gestartet) a.gestartet = true;          // 1.2.20: auch wenn die App „läuft gerade“ verpasst hat
         }
         if (lauf.ergebnis === "success") abschliessen(a, "erledigt");
         else if (lauf.ergebnis === "cancelled" || lauf.ergebnis === "skipped") {
