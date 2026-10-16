@@ -3,11 +3,16 @@
 // 5 falsche PINs hintereinander -> Tresor gelöscht (neu verbinden nötig).
 // 1.2.8: Der Face-ID-Umschlag (js/faceid.js, FACEID_SPEICHER) gilt nur zusammen mit DIESEM Tresor: neuer Tresor (neuer Token/PIN)
 // oder gelöschter Tresor -> Face-ID-Umschlag wird mitgelöscht (fail-closed).
+// 1.2.21 (Prüfung 16.10.2026): NEUE PINs (Einrichten, „PIN ändern“) haben 6 bis 8 Ziffern, neue Tresore 600 000 PBKDF2-Runden.
+// Bestehende Tresore tragen ihre Runden selbst („runden“) und bleiben lesbar; bestehende 4–5-stellige PINs entsperren weiter.
+// Ob die PIN kürzer als 6 Stellen ist, steht nur als Merker „kurz“ (true/false) im Tresor-Objekt – nie die PIN, nie ihre Länge.
+// Alte Tresore (ohne Merker) bekommen ihn beim ersten Entsperren mit der PIN.
 
 const SPEICHER = "fh_tresor_v1";
 export const FACEID_SPEICHER = "fh_faceid_v1";
 const FEHLER = "fh_pin_fehler";
-export const RUNDEN = 310000;
+export const RUNDEN = 600000;          // nur für NEU verschlüsselte Tresore (bis 1.2.20: 310 000)
+export const PIN_NEU_MIN = 6;
 export const MAX_FEHLVERSUCHE = 5;
 const ZUSATZ = new TextEncoder().encode("finanzen-handy|tresor|v1"); // „additional data“ – bindet den Inhalt an diese App
 
@@ -33,8 +38,14 @@ export function unb64(s) {
   return out;
 }
 
+/** Format einer BESTEHENDEN PIN (Entsperren, PIN-Abfrage): 4 bis 8 Ziffern – alte 4–5-stellige PINs gehen weiter. */
 export function pinGueltig(pin) {
-  return typeof pin === "string" && /^\d{4,6}$/.test(pin);
+  return typeof pin === "string" && /^\d{4,8}$/.test(pin);
+}
+
+/** Format einer NEUEN PIN (Einrichten, „PIN ändern“): 6 bis 8 Ziffern (4 Stellen sind offline in Minuten durchprobiert). */
+export function pinGueltigNeu(pin) {
+  return typeof pin === "string" && /^\d{6,8}$/.test(pin);
 }
 
 export function verfuegbar() {
@@ -60,6 +71,12 @@ export function vorhanden() {
   return !!laden();
 }
 
+/** 1.2.21: true, wenn die PIN dieses Tresors kürzer als 6 Stellen ist (bekannt erst nach einem Entsperren mit der PIN). */
+export function pinKurz() {
+  const t = laden();
+  return !!t && t.kurz === true;
+}
+
 /** Kennung des gespeicherten Tresors (sein zufälliges Salz – kein Geheimnis) oder null; bindet den Face-ID-Umschlag an ihn. */
 export function kennung() {
   const t = laden();
@@ -73,13 +90,13 @@ export function fehlversuche() {
 
 /** Token mit der PIN verschlüsseln und speichern. Wirft bei ungültiger PIN oder vollem/gesperrtem Speicher. */
 export async function speichern(token, pin) {
-  if (!pinGueltig(pin)) throw new Error("Die PIN muss 4 bis 6 Ziffern haben.");
+  if (!pinGueltigNeu(pin)) throw new Error("Die neue PIN braucht 6 bis 8 Ziffern.");
   weg(FACEID_SPEICHER); // neuer Token/neue PIN -> ein alter Face-ID-Umschlag gilt nicht mehr (neu einrichten)
   const salz = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await schluessel(pin, salz, RUNDEN);
   const daten = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: ZUSATZ }, key, new TextEncoder().encode(token));
-  const ok = schreib(SPEICHER, JSON.stringify({ v: 1, runden: RUNDEN, salz: b64(salz), iv: b64(iv), daten: b64(daten) }));
+  const ok = schreib(SPEICHER, JSON.stringify({ v: 1, runden: RUNDEN, salz: b64(salz), iv: b64(iv), daten: b64(daten), kurz: pin.length < PIN_NEU_MIN }));
   if (!ok) throw new Error("Der Speicher des Browsers ist gesperrt (privater Modus?) – der Schlüssel kann nicht gespeichert werden.");
   weg(FEHLER);
 }
@@ -95,6 +112,9 @@ export async function oeffnen(pin) {
     const key = await schluessel(pin, unb64(t.salz), t.runden);
     const klar = await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(t.iv), additionalData: ZUSATZ }, key, unb64(t.daten));
     weg(FEHLER);
+    // 1.2.21: Merker „PIN kürzer als 6 Stellen“ nachtragen (alte Tresore) – nur true/false, nie die PIN oder ihre Länge
+    const kurz = pin.length < PIN_NEU_MIN;
+    if (t.kurz !== kurz) schreib(SPEICHER, JSON.stringify(Object.assign({}, t, { kurz })));
     return { ok: true, token: new TextDecoder().decode(klar) };
   } catch {
     const n = fehlversuche() + 1;

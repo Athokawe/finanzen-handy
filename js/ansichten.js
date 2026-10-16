@@ -721,7 +721,10 @@ export function kern(Z) {
       gs.aktiv ? ["Kurs zuletzt", F.euro(gs.kurs_eur) + " (" + F.zeit(gs.kurs_zeit) + ")"] : null,
       gs.aktiv ? ["Abstand zum Höchststand", F.prozent(gs.abstand_prozent), F.vorzeichenKlasse(gs.abstand_prozent)] : null,
       gs.aktiv ? ["Parkt unter", F.euro(gs.grenze_eur)] : null,
-      gs.ausgeloest ? ["Ausgelöst", "ja"] : null,
+      // 1.2.21: „ausgeloest“ = wirklich ausgelöst; „wuerde_ausloesen“ (neu) = Schalter AUS, sonst würde er parken. Ältere
+      // handy.json ohne das Feld meldeten beides als „ausgeloest“ – dort bleibt es bei „Ausgelöst: ja“.
+      gs.ausgeloest === true && gs.wuerde_ausloesen !== true ? ["Ausgelöst", "ja"]
+        : gs.wuerde_ausloesen === true ? ["Grenze erreicht", "Würde parken (Schalter aus)"] : null,
     ]));
     kinder.push(reihe(gs.an ? A.knopf("gewinnschutz_aus", "Gewinnschutz aus") : A.knopf("gewinnschutz_ein", "Gewinnschutz ein")));
     out.push(karte("Gewinnschutz", statusEtikett(gs.an ? "an" : "aus"), ...kinder));
@@ -1078,9 +1081,37 @@ function faceIdKarte(ctx) {
   return karte("Face ID", null, ...teile);
 }
 
+/**
+ * 1.2.21: Karte „PIN“ – mit „PIN ändern“ (alte PIN, neue PIN 2×). Ist die PIN kürzer als 6 Stellen (Merker im Tresor), steht sie als
+ * gut sichtbare Empfehlung „PIN auf 6 Stellen ändern“ ganz oben. ctx.pin: {kurz, faceId} oder null (Demo / kein Tresor).
+ */
+function pinKarte(ctx) {
+  const p = ctx.pin;
+  if (!p) return null;
+  const knopf = h("button", { type: "button", class: "knopf voll " + (p.kurz ? "primaer" : ""), id: "pin-aendern", onclick: ctx.onPinAendern }, "PIN ändern");
+  const ehrlich = "Kopiert jemand den Speicher dieses iPhones (z. B. aus einem unverschlüsselten Backup), sind 4 Stellen in Minuten "
+    + "durchprobierbar, 6 Stellen erst in Stunden bis Tagen – die Sperre nach 5 falschen PINs gilt nur in der App. Face ID ist der empfohlene Weg.";
+  const faceIdSatz = p.faceId ? "Face ID wird beim Ändern entfernt und muss danach neu eingerichtet werden." : null;
+  if (p.kurz) {
+    return h("section", { class: "karte empfehlung", id: "pin-empfehlung" },
+      h("div", { class: "karte-kopf" }, h("h2", null, "PIN auf 6 Stellen ändern"), etikett("Empfehlung", "gelb")),
+      h("p", null, "Deine PIN hat weniger als 6 Ziffern. Sie funktioniert weiter – sicherer ist eine neue PIN mit 6 bis 8 Ziffern."),
+      h("p", { class: "klein gedimmt" }, ehrlich),
+      faceIdSatz ? h("p", { class: "klein gedimmt" }, faceIdSatz) : null,
+      knopf);
+  }
+  return h("section", { class: "karte", id: "pin-karte" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "PIN")),
+    h("p", { class: "klein gedimmt" }, "Neue PINs haben 6 bis 8 Ziffern. " + ehrlich),
+    faceIdSatz ? h("p", { class: "klein gedimmt" }, faceIdSatz) : null,
+    knopf);
+}
+
 export function mehr(Z, ctx) {
   const out = [];
   const d = Z.handy || {};
+  const pinTeil = pinKarte(ctx);
+  if (pinTeil && ctx.pin.kurz) out.push(pinTeil);          // Empfehlung ganz oben, gut sichtbar
   const pushTeil = ok(d.push) || {};
   const abos = liste(pushTeil.abos);
 
@@ -1112,6 +1143,7 @@ export function mehr(Z, ctx) {
 
   out.push(kiKarte("Fragen an die KI und Hinweise für den Bot – auch über den Knopf 💬 unten rechts. Die KI löst nie selbst eine Order aus.", d));
   out.push(faceIdKarte(ctx));
+  if (pinTeil && !ctx.pin.kurz) out.push(pinTeil);
 
   const lauf = ok(d.lauf);
   out.push(karte("Verbindung", null,
@@ -1131,7 +1163,8 @@ export function mehr(Z, ctx) {
 
   out.push(karte("Sicherheit", null,
     h("ul", { class: "liste" },
-      h("li", null, "Der Token liegt nur auf diesem iPhone, mit deiner PIN verschlüsselt (AES-GCM, PBKDF2)."),
+      h("li", null, "Der Token liegt nur auf diesem iPhone, mit deiner PIN verschlüsselt (AES-GCM, PBKDF2; neue PINs 6 bis 8 Ziffern, 600 000 Runden)."),
+      h("li", null, "Ehrlich: Kopiert jemand den App-Speicher, sind 4 Stellen in Minuten durchprobierbar, 6 Stellen in Stunden bis Tagen. Face ID ist der empfohlene Weg."),
       h("li", null, "Optional Face ID: ein zweiter verschlüsselter Umschlag, den nur dein Passkey öffnet – ohne Passkey-Erweiterung PRF gibt es kein Face ID."),
       h("li", null, "Er darf nur Athokawe/finanzen lesen und Cloud-Aufträge starten – kein Geld bewegen, keine anderen Repos."),
       h("li", null, "Schaltbefehle brauchen ein getipptes JA; die Cloud prüft jede Bestätigung noch einmal selbst."),

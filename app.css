@@ -141,6 +141,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .karte > h2:first-child, .karte > .karte-kopf:first-child { margin-top: 0; }
 .karte-kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .karte-kopf h2 { margin: 0; }
+.karte.empfehlung { border-color: color-mix(in srgb, var(--gelb) 60%, var(--rand)); }   /* 1.2.21: „PIN auf 6 Stellen ändern“ */
 .gross { font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; margin: 4px 0; font-variant-numeric: tabular-nums; }
 .mittel { font-size: 26px; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .zahl { font-variant-numeric: tabular-nums; }

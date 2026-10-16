@@ -12,6 +12,9 @@
 // 1.2.18 (Gesamtprüfung B7): Aufträge, die Geld bewegen (Umschichten, Teil zurück, Einschalten bzw. Betrag ändern), gehen NIE
 // automatisch noch einmal, und ein schon gestarteter Lauf, der „abgebrochen“ endet, wird nur bei Brems-Befehlen neu gesendet –
 // sonst Meldung „Ausgang unklar – bitte nachsehen“.
+// 1.2.21 (Prüfung 16.10.2026): Knöpfe ohne Dialog (spez.ohneFrage) schicken nie ein „JA“ – verlangt handy.json → modi für so einen
+// Modus ein getipptes JA, verweigert der Knopf mit klarer Meldung. Passt die Bestätigung nicht oder scheitert das Senden, kommt immer
+// eine Rückmeldung (nie eine stille, unbehandelte Ablehnung). „Bitte kurz warten“ nur bei einem offenen NORMALEN Auftrag (ki.yml).
 
 import { h, $, leeren } from "./dom.js";
 import * as gh from "./github.js";
@@ -381,9 +384,13 @@ function werteLesen(spez) {
   return w;
 }
 
-/** Bestätigungstext aus den Feldern bauen (ohne Prüfung) */
+/**
+ * Bestätigungstext aus den Feldern bauen (ohne Prüfung). NUR für den Dialog mit JA-Feld – ein Knopf ohne Dialog (ohneFrage) bekommt
+ * hier nie ein „JA“ (1.2.21).
+ */
 function bestaetigungBauen(m, spez, w) {
   const e = eintrag(m);
+  if (spez.ohneFrage) return "";
   if (spez.bauen) return spez.bauen(w);
   return e && e.ja_noetig ? "JA" : "";
 }
@@ -405,20 +412,28 @@ export async function ausfuehren(m, vorgaben = {}) {
     hooks.toast("Dieser Befehl ist gerade nicht erlaubt.");
     return;
   }
-  const kiOffen = laufendeAuftraege().find((a) => a.weg === "ki");
+  const kiOffen = kiAuftragOffen();
   if (kiOffen && !istBremse(m) && m !== "einstellung" && !gh.istDemo()) {
-    dialog({
-      titel: "Bitte kurz warten",
-      inhalt: [
-        "Es läuft noch ein Auftrag: „" + name(kiOffen.modus) + "“ (geschickt " + vor(new Date(kiOffen.zeit).toISOString()) + ").",
-        "Die Cloud arbeitet normale Aufträge nacheinander ab – ein neuer könnte den wartenden verdrängen. Sobald er fertig ist, kannst du den nächsten schicken. Brems-Befehle („Alles parken“, „Nur anhalten“, Coin-Bot aus, Pausieren) gehen immer.",
-      ],
-      okText: "Verstanden", nurOk: true,
-    });
+    bitteWarten(kiOffen);
     return;
   }
   if (spez.ohneFrage) {
-    await senden(m, bestaetigungBauen(m, spez, {}));
+    // 1.2.21: ohne Dialog gibt es kein JA-Feld – verlangt die Cloud ein getipptes JA, schickt dieser Knopf NICHTS (nie ein
+    // automatisch erzeugtes „JA“)
+    if (e.ja_noetig) {
+      hooks.toast("Die Cloud verlangt für „" + name(m) + "“ ein getipptes JA – dieser Knopf kann das nicht. Nichts geschickt.");
+      return;
+    }
+    const best = bestaetigungBauen(m, spez, {});
+    if (!passt(m, best)) {
+      hooks.toast("„" + name(m) + "“ passt gerade nicht zum erlaubten Muster der Cloud – nichts geschickt.");
+      return;
+    }
+    try {
+      await senden(m, best);
+    } catch (err) {
+      hooks.toast("„" + name(m) + "“: " + (err && err.message ? err.message : "konnte nicht geschickt werden."));
+    }
     return;
   }
   const inhalt = [];
@@ -523,6 +538,21 @@ export function laufendeAuftraege() {
 /** für app.js (Push-Abo, Hinweise): der älteste laufende Auftrag oder null */
 export function offenerAuftrag() {
   return laufendeAuftraege()[0] || null;
+}
+/** 1.2.21: der älteste laufende NORMALE Auftrag (ki.yml) oder null – nur er hält weitere normale Aufträge zurück (Express nicht). */
+export function kiAuftragOffen() {
+  return laufendeAuftraege().find((a) => a.weg === "ki") || null;
+}
+/** Dialog „Bitte kurz warten“ für einen laufenden normalen Auftrag (ausfuehren, Push-Knöpfe in app.js). */
+export function bitteWarten(kiOffen) {
+  dialog({
+    titel: "Bitte kurz warten",
+    inhalt: [
+      "Es läuft noch ein Auftrag: „" + name(kiOffen.modus) + "“ (geschickt " + vor(new Date(kiOffen.zeit).toISOString()) + ").",
+      "Die Cloud arbeitet normale Aufträge nacheinander ab – ein neuer könnte den wartenden verdrängen. Sobald er fertig ist, kannst du den nächsten schicken. Brems-Befehle („Alles parken“, „Nur anhalten“, Coin-Bot aus, Pausieren) gehen immer.",
+    ],
+    okText: "Verstanden", nurOk: true,
+  });
 }
 /** für Tests, Einstellungen und „An die KI“: Kopie der Liste (ohne Bestätigungstext) */
 export function auftragsListe() {

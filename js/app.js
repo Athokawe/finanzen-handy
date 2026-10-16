@@ -2,6 +2,9 @@
 // 1.2.8: optional „Mit Face ID entsperren“ (js/faceid.js: Passkey mit PRF, zweiter Umschlag) – die PIN bleibt Rückfall.
 // 1.2.9: Face ID startet beim Sperrbildschirm einmal von selbst (lässt iOS das ohne Tipp nicht zu: still der Knopf).
 // Daten liegen nur im Arbeitsspeicher (Z), der Token nur verschlüsselt in localStorage und entschlüsselt in github.js.
+// 1.2.21 (Prüfung 16.10.2026): läuft nur als oberstes Fenster (nie in einem fremden iframe); neue PINs 6–8 Ziffern, „PIN ändern“ in
+// den Einstellungen (Empfehlung bei kürzerer PIN; Face ID wird dabei entfernt und muss neu eingerichtet werden); Push-Knöpfe warten
+// nur hinter einem offenen NORMALEN Auftrag.
 
 import { $, h, leeren } from "./dom.js";
 import * as T from "./tresor.js";
@@ -15,7 +18,7 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.2.20";
+export const APP_VERSION = "1.2.21";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -110,7 +113,7 @@ function pinZeigen(modus, fehler) {
   const titel = { eingeben: "PIN eingeben", festlegen: "PIN festlegen", bestaetigen: "PIN wiederholen" }[modus];
   const text = {
     eingeben: "Gib deine PIN ein, um die App zu entsperren.",
-    festlegen: "Verbindung klappt ✓. Lege jetzt eine PIN mit 4 bis 6 Ziffern fest. Damit wird der Token auf diesem iPhone verschlüsselt; die App fragt sie beim Öffnen und nach 5 Minuten im Hintergrund.",
+    festlegen: "Verbindung klappt ✓. Lege jetzt eine PIN mit 6 bis 8 Ziffern fest. Damit wird der Token auf diesem iPhone verschlüsselt; die App fragt sie beim Öffnen und nach 5 Minuten im Hintergrund.",
     bestaetigen: "Bitte dieselbe PIN noch einmal eingeben.",
   }[modus];
   $("pin-titel").textContent = titel;
@@ -191,8 +194,10 @@ async function faceIdStart(auto) {
 async function pinWeiter() {
   const pin = $("pin-feld").value.trim();
   const knopf = $("pin-knopf");
-  if (!T.pinGueltig(pin)) {
-    fehlerFeld("pin-fehler", "Die PIN hat 4 bis 6 Ziffern.");
+  const neu = pinModus === "festlegen" || pinModus === "bestaetigen";
+  if (neu ? !T.pinGueltigNeu(pin) : !T.pinGueltig(pin)) {
+    // 1.2.21: NEUE PINs 6–8 Ziffern; beim Entsperren gehen bestehende 4–5-stellige weiter
+    fehlerFeld("pin-fehler", neu ? "Die neue PIN braucht 6 bis 8 Ziffern (4 Stellen wären in Minuten durchprobiert)." : "Die PIN hat 4 bis 8 Ziffern.");
     return;
   }
   fehlerFeld("pin-fehler", "");
@@ -296,7 +301,8 @@ function zeichnen() {
   const teile = reiter === "mehr"
     ? V.mehr(Z, { demo, pushHash, appVersion: APP_VERSION, onPushAn: pushAn, onPushAus: pushAus, onSperren: () => sperren(true), onAbmelden: abmelden,
       faceId: demo ? null : { status: faceIdStatus, eingerichtet: FI.eingerichtet(), seit: FI.seit(), nichtMoeglich: FI.nichtMoeglichGemerkt() },
-      onFaceIdEinrichten: faceIdEinrichten, onFaceIdEntfernen: faceIdEntfernen })
+      onFaceIdEinrichten: faceIdEinrichten, onFaceIdEntfernen: faceIdEntfernen,
+      pin: demo || !T.vorhanden() ? null : { kurz: T.pinKurz(), faceId: FI.eingerichtet() }, onPinAendern: pinAendern })
     : ANSICHT[reiter](Z);
   for (const t of teile) if (t) el.appendChild(t);
   standZeigen();
@@ -414,8 +420,8 @@ function faceIdEinrichten() {
   }
   const feld = h("input", {
     id: "faceid-pin", class: "pin-feld", type: "password", inputmode: "numeric", pattern: "[0-9]*", autocomplete: "off",
-    maxlength: 6, "aria-label": "App-PIN", enterkeyhint: "done",
-    oninput: () => { feld.value = feld.value.replace(/\D/g, "").slice(0, 6); },
+    maxlength: 8, "aria-label": "App-PIN", enterkeyhint: "done",
+    oninput: () => { feld.value = feld.value.replace(/\D/g, "").slice(0, 8); },
     onkeydown: (e) => { if (e.key === "Enter") $("dialog-ok").click(); },
   });
   A.dialog({
@@ -427,7 +433,7 @@ function faceIdEinrichten() {
     okText: "PIN prüfen",
     onOk: async () => {
       const pin = feld.value.trim();
-      if (!T.pinGueltig(pin)) throw new Error("Die PIN hat 4 bis 6 Ziffern.");
+      if (!T.pinGueltig(pin)) throw new Error("Die PIN hat 4 bis 8 Ziffern.");
       const r = await T.oeffnen(pin);
       if (r.geloescht) {
         tokenWegNachFehlversuchen();
@@ -532,6 +538,85 @@ function faceIdEntfernen() {
   });
 }
 
+// ------------------------------------------------------------------ PIN ändern (1.2.21)
+
+function pinEingabe(id, label) {
+  const feld = h("input", {
+    id, class: "pin-feld", type: "password", inputmode: "numeric", pattern: "[0-9]*", autocomplete: "off", maxlength: 8,
+    "aria-label": label, enterkeyhint: "next",
+    oninput: () => { feld.value = feld.value.replace(/\D/g, "").slice(0, 8); },
+  });
+  return { feld, teil: h("div", { class: "formfeld" }, h("label", { for: id }, label), feld) };
+}
+
+/**
+ * „PIN ändern“ (Einstellungen): bisherige PIN (zählt wie beim Entsperren – 5 falsche löschen den Token), neue PIN zweimal (6–8
+ * Ziffern). Der mit der bisherigen PIN entschlüsselte Token wird mit der neuen PIN neu verschlüsselt (neues Salz, 600 000 Runden).
+ * Face ID hängt am alten Tresor (Kennung + „additional data“): der Umschlag wird VOR dem neuen Tresor entfernt – nie ein halb
+ * gültiger Zustand; danach bittet die App, Face ID neu einzurichten.
+ */
+function pinAendern() {
+  if (demo || !entsperrt || !T.vorhanden()) {
+    toast("Die PIN lässt sich nur ändern, wenn die App mit Token und PIN entsperrt ist.");
+    return;
+  }
+  const alt = pinEingabe("pin-alt", "Bisherige PIN");
+  const neu = pinEingabe("pin-neu", "Neue PIN (6 bis 8 Ziffern)");
+  const neu2 = pinEingabe("pin-neu2", "Neue PIN noch einmal");
+  neu2.feld.addEventListener("keydown", (e) => { if (e.key === "Enter") $("dialog-ok").click(); });
+  A.dialog({
+    titel: "PIN ändern",
+    inhalt: [
+      "Die bisherige PIN zählt wie beim Entsperren (5 falsche löschen den Token). Die neue PIN braucht 6 bis 8 Ziffern."
+        + (FI.eingerichtet() ? " Face ID wird dabei entfernt – danach richtest du es neu ein." : ""),
+      alt.teil, neu.teil, neu2.teil,
+    ],
+    okText: "PIN ändern",
+    onOk: async () => {
+      const a = alt.feld.value.trim(), n = neu.feld.value.trim(), n2 = neu2.feld.value.trim();
+      if (!T.pinGueltig(a)) throw new Error("Die bisherige PIN hat 4 bis 8 Ziffern.");
+      if (!T.pinGueltigNeu(n)) throw new Error("Die neue PIN braucht 6 bis 8 Ziffern.");
+      if (n !== n2) {
+        neu.feld.value = neu2.feld.value = "";
+        throw new Error("Die beiden neuen PINs sind verschieden – bitte noch einmal.");
+      }
+      const r = await T.oeffnen(a);
+      if (r.geloescht) {
+        tokenWegNachFehlversuchen();
+        return true;
+      }
+      if (!r.ok) {
+        alt.feld.value = "";
+        throw new Error("Falsche bisherige PIN – noch " + r.rest + (r.rest === 1 ? " Versuch" : " Versuche") + ", dann wird der Token gelöscht.");
+      }
+      if (!entsperrt) return true; // inzwischen gesperrt – nichts ändern
+      const mitFaceId = FI.eingerichtet();
+      FI.entfernen();              // fail-closed: zuerst den an den alten Tresor gebundenen Face-ID-Umschlag weg
+      try {
+        await T.speichern(r.token, n);
+      } catch (e) {
+        if (reiter === "mehr") zeichnen();
+        throw new Error((e && e.message ? e.message : "Die neue PIN konnte nicht gespeichert werden.") + " Die bisherige PIN gilt weiter"
+          + (mitFaceId ? "; Face ID wurde entfernt – bitte neu einrichten." : "."));
+      }
+      gh.tokenSetzen(r.token);
+      if (reiter === "mehr") zeichnen();
+      if (mitFaceId) {
+        A.dialog({
+          titel: "PIN geändert ✓",
+          inhalt: ["Ab jetzt gilt die neue PIN.",
+            "Face ID war an die alte PIN-Verschlüsselung gebunden und wurde entfernt. Richte es jetzt unter „Face ID“ neu ein – bis dahin entsperrst du mit der neuen PIN.",
+            "Der alte Passkey bleibt im iCloud-Schlüsselbund. " + passkeyLoeschenText()],
+          okText: "Verstanden", nurOk: true,
+        });
+        return true;
+      }
+      toast("PIN geändert ✓ – ab jetzt gilt die neue PIN.");
+      return true;
+    },
+  });
+}
+
 // ------------------------------------------------------------------ Push
 
 async function pushPruefen() {
@@ -554,9 +639,12 @@ async function pushPruefen() {
   } catch { /* beim nächsten Mal */ }
 }
 
+// 1.2.21: „Bitte kurz warten“ nur hinter einem offenen NORMALEN Auftrag (ki.yml) – ein laufender Express-Auftrag (Bremse) hält das
+// Push-Abo nicht auf. Vorher lief hier A.ausfuehren("push_abo") ins Leere (leere Bestätigung, unbehandelte Ablehnung, keine Meldung).
 function pushAn() {
-  if (A.offenerAuftrag()) {
-    A.ausfuehren("push_abo"); // zeigt „Bitte kurz warten“
+  const ki = A.kiAuftragOffen();
+  if (ki) {
+    A.bitteWarten(ki);
     return;
   }
   // abonnieren() fragt die Erlaubnis sofort an – muss direkt im Tipp passieren (iOS)
@@ -571,8 +659,9 @@ function pushAn() {
 }
 
 function pushAus() {
-  if (A.offenerAuftrag()) {
-    A.ausfuehren("push_abo");
+  const ki = A.kiAuftragOffen();
+  if (ki) {
+    A.bitteWarten(ki);
     return;
   }
   A.dialog({
@@ -596,7 +685,7 @@ function verdrahten() {
   $("token-feld").addEventListener("keydown", (e) => { if (e.key === "Enter") verbinden(); });
   $("pin-knopf").addEventListener("click", pinWeiter);
   $("pin-feld").addEventListener("keydown", (e) => { if (e.key === "Enter") pinWeiter(); });
-  $("pin-feld").addEventListener("input", () => { $("pin-feld").value = $("pin-feld").value.replace(/\D/g, "").slice(0, 6); });
+  $("pin-feld").addEventListener("input", () => { $("pin-feld").value = $("pin-feld").value.replace(/\D/g, "").slice(0, 8); });
   $("pin-vergessen").addEventListener("click", pinVergessen);
   $("faceid-knopf").addEventListener("click", faceIdEntsperren);
   $("knopf-aktualisieren").addEventListener("click", () => laden());
@@ -631,7 +720,22 @@ function verdrahten() {
   setInterval(() => { if (entsperrt) standZeigen(); }, 30000);
 }
 
+/** 1.2.21: läuft die App als oberstes Fenster? Jede Ausnahme beim Zugriff gilt als „nein“ (fail-closed). */
+function alsEigeneSeite() {
+  try {
+    return window.top === window.self;
+  } catch {
+    return false;
+  }
+}
+
 function start() {
+  // 1.2.21 (Prüfung 16.10.2026): in einem fremden iframe nichts rendern und nichts verdrahten (die Meta-CSP kann frame-ancestors
+  // nicht setzen, GitHub Pages schickt keinen Schutz-Header) – nur ein Satz, kein Verbinden-Schirm, kein Token-Feld
+  if (!alsEigeneSeite()) {
+    document.body.textContent = "Diese App läuft nur als eigene Seite.";
+    return;
+  }
   verdrahten();
   A.dialogVerdrahten();
   A.init({ neuLaden: laden, toast, handy: () => Z.handy, entsperrt: () => entsperrt, fertig: (a) => K.auftragFertig(a), geaendert: () => K.zeichnen() });

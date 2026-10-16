@@ -4,6 +4,15 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.21
+
+* **Längere PIN für mehr Sicherheit:** Neue PINs haben jetzt 6 bis 8 Ziffern. Hast du noch eine kürzere PIN, funktioniert sie weiter – in den Einstellungen steht dann oben die Empfehlung „PIN auf 6 Stellen ändern“ mit dem Knopf **PIN ändern** (bisherige PIN, neue PIN zweimal). Warum: Kopiert jemand den Speicher des iPhones, sind 4 Stellen in Minuten durchprobierbar, 6 Stellen erst in Stunden bis Tagen. Am bequemsten und sichersten ist Face ID.
+* **Face ID nach dem PIN-Wechsel neu einrichten:** Face ID hängt an der alten PIN-Verschlüsselung. Beim PIN-Ändern entfernt die App Face ID deshalb sauber und bittet dich, es neu einzurichten.
+* **Stärkere Verschlüsselung:** Neu gespeicherte Tokens werden mit 600 000 statt 310 000 Rechenrunden aus der PIN geschützt (ältere bleiben lesbar und bekommen die neuen Runden beim nächsten PIN-Ändern).
+* **Gewinnschutz-Karte ehrlicher:** Ist der Gewinnschutz ausgeschaltet und würde sonst auslösen, steht dort „Würde parken (Schalter aus)“ statt „Ausgelöst: ja“.
+* **Kleine Schutz-Verbesserungen:** Die App läuft nicht mehr eingebettet in einer fremden Seite. „Benachrichtigungen“ wartet nur noch hinter einem normalen Auftrag (nicht hinter einer Bremse) und meldet sich immer zurück. Ein Knopf ohne Rückfrage schickt nie ein „JA“ von selbst.
+* Beispiel-Daten (Demo) ohne Zeiten in der Zukunft.
+
 ## Neu in 1.2.20
 
 * **Abgebrochene Läufe sicherer erkannt:** Ob ein Auftrag in der Cloud schon lief, erkennt die App jetzt auch an den Schritten des Laufs – auch wenn sie den Zustand „läuft gerade“ im Hintergrund verpasst hat. Ein schon gestarteter, dann abgebrochener Lauf wird nie automatisch neu gesendet (außer Brems-Befehlen).
@@ -227,7 +236,10 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
 
 * **Token nur am Gerät:** Der persönliche GitHub-Token (fine-grained, nur `Athokawe/finanzen`, Contents read-only, Actions read
   and write) wird nie angezeigt und liegt nur verschlüsselt in `localStorage`: AES-GCM 256, Schlüssel per PBKDF2-SHA-256 mit
-  310 000 Runden und zufälligem Salz aus der PIN (Web Crypto, Schlüssel nicht exportierbar).
+  600 000 Runden (ab 1.2.21; ältere Tresore tragen ihre 310 000 Runden selbst und bleiben lesbar) und zufälligem Salz aus der PIN
+  (Web Crypto, Schlüssel nicht exportierbar).
+* **PIN:** neue PINs 6 bis 8 Ziffern; ältere 4–5-stellige PINs entsperren weiter, die Einstellungen empfehlen dann „PIN auf 6 Stellen
+  ändern“. Ob die PIN kurz ist, steht nur als Merker (`kurz`: ja/nein) im Tresor – nie die PIN selbst.
 * **PIN-Sperre** beim Öffnen und nach 5 Minuten im Hintergrund; **5 falsche PINs löschen den Token** (neu verbinden nötig).
   „Abmelden“ löscht Token und PIN (und Face ID).
 * **Face ID (optional, ab 1.2.8):** zweiter Umschlag für den Token, Schlüssel per HKDF-SHA-256 aus der PRF-Ausgabe eines
@@ -239,9 +251,16 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
   `noindex`, kein Referrer. Fremde Texte (Schlagzeilen, KI-Texte) werden nur als Text angezeigt; Links nur `http(s)`, in neuem
   Fenster mit `rel="noopener noreferrer"`.
 * Der Token kann kein Geld bewegen und kommt an keine anderen Repos. Grenze: Wer das entsperrte iPhone **und** die PIN hat,
-  kann Aufträge schicken – darum bleibt die iPhone-Sperre die erste Schutzschicht. Eine 4–6-stellige PIN schützt den
-  gespeicherten Token gegen Gelegenheits-Zugriff, nicht gegen jemanden, der den Speicher des Geräts ausliest und lange
-  durchprobiert. Im Zweifel den Token auf github.com widerrufen.
+  kann Aufträge schicken – darum bleibt die iPhone-Sperre die erste Schutzschicht. Ehrlich: Die Sperre nach 5 falschen PINs gilt
+  nur in der App. Kopiert jemand den Speicher des Geräts (z. B. aus einem unverschlüsselten Backup), sind **4 Stellen in Minuten
+  durchprobierbar, 6 Stellen in Stunden bis Tagen**. **Face ID ist der empfohlene Weg.** Im Zweifel den Token auf github.com
+  widerrufen.
+* **Eigene Seite, kein iframe:** Läuft die App eingebettet in einer fremden Seite, zeigt sie nur „Diese App läuft nur als eigene
+  Seite.“ (ohne Verbinden-Schirm, ohne Token-Feld).
+* **Regel für das GitHub-Konto:** Alle GitHub-Pages-Seiten eines Kontos teilen sich dieselbe Herkunft
+  (`https://athokawe.github.io`) – also auch `localStorage` (Tresor, Face-ID-Umschlag) und die Passkey-Domain. Darum **auf dem
+  GitHub-Konto Athokawe keine weitere GitHub-Pages-Seite veröffentlichen.** Dauerhaft lösen ließe sich das nur mit einer eigenen
+  Domain (CNAME) nur für diese App; im Code der App geht es nicht.
 
 ## Einrichtung (am iPhone)
 
@@ -252,7 +271,7 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
    * Name `Finanzen Handy`, Ablauf 1 Jahr
    * Repository access: **Only select repositories** → `Athokawe/finanzen`
    * Permissions: **Contents: Read-only**, **Actions: Read and write**, **Metadata: Read-only**
-3. Token kopieren, in der App einfügen → **Verbinden** (die App testet den Abruf) → PIN mit 4–6 Ziffern festlegen.
+3. Token kopieren, in der App einfügen → **Verbinden** (die App testet den Abruf) → PIN mit 6–8 Ziffern festlegen.
 4. Optional: Einstellungen (Zahnrad) → **Benachrichtigungen erlauben**.
 
 Die App erklärt die Schritte beim ersten Öffnen selbst.

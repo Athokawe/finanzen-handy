@@ -82,7 +82,8 @@
    "kurs_eur": 70000.0,
    "kurs_zeit": "2026-10-11T06:20:00+00:00",
    "abstand_prozent": -4.11,
-   "ausgeloest": false
+   "ausgeloest": false,
+   "wuerde_ausloesen": false
   },
   "lage": [
    "Coin-Bot EIN: die KI steuert (Stufe „normal“), die Notbremse läuft in jedem Lauf mit.",
@@ -222,7 +223,7 @@
     "menge": 0.21,
     "betrag": 31.5,
     "preis": null,
-    "gesendet": "2026-11-20T08:20+00:00",
+    "gesendet": "2026-10-11T05:20+00:00",
     "grund": "passt auch zu einem unklaren Auftrag des Trend-Bots"
    }
   ]
@@ -310,7 +311,7 @@
    "gestartet": true,
    "regel": "stündlich: kaufen nur Coins, die über 24 h UND 3 Tage im Plus sind (Top 3 nach 24 h); raus bei 5 % unter dem Kaufkurs; Gewinner laufen lassen, bis die Markt-Ampel rot ist",
    "start": {
-    "zeit": "2026-10-16T08:20:00+00:00",
+    "zeit": "2026-09-06T05:20:00+00:00",
     "eur": 300.0,
     "btc_kurs": 74100.0
    },
@@ -325,26 +326,26 @@
      "wert_eur": 103.4,
      "einstand_eur": 100.0,
      "kaufkurs": 0.137,
-     "seit": "2026-10-16T08:20:00+00:00"
+     "seit": "2026-09-06T05:20:00+00:00"
     },
     {
      "coin": "FIL",
      "wert_eur": 99.8,
      "einstand_eur": 100.0,
      "kaufkurs": 1.05,
-     "seit": "2026-10-16T08:20:00+00:00"
+     "seit": "2026-09-06T05:20:00+00:00"
     },
     {
      "coin": "INJ",
      "wert_eur": 100.92,
      "einstand_eur": 100.0,
      "kaufkurs": 9.1,
-     "seit": "2026-10-16T09:20:00+00:00"
+     "seit": "2026-09-06T06:20:00+00:00"
     }
    ],
    "trades_letzte": [
     {
-     "zeit": "2026-10-16T08:20:00+00:00",
+     "zeit": "2026-09-06T05:20:00+00:00",
      "coin": "ATOM",
      "seite": "buy",
      "betrag": 100.0,
@@ -352,7 +353,7 @@
      "grund": "kauf"
     },
     {
-     "zeit": "2026-10-16T09:20:00+00:00",
+     "zeit": "2026-09-06T06:20:00+00:00",
      "coin": "ATOM",
      "seite": "sell",
      "betrag": 94.6,
@@ -361,7 +362,7 @@
      "gv": -5.4
     },
     {
-     "zeit": "2026-10-16T09:20:00+00:00",
+     "zeit": "2026-09-06T06:20:00+00:00",
      "coin": "INJ",
      "seite": "buy",
      "betrag": 100.0,
@@ -786,7 +787,7 @@
     "bot": "Coin-Bot",
     "name": "Rückkauf einfach",
     "testet": "Gleiche Notbremse wie heute, aber Rückkauf schon, wenn Bitcoin über der 100- und der 200-Tage-Linie liegt (statt erst bei bestätigtem Aufwärtstrend).",
-    "seit": "2026-10-16T09:20+00:00",
+    "seit": "2026-09-06T06:20+00:00",
     "wert_eur": 301.4,
     "referenz": {
      "name": "heutige Regeln",
@@ -800,13 +801,13 @@
     ],
     "status": "investiert",
     "regel": null,
-    "stand": "2026-11-20T09:20+00:00",
+    "stand": "2026-10-11T06:20+00:00",
     "auswertung": {
      "urteil": "klar_vorne",
      "urteil_text": "klar vorne",
      "tage": 35,
      "vorsprung_prozent": 6.1,
-     "seit": "2026-10-16T09:20+00:00",
+     "seit": "2026-09-06T06:20+00:00",
      "gegen": "heutige Regeln",
      "text": "Seit 35 Tagen +6,1 % vor „heutige Regeln“ und seit mindestens 14 Tagen durchgehend vorne – klar besser. Vorschlag: Umstellung prüfen."
     },
@@ -816,7 +817,7 @@
     "bot": "Trend-Bot",
     "name": "„straff“: raus 5 % unter dem Kaufkurs",
     "testet": "Stündlich: nur Coins mit 24 h UND 3 Tagen im Plus, Verkauf 5 % unter dem Kaufkurs – gegen die heutigen Trend-Regeln (Rechengeld).",
-    "seit": "2026-10-16T08:20+00:00",
+    "seit": "2026-09-06T05:20+00:00",
     "wert_eur": 318.2,
     "referenz": {
      "name": "Trend heutige Regeln",
@@ -830,13 +831,13 @@
     ],
     "status": "hält OP, FIL, INJ",
     "regel": null,
-    "stand": "2026-11-20T09:20+00:00",
+    "stand": "2026-10-11T06:20+00:00",
     "auswertung": {
      "urteil": "vorne",
      "urteil_text": "vorne",
      "tage": 35,
      "vorsprung_prozent": 3.2,
-     "seit": "2026-10-16T09:20+00:00",
+     "seit": "2026-09-06T06:20+00:00",
      "gegen": "Trend heutige Regeln",
      "text": "Seit 35 Tagen +3,2 % vor „Trend heutige Regeln“ – noch kein klares Urteil."
     },
@@ -846,7 +847,7 @@
     "bot": "Raster-Bot",
     "name": "Raster nach den aktuellen Regeln (Rechengeld)",
     "testet": "Der Raster-Bot mit 300 € Rechengeld nach seiner wirksamen Kaufregel („Einbruch“) – gegen einfaches Halten von Bitcoin.",
-    "seit": "2026-10-11T06:00+00:00",
+    "seit": "2026-09-01T03:00+00:00",
     "wert_eur": 302.6,
     "referenz": {
      "name": "Bitcoin halten",
@@ -855,13 +856,13 @@
     "weitere": [],
     "status": "läuft",
     "regel": null,
-    "stand": "2026-11-20T09:20+00:00",
+    "stand": "2026-10-11T06:20+00:00",
     "auswertung": {
      "urteil": "gleichauf",
      "urteil_text": "gleichauf",
      "tage": 20,
      "vorsprung_prozent": -0.4,
-     "seit": "2026-10-31T09:20+00:00",
+     "seit": "2026-09-21T06:20+00:00",
      "gegen": "Bitcoin halten",
      "text": "Seit 20 Tagen gleichauf mit „Bitcoin halten“ (−0,4 %)."
     },
@@ -871,22 +872,22 @@
     "bot": "Coin-Bot",
     "name": "Heutige Regeln (Rechengeld)",
     "testet": "Die Regeln, nach denen der echte Coin-Bot parkt (Notbremse und Gewinnschutz der aktuellen Stufe, Rückkauf bei bestätigtem Aufwärtstrend) – gegen einfaches Halten.",
-    "seit": "2026-10-11T07:20+00:00",
+    "seit": "2026-09-01T04:20+00:00",
     "wert_eur": 284.1,
     "referenz": {
      "name": "Bitcoin halten",
      "wert_eur": 300.2
     },
     "weitere": [],
-    "status": "geparkt seit 02.11.",
+    "status": "geparkt seit 23.09.",
     "regel": null,
-    "stand": "2026-11-20T09:20+00:00",
+    "stand": "2026-10-11T06:20+00:00",
     "auswertung": {
      "urteil": "zu_frueh",
      "urteil_text": "zu früh",
      "tage": 9,
      "vorsprung_prozent": -5.4,
-     "seit": "2026-11-11T09:20+00:00",
+     "seit": "2026-10-02T06:20+00:00",
      "gegen": "Bitcoin halten",
      "text": "Seit 9 Tagen −5,4 % gegenüber „Bitcoin halten“ – zu früh für ein Urteil (ab 14 Tagen, klar ab 28)."
     },
