@@ -20,4 +20,6 @@ export const BRANCH = "main";
 export const BITPANDA_URL = "https://web.bitpanda.com/home";
 export const BITPANDA_EINZAHLEN_URL = "https://web.bitpanda.com/trade/deposit";
 export const BITPANDA_SWAP_URL = "https://web.bitpanda.com/trade/swap";
+// Fusion: dort handeln Raster- und Trend-Bot (Paare COIN-EURCV, offene Orders des Raster-Bots)
+export const BITPANDA_FUSION_URL = "https://web.bitpanda.com/fusion";
 // Coin-Links: „/asset/*“ ist zwar freigegeben, das Pfadformat (Kürzel oder interne Nummer) aber nicht belegt -> BITPANDA_URL

@@ -33,7 +33,7 @@
      "richtung": "stuetzend",
      "staerke": "schwach",
      "zeitraum": "kurzfristig",
-     "bots": "Stützend: der Coin-Bot bleibt investiert (Beispiel, erfunden)."
+     "bots": "Stützend: der Coin-Bot bleibt investiert, der Trend-Bot behält seine Coins (Beispiel, erfunden)."
     }
    },
    {
@@ -85,8 +85,12 @@
    "text": "Coin-Bot (Stufe normal): hält Bitcoin; Notbremse erst nach weiteren 5,1 % (Grenze −7 % an einem Tag). (Beispiel, erfunden)"
   },
   {
-   "bot": "Aktien-Autopilot",
-   "text": "Aktien-Autopilot: an; hält Beispiel-Welt-ETF. (Beispiel, erfunden)"
+   "bot": "Trend-Bot",
+   "text": "Trend-Bot: Markt-Ampel grün, Bitcoin 4,2 % über der 50-Tage-Linie; aus (nur Schattendepot). (Beispiel, erfunden)"
+  },
+  {
+   "bot": "Raster-Bot",
+   "text": "Raster-Bot: an, handelt SOL und ADA. (Beispiel, erfunden)"
   }
  ],
  "fehler": null,

@@ -10,22 +10,30 @@
  },
  "gesamt": {
   "name": "Gesamtvermögen",
-  "gesamt_eur": 1347.06,
+  "gesamt_eur": 1552.06,
   "coin_topf_eur": 1234.56,
+  "trend_topf_eur": 0.0,
+  "raster_topf_eur": 205.0,
   "aktien_eur": 100.0,
   "reserve_eur": 0.0,
   "euro_eur": 12.5,
   "euro_bekannt": true,
-  "anteil_coin_topf_prozent": 91.6,
-  "anteil_aktien_prozent": 7.4,
+  "trend_echt": false,
+  "raster_echt": true,
+  "anteil_coin_topf_prozent": 79.5,
+  "anteil_trend_topf_prozent": 0.0,
+  "anteil_raster_topf_prozent": 13.2,
+  "anteil_aktien_prozent": 6.4,
   "anteil_reserve_prozent": 0.0,
+  "anteil_euro_prozent": 0.8,
   "vollstaendig": true,
   "coin_topf_geschaetzt": false,
   "unvollstaendig_grund": null,
-  "anteil_euro_prozent": 0.9,
   "zeit": "2026-10-09T19:20:00+00:00",
   "coin_topf_zeit": "2026-10-11T06:20:00+00:00",
-  "aktien_zeit": "2026-10-09T19:20:00+00:00"
+  "aktien_zeit": "2026-10-09T19:20:00+00:00",
+  "trend_topf_zeit": null,
+  "raster_topf_zeit": "2026-10-11T06:20:55+00:00"
  },
  "kern_bot": {
   "name": "Coin-Bot",
@@ -113,6 +121,261 @@
    "Hält: Welt-ETF 100,00 € (erfundener Demo-Wert)."
   ]
  },
+ "raster_bot": {
+  "name": "Raster-Bot",
+  "status": "an",
+  "topf_eur": 205.0,
+  "einsatz_eur": 200.0,
+  "budget_eur": 200.0,
+  "eurcv": 120.0,
+  "ergebnis_eur": 5.0,
+  "ergebnis_prozent": 2.5,
+  "realisiert_eur": 1.5,
+  "gebuehren_eur": 0.4,
+  "bitcoin_halten_eur": 191.5,
+  "start_zeit": "2026-10-09T06:00:00+00:00",
+  "kurse_fehlen": null,
+  "coins": [
+   {
+    "coin": "SOL",
+    "wert_eur": 50.0,
+    "stufen": 4,
+    "sperre": false,
+    "auslaufend": false
+   },
+   {
+    "coin": "ADA",
+    "wert_eur": 35.0,
+    "stufen": 3,
+    "sperre": false,
+    "auslaufend": true
+   }
+  ],
+  "heute": {
+   "kaeufe": 1,
+   "verkaeufe": 1
+  },
+  "trades_letzte": [
+   {
+    "zeit": "2026-10-11T06:08:00+00:00",
+    "coin": "SOL",
+    "seite": "kauf",
+    "eur": 25.0,
+    "ausblend_id": "5f27d7b69932"
+   },
+   {
+    "zeit": "2026-10-10T22:41:00+00:00",
+    "coin": "ADA",
+    "seite": "verkauf",
+    "eur": 17.5,
+    "ausblend_id": "2d775138a76d"
+   }
+  ],
+  "letzter_trade": "2026-10-11T06:08:00+00:00",
+  "verlustdeckel_zeit": null,
+  "ereignisse": [
+   {
+    "zeit": "2026-10-11T05:38:00+00:00",
+    "art": "coin_rein",
+    "text": "Beispiel: SOL neu im Raster-Bot (4 Stufen)",
+    "ausblend_id": "d40e3307f5eb"
+   },
+   {
+    "zeit": "2026-10-09T06:00:00+00:00",
+    "art": "ein",
+    "text": "Beispiel: Raster-Bot eingeschaltet (200 €)",
+    "ausblend_id": "71f155a7b384"
+   }
+  ],
+  "trades_ausgeblendet": 0,
+  "ereignisse_ausgeblendet": 0,
+  "letzter_lauf": "2026-10-11T06:20:55+00:00",
+  "schatten": {
+   "status": "an",
+   "runde": 1,
+   "wert_eur": 304.2,
+   "start_eur": 300.0,
+   "start_zeit": "2026-10-04T06:00:00+00:00",
+   "bitcoin_halten_eur": 301.0,
+   "zeit": "2026-10-11T06:00:00+00:00"
+  },
+  "lage": [
+   "Raster-Bot EIN mit 1 Coin: SOL, Eignung 70, 4 Stufen.",
+   "Heute 1 von 4 Käufen und 0 von 4 Verkäufen."
+  ],
+  "ki_vorschlag": {
+   "aktion": "keine",
+   "betrag_eur": null,
+   "zuversicht": 66,
+   "begruendung": "Der Raster-Bot läuft mit zwei geeigneten Coins in einem ruhigen Markt – so lassen.",
+   "hinweis": null,
+   "zeit": "2026-10-11T06:38:34+00:00",
+   "erledigt": false,
+   "titel": "Raster-Bot so lassen",
+   "modus": null
+  },
+  "unklare_auftraege": [
+   {
+    "nr": 42,
+    "pair": "SOL-EURCV",
+    "seite": "sell",
+    "typ": "markt",
+    "menge": 0.21,
+    "betrag": 31.5,
+    "preis": null,
+    "gesendet": "2026-10-11T05:20+00:00",
+    "grund": "passt auch zu einem unklaren Auftrag des Trend-Bots"
+   }
+  ]
+ },
+ "trend_bot": {
+  "name": "Trend-Bot",
+  "status": "aus",
+  "modus": "schatten",
+  "topf_eur": null,
+  "einsatz_eur": 0.0,
+  "ergebnis_eur": null,
+  "ergebnis_prozent": null,
+  "bitcoin_halten_eur": null,
+  "wert_zeit": null,
+  "markt_ampel": {
+   "gruen": true,
+   "abstand_prozent": 5.2,
+   "tag": "2026-10-10"
+  },
+  "naechste_umschichtung": "morgen ab 00:05 UTC (etwa 02:20 Uhr)",
+  "verlustdeckel_prozent": 0.0,
+  "positionen": [],
+  "rangliste": [
+   {
+    "rang": 1,
+    "coin": "AAVE",
+    "r14_prozent": 9.9
+   },
+   {
+    "rang": 2,
+    "coin": "NEAR",
+    "r14_prozent": 7.1
+   },
+   {
+    "rang": 3,
+    "coin": "ATOM",
+    "r14_prozent": 4.4
+   },
+   {
+    "rang": 4,
+    "coin": "SOL",
+    "r14_prozent": 1.2
+   },
+   {
+    "rang": 5,
+    "coin": "DOT",
+    "r14_prozent": -0.8
+   }
+  ],
+  "trades_letzte": [],
+  "letzter_trade": null,
+  "verlustdeckel_zeit": null,
+  "ereignisse": [],
+  "trades_ausgeblendet": 0,
+  "ereignisse_ausgeblendet": 0,
+  "letzter_lauf": "2026-10-11T06:21:50+00:00",
+  "schatten": {
+   "wert_eur": 296.5,
+   "start_eur": 300.0,
+   "start_zeit": "2026-10-06T06:21:50+00:00",
+   "bitcoin_halten_eur": 299.25,
+   "zeit": "2026-10-11T06:21:50+00:00",
+   "positionen": [
+    "AAVE",
+    "NEAR",
+    "ATOM"
+   ]
+  },
+  "lage": [
+   "Markt-Ampel grün: Bitcoin liegt +4,0 % über der 50-Tage-Linie.",
+   "Schattendepot: hält SOL (Rang 1) – bleibt bis Rang 5."
+  ],
+  "ki_vorschlag": {
+   "aktion": "einschalten",
+   "betrag_eur": 150.0,
+   "zuversicht": 62,
+   "begruendung": "Die Markt-Ampel ist seit Tagen grün (+5 % zur 50-Tage-Linie) und das Schattendepot liegt vor „Bitcoin halten“.",
+   "hinweis": null,
+   "zeit": "2026-10-11T06:38:34+00:00",
+   "erledigt": false,
+   "titel": "Trend-Bot mit 150 € einschalten",
+   "modus": "trend_ein"
+  },
+  "schatten_straff": {
+   "gestartet": true,
+   "regel": "stündlich: kaufen nur Coins, die über 24 h UND 3 Tage im Plus sind (Top 3 nach 24 h); raus bei 5 % unter dem Kaufkurs; Gewinner laufen lassen, bis die Markt-Ampel rot ist",
+   "start": {
+    "zeit": "2026-09-06T05:20:00+00:00",
+    "eur": 300.0,
+    "btc_kurs": 74100.0
+   },
+   "wert_eur": 304.12,
+   "start_eur": 300.0,
+   "bitcoin_halten_eur": 301.05,
+   "vorsprung_prozent": 1.02,
+   "bar_eur": 0.0,
+   "positionen": [
+    {
+     "coin": "OP",
+     "wert_eur": 103.4,
+     "einstand_eur": 100.0,
+     "kaufkurs": 0.137,
+     "seit": "2026-09-06T05:20:00+00:00"
+    },
+    {
+     "coin": "FIL",
+     "wert_eur": 99.8,
+     "einstand_eur": 100.0,
+     "kaufkurs": 1.05,
+     "seit": "2026-09-06T05:20:00+00:00"
+    },
+    {
+     "coin": "INJ",
+     "wert_eur": 100.92,
+     "einstand_eur": 100.0,
+     "kaufkurs": 9.1,
+     "seit": "2026-09-06T06:20:00+00:00"
+    }
+   ],
+   "trades_letzte": [
+    {
+     "zeit": "2026-09-06T05:20:00+00:00",
+     "coin": "ATOM",
+     "seite": "buy",
+     "betrag": 100.0,
+     "kurs": 1.62,
+     "grund": "kauf"
+    },
+    {
+     "zeit": "2026-09-06T06:20:00+00:00",
+     "coin": "ATOM",
+     "seite": "sell",
+     "betrag": 94.6,
+     "kurs": 1.53,
+     "grund": "Stopp −5 % unter Kaufkurs",
+     "gv": -5.4
+    },
+    {
+     "zeit": "2026-09-06T06:20:00+00:00",
+     "coin": "INJ",
+     "seite": "buy",
+     "betrag": 100.0,
+     "kurs": 9.1,
+     "grund": "kauf"
+    }
+   ],
+   "letzter_lauf": "2026-10-11T06:38:34+00:00",
+   "hinweis": null,
+   "verlauf": []
+  },
+  "unklare_auftraege": []
+ },
  "alarme": [
   {
    "id": 9000,
@@ -131,6 +394,22 @@
    "titel": "Beispiel: ETF-Sparrate ausgeführt",
    "text": "Erfundener Beispieltext.",
    "gelesen": false
+  }
+ ],
+ "hinweise": [
+  {
+   "nr": 4,
+   "text": "Beispiel: SOL hat am Freitag ein großes Netzwerk-Upgrade",
+   "quelle": "KI",
+   "herkunft": "aus Frage",
+   "bis": "2026-10-18T06:27:00+00:00"
+  },
+  {
+   "nr": 3,
+   "text": "Beispiel: diese Woche keine großen Umschichtungen (erfundener Text für die Demo)",
+   "quelle": "App",
+   "herkunft": null,
+   "bis": null
   }
  ],
  "freiminuten": {
@@ -188,7 +467,7 @@
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Alles parken: Coin-Topf in EURCV verkaufen, Coin-Bot und Regelwerk aus (Aktien bleiben)",
+   "text": "Alles parken: Coin-Topf, Raster- und Trend-Bot in EURCV verkaufen und ausschalten (Aktien bleiben)",
    "express": true,
    "express_bestaetigung": "JA"
   },
@@ -197,7 +476,7 @@
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "Nur anhalten: Coin-Bot und Regelwerk aus – nichts wird verkauft",
+   "text": "Nur anhalten: Coin-Bot, Regelwerk aus; Raster- und Trend-Bot pausiert – nichts wird verkauft",
    "express": true,
    "express_bestaetigung": ""
   },
@@ -239,7 +518,7 @@
   },
   {
    "modus": "einstellung",
-   "bestaetigung": "JA(;(stufe=(sicher|normal)|auto=[01]|streuung=(aus|kern_satellit)|kern=\\d{2}|ab=\\d{3,6}))+",
+   "bestaetigung": "JA(;(stufe=(sicher|normal)|auto=[01]|streuung=(aus|kern_satellit|korb)|kern=\\d{2}|ab=\\d{3,6}|korb=[2-8]))+",
    "ja_noetig": true,
    "beispiel": "JA;stufe=normal;auto=1",
    "text": "Stufe des Coin-Bots (sicher/normal), Automatik, Streuung",
@@ -301,11 +580,146 @@
    "express_bestaetigung": null
   },
   {
+   "modus": "surfen_ein",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=200",
+   "text": "Raster-Bot EIN mit Betrag aus dem Coin-Topf",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "surfen_betrag",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=250",
+   "text": "Raster-Topf ändern",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "surfen_zurueck",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)(;sofort=JA)?",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=50",
+   "text": "Teil zurück in den Coin-Topf (;sofort=JA = auch mit Verlust)",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "surfen_aus",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Raster-Bot AUS (alles zurück in den Coin-Topf)",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "surfen_pause",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Raster-Bot pausieren",
+   "express": true,
+   "express_bestaetigung": "JA"
+  },
+  {
+   "modus": "surfen_deckel",
+   "bestaetigung": "JA;prozent=(\\d{1,2})",
+   "ja_noetig": true,
+   "beispiel": "JA;prozent=30",
+   "text": "Verlustdeckel (0 = keiner, sonst 10..60 %)",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
    "modus": "surfen_recherchen",
    "bestaetigung": "JA;anzahl=([1-4])",
    "ja_noetig": true,
    "beispiel": "JA;anzahl=2",
-   "text": "feste Raster-Recherchen je Tag (1..4) – speisen das Raster-Schattendepot",
+   "text": "feste Raster-Recherchen je Tag (1..4)",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "trend_ein",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=200",
+   "text": "Trend-Bot EIN mit Betrag aus dem Coin-Topf (mindestens 150 €)",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "trend_betrag",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=250",
+   "text": "Trend-Topf ändern",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "trend_zurueck",
+   "bestaetigung": "JA;betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)",
+   "ja_noetig": true,
+   "beispiel": "JA;betrag=50",
+   "text": "Teil zurück in den Coin-Topf",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "trend_aus",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Trend-Bot AUS",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "trend_pause",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Trend-Bot pausieren",
+   "express": true,
+   "express_bestaetigung": "JA"
+  },
+  {
+   "modus": "trend_deckel",
+   "bestaetigung": "JA;prozent=(\\d{1,2})",
+   "ja_noetig": true,
+   "beispiel": "JA;prozent=30",
+   "text": "Verlustdeckel (0 = keiner, sonst 10..60 %)",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "bot_umschichten",
+   "bestaetigung": "JA;von=(trend|raster);nach=(trend|raster);(?:betrag=(\\d{1,5}(?:[.,]\\d{1,2})?)|(alles)=JA)(;sofort=JA)?",
+   "ja_noetig": true,
+   "beispiel": "JA;von=trend;nach=raster;betrag=100",
+   "text": "Geld direkt zwischen Trend-Bot und Raster-Bot umschichten – keine Bitcoin-Order (;alles=JA statt betrag = ganzer Topf, der abgebende Bot geht aus; ;sofort=JA nur vom Raster-Bot = auch im Minus verkaufen; Ziel aus = wird eingeschaltet, Ziel pausiert = bleibt pausiert)",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "hinweis",
+   "bestaetigung": "app:(1|3|7|0)\\|.{1,300}",
+   "ja_noetig": false,
+   "beispiel": "app:7|SOL hat am Freitag ein Upgrade",
+   "text": "Hinweis an den Bot/die KI (ohne JA, nur Text; Zahl = Gültigkeit 1/3/7 Tage, 0 = bis zum Löschen)",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "hinweis_loeschen",
+   "bestaetigung": "\\d{1,6}",
+   "ja_noetig": false,
+   "beispiel": "3",
+   "text": "Hinweis Nr. … löschen",
    "express": false,
    "express_bestaetigung": null
   },
@@ -330,11 +744,29 @@
    "express_bestaetigung": null
   },
   {
+   "modus": "liste_ausblenden",
+   "bestaetigung": "bot=(trend|raster);liste=(trades|ereignisse);ids=(alle|[0-9a-f]{12}(,[0-9a-f]{12}){0,49})(;bis=\\d{9,10})?",
+   "ja_noetig": false,
+   "beispiel": "bot=trend;liste=trades;ids=alle",
+   "text": "Letzte Trades bzw. Ereignisse eines Bots in beiden Apps ausblenden (ohne JA; ids=alle = Liste leeren, sonst die „id“ der Einträge mit Komma) – nichts wird gelöscht, neue Einträge erscheinen wieder",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
    "modus": "push_abo",
    "bestaetigung": "(\\{.*\\}|loeschen:[0-9a-f]{16})",
    "ja_noetig": false,
    "beispiel": "{\"endpoint\":\"https://web.push.apple.com/…\",\"keys\":{\"p256dh\":\"…\",\"auth\":\"…\"}}",
    "text": "Web-Push-Abo speichern (JSON des Abos) oder löschen (loeschen:<Hash>), ohne JA",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "order_klaeren",
+   "bestaetigung": "JA;bot=(raster|trend);nr=(\\d{1,7});(?:id=([A-Za-z0-9_-]{1,64})|(verworfen))",
+   "ja_noetig": true,
+   "beispiel": "JA;bot=raster;nr=12;verworfen",
+   "text": "Auftrag mit unklarem Ausgang klären: einer Fusion-Order zuordnen (id=…) oder verwerfen (nie ausgeführt) – nie eine Order",
    "express": false,
    "express_bestaetigung": null
   }
@@ -343,10 +775,15 @@
   "abos": [],
   "vapid_eingerichtet": true
  },
+ "bot_deckel": {
+  "anteil_prozent": 50,
+  "frei_eur": 160.0,
+  "coin_topf_eur": 1234.56,
+  "bot_toepfe_eur": 205.0
+ },
  "schattendepots": {
   "liste": [
    {
-    "kennung": "coin_einfach",
     "bot": "Coin-Bot",
     "name": "Rückkauf einfach",
     "testet": "Gleiche Notbremse wie heute, aber Rückkauf schon, wenn Bitcoin über der 100- und der 200-Tage-Linie liegt (statt erst bei bestätigtem Aufwärtstrend).",
@@ -373,60 +810,10 @@
      "seit": "2026-09-06T06:20+00:00",
      "gegen": "heutige Regeln",
      "text": "Seit 35 Tagen +6,1 % vor „heutige Regeln“ und seit mindestens 14 Tagen durchgehend vorne – klar besser. Vorschlag: Umstellung prüfen."
-    }
-   },
-   {
-    "kennung": "coin_leiter",
-    "bot": "Coin-Bot",
-    "name": "Heutige Regeln (Rechengeld)",
-    "testet": "Die Regeln, nach denen der echte Coin-Bot parkt (Notbremse und Gewinnschutz der aktuellen Stufe, Rückkauf bei bestätigtem Aufwärtstrend) – gegen einfaches Halten.",
-    "seit": "2026-09-01T04:20+00:00",
-    "wert_eur": 284.1,
-    "referenz": {
-     "name": "Bitcoin halten",
-     "wert_eur": 300.2
     },
-    "weitere": [],
-    "status": "geparkt seit 23.09.",
-    "regel": null,
-    "stand": "2026-10-11T06:20+00:00",
-    "auswertung": {
-     "urteil": "zu_frueh",
-     "urteil_text": "zu früh",
-     "tage": 9,
-     "vorsprung_prozent": -5.4,
-     "seit": "2026-10-02T06:20+00:00",
-     "gegen": "Bitcoin halten",
-     "text": "Seit 9 Tagen −5,4 % gegenüber „Bitcoin halten“ – zu früh für ein Urteil (ab 14 Tagen, klar ab 28)."
-    }
+    "kennung": "coin_einfach"
    },
    {
-    "kennung": "trend_schatten",
-    "bot": "Trend-Bot",
-    "name": "Heutige Regeln (Rechengeld)",
-    "testet": "Der Trend-Bot nach seinen festen Regeln (14-Tage-Rangliste, Markt-Ampel) mit 300 € Rechengeld – gegen einfaches Halten von Bitcoin.",
-    "seit": "2026-09-06T05:20+00:00",
-    "wert_eur": 305.9,
-    "referenz": {
-     "name": "Bitcoin halten",
-     "wert_eur": 299.4
-    },
-    "weitere": [],
-    "status": "hält AAVE, ATOM, NEAR",
-    "regel": null,
-    "stand": "2026-10-11T06:20+00:00",
-    "auswertung": {
-     "urteil": "vorne",
-     "urteil_text": "vorne",
-     "tage": 35,
-     "vorsprung_prozent": 2.2,
-     "seit": "2026-09-06T06:20+00:00",
-     "gegen": "Bitcoin halten",
-     "text": "Seit 35 Tagen +2,2 % vor „Bitcoin halten“ – noch kein klares Urteil."
-    }
-   },
-   {
-    "kennung": "trend_straff",
     "bot": "Trend-Bot",
     "name": "„straff“: raus 5 % unter dem Kaufkurs",
     "testet": "Stündlich: nur Coins mit 24 h UND 3 Tagen im Plus, Verkauf 5 % unter dem Kaufkurs – gegen die heutigen Trend-Regeln (Rechengeld).",
@@ -453,10 +840,10 @@
      "seit": "2026-09-06T06:20+00:00",
      "gegen": "Trend heutige Regeln",
      "text": "Seit 35 Tagen +3,2 % vor „Trend heutige Regeln“ – noch kein klares Urteil."
-    }
+    },
+    "kennung": "trend_straff"
    },
    {
-    "kennung": "raster_schatten",
     "bot": "Raster-Bot",
     "name": "Raster nach den aktuellen Regeln (Rechengeld)",
     "testet": "Der Raster-Bot mit 300 € Rechengeld nach seiner wirksamen Kaufregel („Einbruch“) – gegen einfaches Halten von Bitcoin.",
@@ -478,7 +865,33 @@
      "seit": "2026-09-21T06:20+00:00",
      "gegen": "Bitcoin halten",
      "text": "Seit 20 Tagen gleichauf mit „Bitcoin halten“ (−0,4 %)."
-    }
+    },
+    "kennung": "raster_schatten"
+   },
+   {
+    "bot": "Coin-Bot",
+    "name": "Heutige Regeln (Rechengeld)",
+    "testet": "Die Regeln, nach denen der echte Coin-Bot parkt (Notbremse und Gewinnschutz der aktuellen Stufe, Rückkauf bei bestätigtem Aufwärtstrend) – gegen einfaches Halten.",
+    "seit": "2026-09-01T04:20+00:00",
+    "wert_eur": 284.1,
+    "referenz": {
+     "name": "Bitcoin halten",
+     "wert_eur": 300.2
+    },
+    "weitere": [],
+    "status": "geparkt seit 23.09.",
+    "regel": null,
+    "stand": "2026-10-11T06:20+00:00",
+    "auswertung": {
+     "urteil": "zu_frueh",
+     "urteil_text": "zu früh",
+     "tage": 9,
+     "vorsprung_prozent": -5.4,
+     "seit": "2026-10-02T06:20+00:00",
+     "gegen": "Bitcoin halten",
+     "text": "Seit 9 Tagen −5,4 % gegenüber „Bitcoin halten“ – zu früh für ein Urteil (ab 14 Tagen, klar ab 28)."
+    },
+    "kennung": "coin_leiter"
    }
   ],
   "regel": "Automatischer Vergleich ab einem gemeinsamen Startpunkt: Urteil ab 14 Tagen; „klar“ ab 28 Tagen bei mindestens 5 % Abstand UND an den letzten 14 Tagen durchgehend mindestens 2 % in dieselbe Richtung – dann kommt ein Push.",

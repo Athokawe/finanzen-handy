@@ -2,8 +2,6 @@
 // 1.2.8: optional „Mit Face ID entsperren“ (js/faceid.js: Passkey mit PRF, zweiter Umschlag) – die PIN bleibt Rückfall.
 // 1.2.9: Face ID startet beim Sperrbildschirm einmal von selbst (lässt iOS das ohne Tipp nicht zu: still der Knopf).
 // Daten liegen nur im Arbeitsspeicher (Z), der Token nur verschlüsselt in localStorage und entschlüsselt in github.js.
-// 1.2.22 (17.10.2026): Raster und Trend nur noch als Schattendepots (Karte „Schattendepots“ der Übersicht) – ihre Reiter,
-// Bot-Töpfe, Umschichten, „Auftrag klären“, KI-Vorschläge, Ausblenden von Trades/Ereignissen und „Gemerkte Hinweise“ sind weg.
 // 1.2.21 (Prüfung 16.10.2026): läuft nur als oberstes Fenster (nie in einem fremden iframe); neue PINs 6–8 Ziffern, „PIN ändern“ in
 // den Einstellungen (Empfehlung bei kürzerer PIN; Face ID wird dabei entfernt und muss neu eingerichtet werden); Push-Knöpfe warten
 // nur hinter einem offenen NORMALEN Auftrag.
@@ -17,9 +15,10 @@ import * as P from "./push.js";
 import * as F from "./format.js";
 import * as K from "./kifrage.js";
 import * as AL from "./alarme.js";
+import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.2.22";
+export const APP_VERSION = "1.2.21";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -40,8 +39,8 @@ let faceIdAutoVersucht = false; // pro Sperre höchstens EIN automatischer Versu
 let faceIdEndeUm = 0;         // wann die letzte Face-ID-Anfrage endete
 let verstecktBeiFaceId = false; // Seite wurde während/gleich nach einer Face-ID-Anfrage verdeckt (das iOS-Blatt selbst)
 
-const TITEL = { uebersicht: "Übersicht", kern: "Coin-Bot", news: "News", mehr: "Einstellungen" };
-const ANSICHT = { uebersicht: V.uebersicht, kern: V.kern, news: V.news };
+const TITEL = { uebersicht: "Übersicht", kern: "Coin-Bot", raster: "Raster-Bot", trend: "Trend-Bot", news: "News", mehr: "Einstellungen" };
+const ANSICHT = { uebersicht: V.uebersicht, kern: V.kern, raster: V.raster, trend: V.trend, news: V.news };
 
 // ------------------------------------------------------------------ kleine Helfer
 
@@ -745,6 +744,7 @@ function start() {
     navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => { /* ohne Offline-Hülle geht es auch */ });
   }
   AL.init({ neuZeichnen: () => { if (entsperrt) zeichnen(); }, toast, entsperrt: () => entsperrt }, demo);
+  AB.init({ neuZeichnen: () => { if (entsperrt) zeichnen(); }, toast, entsperrt: () => entsperrt }, demo);
   if (demo) {
     gh.demoSetzen(true);
     appStarten();

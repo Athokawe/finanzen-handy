@@ -163,6 +163,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .punkt.gruen { background: var(--gruen); } .punkt.gelb { background: var(--gelb); } .punkt.rot { background: var(--rot); }
 .erklaert { background: #101c14; border-left: 3px solid var(--gruen); border-radius: 12px; padding: 12px 14px; margin: 12px 0 0; }
 .erklaert .label { display: block; font-size: 13px; font-weight: 700; color: var(--gruen-hell); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.hinweis-schatten { font-size: 14px; color: var(--gedimmt); margin-top: 8px; }
 .fehlerteil { color: var(--rot); font-size: 15px; }
 .leer { color: var(--gedimmt); font-style: italic; }
 .balken { height: 10px; border-radius: 6px; background: var(--karte2); overflow: hidden; margin: 10px 0 4px; }
@@ -177,6 +178,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .liste .unter { font-size: 14px; color: var(--gedimmt); margin-top: 2px; }
 .alarm.dringend .titel { color: var(--rot); }
 .alarm.wichtig .titel { color: var(--gelb); }
+.coin-zeile { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.coin-zeile a { font-size: 14px; white-space: nowrap; }
 .news-link { display: block; text-decoration: none; color: var(--text); padding: 10px 0; border-top: 1px solid var(--rand); }
 .news-link:first-child { border-top: 0; }
 .news-link .titel { font-weight: 600; line-height: 1.35; }
@@ -282,27 +285,46 @@ body.blatt-offen { overflow: hidden; }
 .ki-eintrag .ki-frage-text::before { content: "Du: "; font-weight: 600; }
 .ki-eintrag .ki-antwort-text { white-space: pre-line; overflow-wrap: anywhere; }
 .ki-eintrag.drossel .ki-antwort-text, .ki-eintrag.fehler .ki-antwort-text, .ki-eintrag.fehlt .ki-antwort-text { color: var(--gelb); }
+.ki-hinweis { margin-top: 6px; font-size: 14px; }
 .ki-aktionen { margin-top: 10px; }
 .ki-aktionen .knopf { width: 100%; }
 .knopf-text { background: none; border: 0; padding: 4px 2px; font: inherit; font-size: 14px; font-weight: 600; color: var(--akzent);
   cursor: pointer; text-decoration: underline; text-underline-offset: 3px; min-height: 32px; }
 .knopf.klein { min-height: 36px; font-size: 14px; }
 .alarm-rechts { display: inline-flex; align-items: center; gap: 6px; flex: none; }
-.alarm-weg { background: none; border: 1px solid var(--rand); border-radius: 50%; width: 32px; height: 32px; color: var(--gedimmt);
+.alarm-weg, .hinweis-weg { background: none; border: 1px solid var(--rand); border-radius: 50%; width: 32px; height: 32px; color: var(--gedimmt);
   font-size: 15px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-.alarm-weg:active { color: var(--text); background: var(--karte2); }
+.alarm-weg:active, .hinweis-weg:active { color: var(--text); background: var(--karte2); }
+/* 1.2.2: Liste „Gemerkte Hinweise“ (Karte „An die KI“ und Eingabe-Blatt) */
+.hinweis-liste { margin-top: 14px; }
+.hinweis-liste h3 { margin: 0; font-size: 16px; }
+.hinweis-liste .oben { align-items: center; }
+.hinweis-liste .hinweis-weg { flex: none; }
+.hinweis-text { overflow-wrap: anywhere; }
+.hinweis-eintrag.weg .hinweis-text { color: var(--gedimmt); }
+.hinweis-zitat { padding: 8px 12px; border-left: 3px solid var(--rand); background: var(--karte2); border-radius: 8px; overflow-wrap: anywhere; }
 
-/* ---------- 1.2.3: Gesamtvermögen mit Aktien-Reserve (Balken, Legende) ---------- */
+/* ---------- 1.2.3: Gesamtvermögen mit echten Bot-Töpfen und Aktien-Reserve (Balken, Legende, Diagramm-Linien) ---------- */
 .gesamt-karte .karte-kopf { flex-wrap: wrap; row-gap: 2px; }   /* Untertitel rutscht am schmalen Handy unter den Titel */
 .anteil-balken > div + div { border-left: 2px solid var(--karte); }
+.anteil-trend { background: #c084fc; }
+.anteil-raster { background: #fbbf24; }
 .anteil-reserve { background: #93c5fd; }
-.punkt.reserve { background: #93c5fd; }
+.punkt.trend { background: #c084fc; } .punkt.raster { background: #fbbf24; } .punkt.reserve { background: #93c5fd; }
+svg.diagramm .l-trend { stroke: #c084fc; stroke-width: 1.2; opacity: .85; }
+svg.diagramm .l-raster { stroke: #fbbf24; stroke-width: 1.2; opacity: .85; }
+svg.diagramm .marke-punkt.l-trend { stroke: #c084fc; } svg.diagramm .marke-punkt.l-raster { stroke: #fbbf24; }
+.legende-strich.l-trend { border-top-color: #c084fc; border-top-width: 2px; } .legende-strich.l-raster { border-top-color: #fbbf24; border-top-width: 2px; }
 
-/* ---------- 1.2.5: Bedienung (Brems-Erklärung in Stichworten, Euro-Guthaben) ---------- */
+/* ---------- 1.2.5: Bedienung (Brems-Erklärung in Stichworten, Listen ausblenden, Euro-Guthaben) ---------- */
 .erklaer-text p { margin: 0 0 2px; }
 .erklaer-text .wann-titel { margin-top: 4px; font-weight: 600; }
 .erklaer-text ul.wann { margin: 0 0 2px; padding-left: 18px; }
 .erklaer-text ul.wann li { margin: 1px 0; }
+.eintrag-rechts { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.eintrag-weg { background: none; border: 1px solid var(--rand); border-radius: 50%; width: 32px; height: 32px; color: var(--gedimmt);
+  font-size: 15px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.eintrag-weg:active { color: var(--text); background: var(--karte2); }
 .liste .oben .text-links { min-width: 0; overflow-wrap: anywhere; }
 .anteil-euro { background: #2dd4bf; }
 .punkt.euro { background: #2dd4bf; }
@@ -316,6 +338,10 @@ body.blatt-offen { overflow: hidden; }
 .lage-liste { margin: 0; padding-left: 18px; display: grid; gap: 6px; line-height: 1.4; }
 details.lage-karte > summary { cursor: pointer; font-weight: 600; }
 details.lage-karte[open] > summary { margin-bottom: 8px; }
+/* 1.2.14: Zeile „KI: …“ in den Bot-Karten der Übersicht */
+.ki-einschaetzung { margin: 10px 0 0; color: var(--text); }
+/* 1.2.15: Schalt-Knöpfe in den Bot-Karten der Übersicht */
+.bot-knoepfe { margin-top: 12px; }
 
 /* 1.2.17: Schattendepots (Übersicht) – aufklappbare Einträge mit Urteil */
 details.sd-eintrag { border-top: 1px solid var(--linie, rgba(255,255,255,.08)); padding: 8px 0; }
