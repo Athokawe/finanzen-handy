@@ -365,3 +365,15 @@ details.klapp-mehr[open] > summary .wenn-zu, details.klapp-mehr:not([open]) > su
 details.klapp-mehr[open] > summary { margin-bottom: 6px; }
 .erklaer-text details.klapp-mehr { margin-top: 0; }
 .erklaer-text details.klapp-mehr > summary { font-size: 13px; padding: 4px 0 2px; }
+
+/* 1.3: Autopilot-Wahlschalter „KI · Regeln · Aus“ – genau eine Stellung aktiv */
+.autopilot-wahl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; }
+.wahl-label { color: var(--gedimmt); font-size: .9rem; }
+.wahl { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--rand); border-radius: 999px; background: var(--karte2); }
+.wahl-feld { border: 0; background: transparent; color: var(--gedimmt); font-weight: 600; font-size: 1rem; padding: 8px 16px;
+  border-radius: 999px; min-width: 64px; }
+.wahl-feld.aktiv[data-stellung="ki"] { background: #8b5cf6; color: #fff; }
+.wahl-feld.aktiv[data-stellung="regeln"] { background: var(--gruen); color: var(--akzent-text); }
+.wahl-feld.aktiv[data-stellung="aus"] { background: #6b7280; color: #fff; }
+.wahl-feld:active { transform: scale(.97); }
+.wahl-hinweis { flex-basis: 100%; margin: 0; color: var(--gelb); }

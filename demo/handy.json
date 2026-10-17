@@ -120,6 +120,13 @@
    "Hält: Welt-ETF 100,00 € (erfundener Demo-Wert)."
   ]
  },
+ "autopilot": {
+  "stellung": "ki",
+  "hinweis": null,
+  "ki": true,
+  "regelwerk": true,
+  "aktien": true
+ },
  "raster_bot": {
   "name": "Raster-Bot",
   "status": "an",
@@ -453,11 +460,38 @@
    "express_bestaetigung": null
   },
   {
+   "modus": "autopilot_ki",
+   "bestaetigung": "JA",
+   "ja_noetig": true,
+   "beispiel": "JA",
+   "text": "Autopilot „KI“: KI-Autopilot EIN, die festen Regeln laufen als Sicherheitsnetz mit",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "autopilot_regeln",
+   "bestaetigung": "(JA)?",
+   "ja_noetig": false,
+   "beispiel": "JA",
+   "text": "Autopilot „Regeln“: KI aus, Regelwerk und Aktien-Autopilot EIN (JA nötig, wenn dabei etwas eingeschaltet wird; von „KI“ aus leer)",
+   "express": false,
+   "express_bestaetigung": null
+  },
+  {
+   "modus": "autopilot_aus",
+   "bestaetigung": "",
+   "ja_noetig": false,
+   "beispiel": "",
+   "text": "Autopilot „Aus“: KI, Regelwerk und Aktien-Autopilot aus, Raster- und Trend-Bot pausiert – nichts wird verkauft",
+   "express": true,
+   "express_bestaetigung": ""
+  },
+  {
    "modus": "start",
    "bestaetigung": "JA",
    "ja_noetig": true,
    "beispiel": "JA",
-   "text": "Coin-Bot EIN",
+   "text": "KI-Autopilot EIN (Autopilot „KI“)",
    "express": false,
    "express_bestaetigung": null
   },
@@ -484,7 +518,7 @@
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "Coin-Bot AUS (nur die KI – das Regelwerk mit Notbremse schützt weiter)",
+   "text": "KI-Autopilot AUS (Autopilot „Regeln“ – das Regelwerk mit Notbremse steuert weiter)",
    "express": true,
    "express_bestaetigung": ""
   },

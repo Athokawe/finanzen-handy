@@ -2,6 +2,7 @@
 // 1.2.8: optional „Mit Face ID entsperren“ (js/faceid.js: Passkey mit PRF, zweiter Umschlag) – die PIN bleibt Rückfall.
 // 1.2.9: Face ID startet beim Sperrbildschirm einmal von selbst (lässt iOS das ohne Tipp nicht zu: still der Knopf).
 // Daten liegen nur im Arbeitsspeicher (Z), der Token nur verschlüsselt in localStorage und entschlüsselt in github.js.
+// 1.3 (18.10.2026): Autopilot-Wahlschalter „KI · Regeln · Aus“ (Übersicht, Coin-Bot, Aktien) – je Stellung ein Auftrag.
 // 1.2.24 (17.10.2026): Aktien-Karte ohne Zeile und Knopf „Gewinnschutz“ (der Gewinnschutz Aktien/ETF entfiel in der Cloud).
 // 1.2.23 (17.10.2026): Inhalt wie 1.2.21 – Raster- und Trend-Bot bleiben (1.2.22 hatte sie irrtümlich entfernt).
 // 1.2.21 (Prüfung 16.10.2026): läuft nur als oberstes Fenster (nie in einem fremden iframe); neue PINs 6–8 Ziffern, „PIN ändern“ in
@@ -20,7 +21,7 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.2.24";
+export const APP_VERSION = "1.3";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/

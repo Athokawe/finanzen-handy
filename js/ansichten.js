@@ -479,25 +479,64 @@ function botKurz(status, topf, ergEur, ergPz, schatten, id) {
     + (F.istZahl(s.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur) : "") : ""));
 }
 
+// ------------------------------------------------------------------ Autopilot-Wahlschalter (1.3, Nutzer 18.10.2026)
+// EIN Wahlschalter „KI · Regeln · Aus“ für Krypto und Aktien, genau eine Stellung aktiv: KI = der KI-Autopilot steuert (die festen
+// Regeln laufen als Sicherheitsnetz mit), Regeln = der Regel-Autopilot (Regelwerk + Aktien-Autopilot), Aus = alles angehalten. Je
+// Stellung EIN Auftrag (autopilot_ki mit JA, autopilot_regeln mit JA nur wenn dabei etwas eingeschaltet wird, autopilot_aus als Bremse).
+export function autopilotStellung(d) {
+  const a = ok(d && d.autopilot);
+  if (a && ["ki", "regeln", "aus"].includes(a.stellung)) return { stellung: a.stellung, hinweis: a.hinweis || null };
+  const k = ok(d && d.kern_bot) || {}, ak = ok(d && d.aktien) || {};   // ältere Cloud ohne Feld: aus den Einzel-Schaltern
+  return { stellung: k.an ? "ki" : (k.regelwerk_an || ak.an) ? "regeln" : "aus", hinweis: null };
+}
+const STELLUNG_TEXT = { ki: "KI", regeln: "Regeln", aus: "Aus" };
+function autopilotWahl(d, id) {
+  if (!A.erlaubt("autopilot_ki") || !A.erlaubt("autopilot_regeln") || !A.erlaubt("autopilot_aus")) return null;   // ältere Cloud
+  const s = autopilotStellung(d);
+  const feld = (st, modus, vorgaben) => {
+    const an = st === s.stellung;
+    return h("button", { type: "button", class: "wahl-feld" + (an ? " aktiv" : ""), role: "radio", "aria-checked": an ? "true" : "false",
+      "data-stellung": st, "data-modus": modus,
+      onclick: () => (an && !s.hinweis ? null : A.ausfuehren(modus, vorgaben || {})) }, STELLUNG_TEXT[st]);
+  };
+  // „Regeln“ braucht JA, wenn dabei eine Regel EINgeschaltet wird – also nicht von einem vollständigen „KI“ aus
+  const regelnJa = s.stellung !== "ki" || !!s.hinweis;
+  return h("div", { class: "autopilot-wahl", id },
+    h("span", { class: "wahl-label" }, "Autopilot"),
+    h("div", { class: "wahl", role: "radiogroup", "aria-label": "Autopilot" },
+      feld("ki", "autopilot_ki"), feld("regeln", "autopilot_regeln", { ja: regelnJa }), feld("aus", "autopilot_aus")),
+    s.hinweis ? h("p", { class: "klein gedimmt wahl-hinweis" }, "(" + s.hinweis + ")") : null);
+}
+function autopilotKarte(d) {
+  const w = autopilotWahl(d, "autopilot-uebersicht");
+  if (!w) return null;
+  return karte("Autopilot", null, w,
+    h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
+      + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."));
+}
+
 export function uebersicht(Z) {
   const d = Z.handy;
   if (!d) return [Z.fehlerHandy ? h("p", { class: "leer" }, "Noch keine Daten.") : leer("Daten werden geladen …")];
   const out = [];
   if (A.erlaubt("frage")) out.push(kiSchnellKarte());             // 1.2.10: Eingabefeld „An die KI“ ganz oben (Nutzer 12.10.2026)
   out.push(gesamtKarte(d, Z));
+  const apk = autopilotKarte(d);                                   // 1.3: Autopilot-Wahlschalter gleich unter dem Gesamtwert
+  if (apk) out.push(apk);
   out.push(parkKnoepfe());
 
   const k = ok(d.kern_bot);
   if (k) {
     const ki = ok(k.ki);
     const pos = k.geparkt ? "geparkt in EURCV" : k.position ? F.text(k.position) : "–";
-    out.push(karte(F.text(k.topf_name, "Coin-Topf"), statusEtikett(k.an ? "an" : "aus"),
+    const stK = autopilotStellung(d).stellung;                     // 1.3: der Coin-Bot läuft mit KI ODER Regeln
+    out.push(karte(F.text(k.topf_name, "Coin-Topf"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
       h("div", { class: "gross", id: "kern-wert" }, F.euro(k.wert_eur)),
-      h("p", { class: "klapp-kurz" }, F.text(k.name, "Coin-Bot") + " " + anAus(k.an) + " · hält " + pos),
+      h("p", { class: "klapp-kurz" }, F.text(k.name, "Coin-Bot") + " · Autopilot " + STELLUNG_TEXT[stK] + " · hält " + pos),
       mehrTeil("kern", [
         h("p", { class: "klein gedimmt" }, "Stand " + F.zeit(k.wert_zeit) + (F.istZahl(k.bitcoin_kurs_eur) ? " · Bitcoin " + F.euro(k.bitcoin_kurs_eur) : "")),
         zeilen([
-          [F.text(k.name, "Coin-Bot"), anAus(k.an)],
+          ["Autopilot", STELLUNG_TEXT[stK]],
           ["Stufe", F.text(k.stufe) + (k.stufe_automatik ? " (Automatik)" : "")],
           ["Bitcoin-Ampel", ampel(k.ampel)],
           ["Hält", pos],
@@ -566,7 +605,8 @@ export function uebersicht(Z) {
         ]),
         // 1.2.24: Zeile und Knopf „Gewinnschutz“ entfielen mit dem Gewinnschutz Aktien/ETF (Cloud, 17.10.2026); die Absicherung
         // des Welt-ETF steht in der Lage-Karte darunter
-        reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein")),
+        // 1.3: derselbe Wahlschalter wie beim Coin-Bot (ältere Cloud: die bisherigen Knöpfe)
+        autopilotWahl(d, "autopilot-aktien") || reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein")),
       ]),
     ));
     const lageA = lageKarte(ak.lage, "Lage Aktien-Autopilot", true);   // 1.2.11: eingeklappt, die Übersicht bleibt kurz
@@ -669,7 +709,7 @@ export function kern(Z) {
   const out = [];
   const lageK = lageKarte(k.lage);
   if (lageK) out.push(lageK);
-  out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an ? "an" : "aus"),
+  out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
     h("div", { class: "mittel" }, F.euro(k.wert_eur)),
     h("p", { class: "klein gedimmt" }, F.text(k.topf_name, "Coin-Topf") + " · Stand " + F.zeit(k.wert_zeit)),
     zeilen([
@@ -680,13 +720,13 @@ export function kern(Z) {
       ["Regelwerk ohne KI", anAus(k.regelwerk_an)],
       ["Euro-Automatik", anAus(k.euro_automatik)],
     ]),
-    reihe(k.an ? A.knopf("stopp", "Coin-Bot aus", "gefahr-rand") : A.knopf("start", "Coin-Bot ein", "primaer"),
-      A.knopf("einstellung", "Stufe ändern", "", { stufe: k.stufe, auto: !!k.stufe_automatik })),
-    k.an && A.erlaubt("stopp") ? h("p", { class: "erklaer-text" }, "„Coin-Bot aus“: " + A.ERKLAERT.stopp) : null,
+    // 1.3: Wahlschalter „KI · Regeln · Aus“ statt „Coin-Bot ein/aus“ (ältere Cloud ohne die Befehle: die bisherigen Knöpfe)
+    autopilotWahl(d, "autopilot-kern") || reihe(k.an ? A.knopf("stopp", "Coin-Bot aus", "gefahr-rand") : A.knopf("start", "Coin-Bot ein", "primaer")),
+    reihe(A.knopf("einstellung", "Stufe ändern", "", { stufe: k.stufe, auto: !!k.stufe_automatik })),
     k.stufe !== "sicher" || k.stufe_automatik
       ? reihe(A.knopf("einstellung", "Bremsen: Stufe → sicher", "gefahr-rand stufe-sicher", { stufe: "sicher", auto: false })) : null,
     reihe(k.euro_automatik ? A.knopf("euro_aus", "Euro-Automatik aus") : A.knopf("euro_ein", "Euro-Automatik ein"),
-      k.regelwerk_an === false ? A.knopf("regelwerk_ein", "Regelwerk ein") : null),
+      k.regelwerk_an === false && !A.erlaubt("autopilot_regeln") ? A.knopf("regelwerk_ein", "Regelwerk ein") : null),
   ));
 
   const nb = ok(k.notbremse);

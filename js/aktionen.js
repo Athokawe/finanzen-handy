@@ -29,7 +29,7 @@ export const VERWORFEN_NACH_MS = 90 * 1000;   // so lange darf GitHub für das A
 const WARTEN_MAX_MIN = 30;                    // danach wird ein Auftrag nicht mehr verfolgt
 const NEU_SENDEN = { normal: 1, bremse: 3 };  // wie oft ein verworfener Auftrag automatisch neu geht
 const FERTIG_ZEIGEN_MS = 2 * 60000;           // ✓/✗ bleibt so lange im Band stehen
-const BREMSEN = new Set(["allesstopp", "anhalten", "stopp", "surfen_pause", "trend_pause", "einstellung"]);
+const BREMSEN = new Set(["allesstopp", "anhalten", "autopilot_aus", "stopp", "surfen_pause", "trend_pause", "einstellung"]);
 // Gesamtprüfung 16.10.2026 (B7): Aufträge, die Geld zwischen Töpfen bewegen – nicht wiederholbar (jeder Lauf bewegt den Betrag
 // erneut). Sie gehen NIE automatisch noch einmal: weder „kein Lauf nach 90 s“ (GitHub legt ihn oft nur später an) noch „abgebrochen“.
 const GELD = new Set(["bot_umschichten", "surfen_zurueck", "trend_zurueck", "surfen_ein", "trend_ein", "surfen_betrag", "trend_betrag"]);
@@ -226,6 +226,26 @@ const SPEZ = {
       wannText("anhalten"), BREMS_WANN.anhalten.dazu],
   },
   regelwerk_ein: { titel: "Regelwerk einschalten", text: "Das Regelwerk ohne KI wird eingeschaltet." },
+  // 1.3 (Nutzer 18.10.2026): Autopilot-Wahlschalter „KI · Regeln · Aus“ – je Stellung EIN Auftrag
+  autopilot_ki: {
+    titel: "Autopilot: KI", ok: "Auf KI stellen",
+    text: ["Der KI-Autopilot steuert dann den Coin-Bot selbst (Coin-Wahl, Parken) – mit echtem Geld, innerhalb der Leitplanken. Der "
+      + "Aktien-Teil läuft bis zum nächsten Update nach den festen Regeln.",
+      "Die festen Regeln (Notbremse, Gewinnschutz, Aktien-Autopilot) bleiben als Sicherheitsnetz eingeschaltet."],
+  },
+  autopilot_regeln: {
+    titel: "Autopilot: Regeln", ok: "Auf Regeln stellen",
+    fuer: (v) => (v.ja
+      ? { jaPflicht: true, text: ["Der Regel-Autopilot handelt dann mit echtem Geld: im Krypto-Teil das Regelwerk (parkt in EURCV, "
+          + "sobald Notbremse oder Gewinnschutz greifen, und kauft Bitcoin nur bei bestätigtem Aufwärtstrend zurück), bei Aktien der "
+          + "Aktien-Autopilot (Welt-ETF, Absicherung, Absturz-Regel).", "Die KI schätzt still weiter ein, handelt aber nicht."] }
+      : { jaPflicht: false, text: ["Die KI geht aus; die festen Regeln (Regelwerk, Aktien-Autopilot) steuern weiter – sie laufen schon."] }),
+  },
+  autopilot_aus: {
+    titel: "Autopilot: Aus", gefahr: true, ok: "Ausschalten",
+    text: ["KI, Regelwerk und Aktien-Autopilot gehen aus, Raster- und Trend-Bot werden pausiert – nichts wird verkauft, auch keine "
+      + "Notbremse mehr. Deine Bestände bleiben, wie sie sind.", "Wieder einschalten: Autopilot „Regeln“ oder „KI“ (mit JA)."],
+  },
   euro_ein: { titel: "Euro-Automatik einschalten", text: "Euro-Guthaben bei Bitpanda wird dann automatisch eingesetzt." },
   euro_aus: { titel: "Euro-Automatik ausschalten", text: "Euro-Guthaben bleibt liegen, bis du selbst entscheidest." },
   einstellung: {
@@ -390,7 +410,7 @@ function bestaetigungBauen(m, spez, w) {
   const e = eintrag(m);
   if (spez.ohneFrage) return "";
   if (spez.bauen) return spez.bauen(w);
-  return e && e.ja_noetig ? "JA" : "";
+  return e && (e.ja_noetig || spez.jaPflicht) ? "JA" : "";   // 1.3: jaPflicht – JA je nach Lage (Autopilot „Regeln“)
 }
 
 function wegText(w) {
@@ -439,14 +459,15 @@ export async function ausfuehren(m, vorgaben = {}) {
   for (const f of spez.felder || []) inhalt.push(feldBauen(f, vorgaben));
   const vorschau = h("div", { class: "vorschau", id: "dialog-vorschau" });
   let jaFeld = null;
-  if (e.ja_noetig) {
+  const jaNoetig = !!(e.ja_noetig || spez.jaPflicht);            // 1.3: JA auch, wenn der Dialog es für diese Lage verlangt
+  if (jaNoetig) {
     jaFeld = h("input", { id: "ja-feld", class: "ja-feld", type: "text", autocomplete: "off", autocapitalize: "characters", autocorrect: "off", spellcheck: "false", placeholder: "JA", enterkeyhint: "send" });
     inhalt.push(h("div", { class: "formfeld" }, h("label", { for: "ja-feld" }, "Wirklich? Zur Bestätigung wörtlich JA eintippen:"), jaFeld));
   }
   inhalt.push(h("p", { class: "klein gedimmt" }, "Wird an die Cloud geschickt:"), vorschau);
   const huelle = h("div", null, inhalt);
   dialog({
-    titel: spez.titel, inhalt: [huelle], okText: spez.ok || (e.ja_noetig ? "Mit JA senden" : "Senden"), okKlasse: spez.gefahr ? "gefahr" : "primaer",
+    titel: spez.titel, inhalt: [huelle], okText: spez.ok || (jaNoetig ? "Mit JA senden" : "Senden"), okKlasse: spez.gefahr ? "gefahr" : "primaer",
     onOk: async () => {
       const w = werteLesen(spez);
       const fehler = spez.pruefen ? spez.pruefen(w) : null;

@@ -4,6 +4,18 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3
+
+* **Autopilot-Wahlschalter „KI · Regeln · Aus“** auf der Übersicht, beim Coin-Bot und bei den Aktien – ein Schalter für
+  Krypto und Aktien, genau eine Stellung ist aktiv:
+  * **KI** – der KI-Autopilot steuert (die festen Regeln laufen als Sicherheitsnetz mit); nur mit JA.
+  * **Regeln** – der Regel-Autopilot steuert (Regelwerk mit Notbremse und Gewinnschutz, Aktien-Autopilot); aus „Aus“ mit JA,
+    von „KI“ aus ohne JA (die Regeln laufen schon).
+  * **Aus** – alles angehalten, nichts wird verkauft; ohne JA, als Express-Bremse.
+  Die Bots behalten ihre Namen (Coin-Bot, Raster-Bot, Trend-Bot); ihr Stand zeigt sich an der Schalterstellung. Jede Stellung
+  ist EIN Auftrag an die Cloud (braucht Finanz-App 1.3; mit einer älteren Cloud bleiben die bisherigen Knöpfe).
+* Enthält 1.2.24 (Aktien-Karte ohne „Gewinnschutz“).
+
 ## Neu in 1.2.24
 
 * Aktien-Karte ohne die Zeile „Gewinnschutz“ und ohne den Knopf „Gewinnschutz ein/aus“: Den Gewinnschutz für Aktien und den
