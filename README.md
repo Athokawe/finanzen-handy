@@ -1,8 +1,15 @@
 # Finanzen – Handy-Ansicht
 
-Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, Coin-Topf, Raster-Bot, Trend-Bot,
-Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
-„Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
+Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, Coin-Topf, Schattendepots (darunter Raster-
+und Trend-Bot, nur Rechengeld), Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die
+wichtigsten Schalter („Alles parken“, „Nur anhalten“, Coin-Bot und Aktien-Autopilot ein/aus, Stufe), Fragen „An die KI“,
+Alarme löschen und Mitteilungen (Web-Push).
+
+## Neu in 1.2.22
+
+* **Raster- und Trend-Bot nur noch als Schattendepots:** Beide laufen nur noch mit Rechengeld, nie mehr mit echtem Geld. Deshalb sind weg: die Reiter „Raster“ und „Trend“, die Bot-Töpfe im Gesamtvermögen (es zählt jetzt Coin-Topf + Aktien & ETFs + Aktien-Reserve + Euro-Guthaben), das Umschichten zwischen den Bots, „Auftrag klären“, die KI-Vorschläge zu den Bots (samt 50-%-Deckel), das Ausblenden von „Letzte Trades“/„Ereignisse“ und die „Gemerkten Hinweise“ samt „Rückgängig“ (die KI merkt sich nichts mehr).
+* **Raster und Trend stehen in der Karte „Schattendepots“** auf der Übersicht (Raster-Schatten, Trend-Schatten, „straff“ – mit dem Urteil der automatischen Auswertung). Dort unter „mehr“ auch **„Raster-Recherchen je Tag“** (1 bis 4, mit JA, Modus `surfen_recherchen`) – die Recherchen speisen nur das Raster-Schattendepot.
+* „Alles parken“ und „Nur anhalten“ betreffen nur noch Coin-Topf, Coin-Bot und Regelwerk (Aktien bleiben).
 
 ## Neu in 1.2.21
 
@@ -227,8 +234,8 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
 * Befehle gehen als Cloud-Aufträge an den Ablauf `ki.yml` bzw. – Brems-Befehle – `express.yml` im privaten Repo
   (`workflow_dispatch` mit `modus` und `bestaetigung`).
   Erlaubt sind nur die Modi, die `handy.json` → `modi` nennt. Schaltbefehle brauchen ein getipptes **JA**; die App baut die
-  Bestätigung (z. B. `JA;betrag=200`) aus den Formularfeldern, prüft sie gegen das Muster aus `handy.json` und erst dann geht sie
-  raus. Die Cloud prüft noch einmal selbst.
+  Bestätigung (z. B. `JA;stufe=sicher;auto=0`) aus den Formularfeldern, prüft sie gegen das Muster aus `handy.json` und erst dann
+  geht sie raus. Die Cloud prüft noch einmal selbst.
 * Datenvertrag: `docs/HANDY-DATEN.md` im privaten Repo.
 * Reine statische Dateien (HTML/CSS/JS, kein Build-Schritt, keine fremden Skripte oder CDNs).
 
@@ -250,7 +257,7 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
   `productionresultssa0…19.blob.core.windows.net`, keine Inline-Skripte),
   `noindex`, kein Referrer. Fremde Texte (Schlagzeilen, KI-Texte) werden nur als Text angezeigt; Links nur `http(s)`, in neuem
   Fenster mit `rel="noopener noreferrer"`.
-* Der Token kommt an keine anderen Repos. Er kann aber Cloud-Aufträge starten, die Geld bewegen (Bots einschalten, umschichten, Teil zurück, und über die alten GitHub-Abläufe auch nachkaufen/umschichten) – die Cloud führt solche Aufträge nur mit wörtlich getipptem JA aus. Grenze: Wer das entsperrte iPhone **und** die PIN hat,
+* Der Token kommt an keine anderen Repos. Er kann aber Cloud-Aufträge starten, die Geld bewegen (Coin-Bot, Regelwerk oder Aktien-Autopilot einschalten, „Alles parken“, und über die alten GitHub-Abläufe auch nachkaufen/umschichten) – die Cloud führt solche Aufträge nur mit wörtlich getipptem JA aus. Grenze: Wer das entsperrte iPhone **und** die PIN hat,
   kann Aufträge schicken – darum bleibt die iPhone-Sperre die erste Schutzschicht. Ehrlich: Die Sperre nach 5 falschen PINs gilt
   nur in der App. Kopiert jemand den Speicher des Geräts (z. B. aus einem unverschlüsselten Backup), sind **4 Stellen in Minuten
   durchprobierbar, 6 Stellen in Stunden bis Tagen**. **Face ID ist der empfohlene Weg.** Im Zweifel den Token auf github.com
@@ -295,11 +302,10 @@ Lokal: `python -m http.server` in einem Ordner, der dieses Repo als Unterordner 
 | `js/faceid.js` | Face ID: Passkey mit PRF, zweiter Umschlag (HKDF → AES-GCM), Einrichten/Entsperren/Entfernen |
 | `js/github.js` | GitHub-API (lesen, Aufträge, Lauf-Status), Demo-Modus |
 | `js/aktionen.js` | erlaubte Modi, JA-Dialog, Bestätigung bauen/prüfen, Weg (Express/ki.yml), Live-Rückmeldung und Neu-Senden |
-| `js/ansichten.js` | die Reiter |
-| `js/kifrage.js` | „An die KI“: schwebender Knopf, Eingabe-Blatt, Senden, Live-Status, Antworten (Artefakt), Rückgängig |
+| `js/ansichten.js` | die Reiter (Übersicht mit Karte „Schattendepots“, Coin-Bot, News) und die Einstellungen |
+| `js/kifrage.js` | „An die KI“: schwebender Knopf, Eingabe-Blatt, Senden, Live-Status, Antworten (Artefakt) |
 | `js/zip.js` | ZIP-Leser für genau eine Datei (gespeichert/deflate, CRC-Prüfung) |
 | `js/alarme.js` | Alarme ausblenden und als gelesen melden (`alarme_gelesen`) |
-| `js/ausblenden.js` | „Letzte Trades“/„Ereignisse“ ausblenden (`liste_ausblenden`, nie löschen) |
 | `js/diagramm.js` | Statistik-Diagramme (SVG, Zeiträume, Antippen, Kennzahlen) |
 | `js/push.js`, `sw.js` | Web-Push-Abo, Service Worker (Hülle cachen, Mitteilungen) |
 | `manifest.webmanifest`, `icons/` | Home-Bildschirm-App |

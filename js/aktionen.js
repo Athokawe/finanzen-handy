@@ -1,17 +1,15 @@
 // Aufträge an die Cloud: nur Modi aus handy.json → „modi“; die Bestätigung wird nach dem Muster aus Formularfeldern gebaut, gegen
 // den regulären Ausdruck aus handy.json geprüft und erst dann geschickt. Schalt-Modi mit „ja_noetig“ verlangen ein wörtlich
 // getipptes JA.
-// 1.2.4: Direkt-Umschichten zwischen Trend- und Raster-Bot (Modus bot_umschichten) – ein Modus, zwei Knöpfe; die Richtung kommt
-// fest aus dem Knopf (Vorgabe „von“), nie aus einem Formularfeld.
 // 1.2.0: „An die KI“ (Modus frage, js/kifrage.js) ersetzt den Hinweis-Dialog; Alarme löschen (Modus alarme_gelesen, js/alarme.js).
-// 1.1.0: Brems-Befehle (handy.json: express true – „Alles parken“, „Nur anhalten“, Coin-Bot aus, Stufe → sicher, Raster/Trend
-// pausieren) gehen an express.yml (eigene Warteschlange, sofort), alles andere an ki.yml. Jeder Auftrag wird über die Actions-API
+// 1.1.0: Brems-Befehle (handy.json: express true – „Alles parken“, „Nur anhalten“, Coin-Bot aus, Stufe → sicher) gehen an
+// express.yml (eigene Warteschlange, sofort), alles andere an ki.yml. Jeder Auftrag wird über die Actions-API
 // anhand des Lauf-Titels verfolgt („Express: <modus>“ bzw. „Hand: <modus>“): gesendet → angekommen → läuft → erledigt ✓ /
 // fehlgeschlagen ✗. Verwirft GitHub einen Auftrag (nach ~90 s kein passender Lauf oder Lauf „abgebrochen“), schickt die App ihn
 // automatisch noch einmal (Brems-Befehle bis zu 3-mal), danach eine klare Meldung.
-// 1.2.18 (Gesamtprüfung B7): Aufträge, die Geld bewegen (Umschichten, Teil zurück, Einschalten bzw. Betrag ändern), gehen NIE
-// automatisch noch einmal, und ein schon gestarteter Lauf, der „abgebrochen“ endet, wird nur bei Brems-Befehlen neu gesendet –
-// sonst Meldung „Ausgang unklar – bitte nachsehen“.
+// 1.2.18 (Gesamtprüfung B7): ein schon gestarteter Lauf, der „abgebrochen“ endet, wird nur bei Brems-Befehlen neu gesendet.
+// 1.2.22: Geld-Aufträge zwischen Töpfen (Raster/Trend) gibt es nicht mehr – ihre Sonderregel („Ausgang unklar“) entfällt;
+// der Status „unklar“ bleibt nur für ältere, noch gespeicherte Aufträge.
 // 1.2.21 (Prüfung 16.10.2026): Knöpfe ohne Dialog (spez.ohneFrage) schicken nie ein „JA“ – verlangt handy.json → modi für so einen
 // Modus ein getipptes JA, verweigert der Knopf mit klarer Meldung. Passt die Bestätigung nicht oder scheitert das Senden, kommt immer
 // eine Rückmeldung (nie eine stille, unbehandelte Ablehnung). „Bitte kurz warten“ nur bei einem offenen NORMALEN Auftrag (ki.yml).
@@ -29,10 +27,7 @@ export const VERWORFEN_NACH_MS = 90 * 1000;   // so lange darf GitHub für das A
 const WARTEN_MAX_MIN = 30;                    // danach wird ein Auftrag nicht mehr verfolgt
 const NEU_SENDEN = { normal: 1, bremse: 3 };  // wie oft ein verworfener Auftrag automatisch neu geht
 const FERTIG_ZEIGEN_MS = 2 * 60000;           // ✓/✗ bleibt so lange im Band stehen
-const BREMSEN = new Set(["allesstopp", "anhalten", "stopp", "surfen_pause", "trend_pause", "einstellung"]);
-// Gesamtprüfung 16.10.2026 (B7): Aufträge, die Geld zwischen Töpfen bewegen – nicht wiederholbar (jeder Lauf bewegt den Betrag
-// erneut). Sie gehen NIE automatisch noch einmal: weder „kein Lauf nach 90 s“ (GitHub legt ihn oft nur später an) noch „abgebrochen“.
-const GELD = new Set(["bot_umschichten", "surfen_zurueck", "trend_zurueck", "surfen_ein", "trend_ein", "surfen_betrag", "trend_betrag"]);
+const BREMSEN = new Set(["allesstopp", "anhalten", "stopp", "einstellung"]);
 
 export function init(h0) {
   hooks = Object.assign(hooks, h0);
@@ -86,111 +81,11 @@ export function istBremse(m) {
   return BREMSEN.has(m) && m !== "einstellung";
 }
 
-// ------------------------------------------------------------------ Feld-Helfer
-
-function betragText(roh) {
-  const s = String(roh ?? "").replace(/\s|€/g, "").replace(",", ".");
-  if (!/^\d{1,5}(\.\d{1,2})?$/.test(s)) return null;
-  return parseFloat(s) > 0 ? s : null;
-}
-const BETRAG = (label, hilfe) => ({ name: "betrag", art: "betrag", label: label || "Betrag in Euro", hilfe });
-const DECKEL = { name: "prozent", art: "zahl", label: "Verlustdeckel in Prozent", hilfe: "0 = kein Deckel, sonst 10 bis 60" };
-function deckelPruefen(w) {
-  const p = parseInt(w.prozent, 10);
-  if (!/^\d{1,2}$/.test(String(w.prozent).trim()) || !(p === 0 || (p >= 10 && p <= 60))) return "Verlustdeckel: 0 oder 10 bis 60.";
-  return null;
-}
-function betragPruefen(w) {
-  return betragText(w.betrag) ? null : "Bitte einen Betrag in Euro eingeben (z. B. 200 oder 150,50; höchstens 99.999).";
-}
-
-// ------------------------------------------------------------------ 1.2.4: zwischen Trend- und Raster-Bot umschichten
-
-const BOT_NAME = { trend: "Trend-Bot", raster: "Raster-Bot" };
-const BOT_TEIL = { trend: "trend_bot", raster: "raster_bot" };
-
-/** Was mit dem empfangenden Bot passiert – nach seinem Status in handy.json (nur bekannte Werte, sonst allgemein). */
-function zielText(nach) {
-  const d = hooks.handy();
-  const b = d && d[BOT_TEIL[nach]];
-  const st = b && typeof b === "object" ? b.status : null;
-  const n = BOT_NAME[nach];
-  if (st === "aus") {
-    return "Der " + n + " ist gerade aus – er wird mit dem Betrag eingeschaltet"
-      + (nach === "trend" ? " (mindestens 150 €)." : " (ab seinem Mindestbetrag und nur mit einer Raster-Recherche jünger als 24 Stunden).");
-  }
-  if (st === "pausiert") return "Der " + n + " ist pausiert – das Geld kommt an, er bleibt pausiert.";
-  if (st === "an") {
-    return nach === "trend" ? "Der Trend-Bot läuft – sein Topf wird größer. Bei grüner Markt-Ampel kauft er sofort zu gleichen Teilen nach "
-      + "(ist der heutige Termin noch offen, läuft er zuerst); bei roter Markt-Ampel bleibt es als EURCV im Topf, ein späterer Termin legt "
-      + "es in freie Plätze an."
-      : "Der Raster-Bot läuft – sein Betrag wird größer, der nächste Lauf legt mehr Stufen.";
-  }
-  return "Ist der " + n + " aus, wird er mit dem Betrag eingeschaltet; ist er pausiert, bleibt er pausiert.";
-}
-
-/**
- * 1.2.18 (M2e): Dialog „Auftrag klären“ für einen Auftrag mit unklarem Ausgang – Vorgaben {bot, nr} aus der Karte „Aufträge mit
- * unklarem Ausgang“. Ergebnis: einer Fusion-Order zuordnen (ID) oder verwerfen; die Cloud prüft alles (order_klaeren.py), nie eine Order.
- */
-function klaerSpez(vorgaben) {
-  const bot = vorgaben.bot === "raster" || vorgaben.bot === "trend" ? vorgaben.bot : null;
-  const nr = Number.isInteger(vorgaben.nr) && vorgaben.nr >= 0 ? vorgaben.nr : null;
-  if (!bot || nr === null) return null;
-  return {
-    titel: "Auftrag Nr. " + nr + " klären (" + BOT_NAME[bot] + ")",
-    text: [
-      "Schau in Bitpanda Fusion unter „Orders“ nach, ob dieser Auftrag ausgeführt wurde.",
-      "Ausgeführt: die Fusion-Order-ID eintragen – die Cloud prüft Paar, Seite, Menge und Zeit und bucht ihn dann ganz normal.",
-      "Nie ausgeführt: „verwerfen“ – die Reservierung wird frei. Es wird nie eine Order gesendet.",
-    ],
-    felder: [
-      { name: "wie", art: "wahl", label: "Ergebnis in Fusion", optionen: [["id", "ausgeführt – Order-ID eintragen"], ["verworfen", "nie ausgeführt – verwerfen"]] },
-      { name: "id", art: "zeile", label: "Fusion-Order-ID (nur bei „ausgeführt“)" },
-    ],
-    pruefen: (w) => (w.wie === "verworfen" || /^[A-Za-z0-9_-]{1,64}$/.test(String(w.id || "").trim()) ? null
-      : "Bitte die Fusion-Order-ID eintragen (Buchstaben, Ziffern, - oder _) – oder „nie ausgeführt“ wählen."),
-    bauen: (w) => "JA;bot=" + bot + ";nr=" + nr + ";" + (w.wie === "verworfen" ? "verworfen" : "id=" + String(w.id || "").trim()),
-  };
-}
-
-/** Dialog für eine Richtung („von“ = abgebender Bot) – null bei unbekannter Richtung. */
-function umschichtSpez(vorgaben) {
-  const von = vorgaben.von === "trend" || vorgaben.von === "raster" ? vorgaben.von : null;
-  if (!von) return null;
-  const nach = von === "trend" ? "raster" : "trend";
-  const geber = BOT_NAME[von];
-  const felder = [
-    BETRAG("Betrag in Euro", "Der " + geber + " muss danach über seinem Mindestbetrag bleiben – für den ganzen Topf „Alles umschichten“ wählen."),
-    { name: "alles", art: "schalter", label: "Alles umschichten – der " + geber + " verkauft alles (auch im Minus) und geht danach aus" },
-  ];
-  if (von === "raster") felder.push({ name: "sofort", art: "schalter", label: "Sofort – auch Stufen im Minus verkaufen" });
-  return {
-    titel: "Zum " + BOT_NAME[nach] + " umschichten",
-    text: [
-      "Das Geld geht direkt vom " + geber + " zum " + BOT_NAME[nach] + " – keine Bitcoin-Order, die Umbuchung selbst kostet nichts.",
-      von === "trend"
-        ? "Reicht sein freies EURCV nicht, verkauft der Trend-Bot anteilig aus allen Coins – auch im Minus. Kosten nur für diese Verkäufe (Gebühr + Spread)."
-        : "Reicht sein freies EURCV nicht, verkauft der Raster-Bot überzählige Kauf-Orders und Stufen im Gewinn – Stufen im Minus nur mit „Sofort“. Kosten nur für diese Verkäufe (Gebühr + Spread).",
-      zielText(nach),
-    ],
-    felder,
-    pruefen: (w) => {
-      if (w.alles) return w.sofort ? "„Alles umschichten“ verkauft ohnehin alles – „Sofort“ bitte weglassen." : null;
-      const f = betragPruefen(w);
-      if (f) return f;
-      return parseFloat(betragText(w.betrag)) >= 1 ? null : "Mindestens 1 €.";
-    },
-    bauen: (w) => "JA;von=" + von + ";nach=" + nach + ";" + (w.alles ? "alles=JA" : "betrag=" + (betragText(w.betrag) || ""))
-      + (von === "raster" && w.sofort ? ";sofort=JA" : ""),
-  };
-}
-
 // ------------------------------------------------------------------ was jeder Modus im Dialog zeigt
 
 export const ERKLAERT = {
-  allesstopp: "Verkauft alle Krypto-Bestände der Bots in EURCV und schaltet sie aus – Aktien bleiben.",
-  anhalten: "Alle Krypto-Bots aus, nichts wird verkauft – auch keine Notbremse mehr.",
+  allesstopp: "Verkauft den Coin-Topf in EURCV und schaltet Coin-Bot und Regelwerk aus – Aktien bleiben.",
+  anhalten: "Coin-Bot und Regelwerk aus, nichts wird verkauft – auch keine Notbremse mehr.",
   stopp: "Nur die KI aus – das Regelwerk mit Notbremse schützt weiter.",
 };
 
@@ -198,7 +93,7 @@ export const ERKLAERT = {
  *  (static/markt.js BREMS_ERKLAERUNG). Unter den Knöpfen und in der Rückfrage. */
 export const BREMS_WANN = {
   anhalten: {
-    wann: ["du selbst in Bitpanda handeln willst", "ein Bot sich seltsam verhält", "du einen Fehler vermutest",
+    wann: ["du selbst in Bitpanda handeln willst", "der Coin-Bot sich seltsam verhält", "du einen Fehler vermutest",
       "du keine Überraschungen willst, aber nicht verkaufen möchtest"],
     dazu: "Bei Absturzangst stattdessen: „Alles parken“.",
   },
@@ -217,12 +112,12 @@ const SPEZ = {
   stopp: { titel: "Coin-Bot ausschalten", text: ERKLAERT.stopp + " Der Coin-Topf bleibt, wie er ist." },
   allesstopp: {
     titel: "Alles parken", gefahr: true, ok: "Alles parken",
-    text: [ERKLAERT.allesstopp + " Der Coin-Topf wird über Fusion in EURCV verkauft (wie bei der Notbremse), Raster- und Trend-Bot verkaufen ihre Coins in EURCV (das EURCV bleibt in ihrem Topf) und werden pausiert; Coin-Bot und Regelwerk gehen aus. Scheitert ein Verkauf, ist trotzdem alles aus – die Mail sagt es je Bot.",
+    text: [ERKLAERT.allesstopp + " Der Coin-Topf wird über Fusion in EURCV verkauft (wie bei der Notbremse); Coin-Bot und Regelwerk gehen aus. Scheitert der Verkauf, ist trotzdem alles aus – die Mail sagt es.",
       wannText("allesstopp"), BREMS_WANN.allesstopp.dazu],
   },
   anhalten: {
     titel: "Nur anhalten", gefahr: true, ok: "Anhalten",
-    text: [ERKLAERT.anhalten + " Coin-Bot und Regelwerk gehen aus, Raster- und Trend-Bot werden pausiert (offene Orders storniert, Bestände bleiben liegen). Aktien bleiben.",
+    text: [ERKLAERT.anhalten + " Der Coin-Topf bleibt, wie er ist. Aktien bleiben.",
       wannText("anhalten"), BREMS_WANN.anhalten.dazu],
   },
   regelwerk_ein: { titel: "Regelwerk einschalten", text: "Das Regelwerk ohne KI wird eingeschaltet." },
@@ -244,42 +139,17 @@ const SPEZ = {
   aktien_start: { titel: "Aktien-Autopilot einschalten" },
   aktien_stopp: { titel: "Aktien-Autopilot ausschalten" },
 
-  surfen_ein: { titel: "Raster-Bot einschalten", text: "Der Betrag kommt aus dem Coin-Topf.", felder: [BETRAG()], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
-  surfen_betrag: { titel: "Raster-Topf ändern", text: "Neuer Betrag für den Raster-Topf.", felder: [BETRAG("Neuer Topf in Euro")], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
-  surfen_zurueck: {
-    titel: "Raster-Bot: Teil zurück in den Coin-Topf",
-    felder: [BETRAG("Betrag zurück in Euro"), { name: "sofort", art: "schalter", label: "Sofort – auch mit Verlust verkaufen" }],
-    pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) + (w.sofort ? ";sofort=JA" : ""),
-  },
-  surfen_aus: { titel: "Raster-Bot ausschalten", text: "Alles wird verkauft und geht zurück in den Coin-Topf.", bauen: () => "JA" },
-  surfen_pause: { titel: "Raster-Bot pausieren", text: "Er handelt nicht mehr, offene Orders werden storniert, sein Bestand bleibt. Geht als Bremse sofort.", bauen: () => "JA" },
-  surfen_deckel: { titel: "Raster-Bot: Verlustdeckel", felder: [DECKEL], pruefen: deckelPruefen, bauen: (w) => "JA;prozent=" + parseInt(w.prozent, 10) },
+  // 1.2.22: vom Raster-Bot bleibt nur die Zahl der festen Raster-Recherchen je Tag – sie speisen das Raster-Schattendepot
   surfen_recherchen: {
-    titel: "Raster-Bot: Recherchen je Tag",
+    titel: "Raster-Schatten: Recherchen je Tag",
+    text: "Feste Raster-Recherchen je Tag (1 bis 4). Sie speisen nur das Raster-Schattendepot (Rechengeld) – es wird nie gehandelt.",
     felder: [{ name: "anzahl", art: "wahl", label: "Feste Recherchen je Tag", optionen: [["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]] }],
     bauen: (w) => "JA;anzahl=" + w.anzahl,
   },
 
-  trend_ein: { titel: "Trend-Bot einschalten", text: "Der Betrag kommt aus dem Coin-Topf (mindestens 150 €).", felder: [BETRAG()], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
-  trend_betrag: { titel: "Trend-Topf ändern", felder: [BETRAG("Neuer Topf in Euro")], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
-  trend_zurueck: { titel: "Trend-Bot: Teil zurück in den Coin-Topf", felder: [BETRAG("Betrag zurück in Euro")], pruefen: betragPruefen, bauen: (w) => "JA;betrag=" + betragText(w.betrag) },
-  trend_aus: { titel: "Trend-Bot ausschalten", text: "Alles wird verkauft und geht zurück in den Coin-Topf.", bauen: () => "JA" },
-  trend_pause: { titel: "Trend-Bot pausieren", text: "Er handelt nicht mehr, sein Bestand bleibt. Geht als Bremse sofort.", bauen: () => "JA" },
-  trend_deckel: { titel: "Trend-Bot: Verlustdeckel", felder: [DECKEL], pruefen: deckelPruefen, bauen: (w) => "JA;prozent=" + parseInt(w.prozent, 10) },
-
-  // 1.2.4: Knopf „Zum Raster-Bot umschichten“ (Trend-Ansicht, Vorgabe von: "trend") bzw. „Zum Trend-Bot umschichten“ (Raster-Ansicht)
-  bot_umschichten: { titel: "Zwischen den Bots umschichten", fuer: umschichtSpez },
-  // 1.2.18 (M2e): Auftrag mit unklarem Ausgang klären – Vorgaben {bot, nr} aus der Karte der Bot-Seite
-  order_klaeren: { titel: "Auftrag klären", fuer: klaerSpez },
-
-  // 1.2.0: „An die KI“ ersetzt den Hinweis-Dialog – die KI merkt Bot-Relevantes selbst als Hinweis (js/kifrage.js)
+  // 1.2.0: „An die KI“ (js/kifrage.js) – die KI erklärt nur
   frage: { titel: "An die KI", ohneFrage: true },
   alarme_gelesen: { titel: "Alarme löschen", ohneFrage: true },
-  // 1.2.5: „Letzte Trades“/„Ereignisse“ ausblenden (✕ je Eintrag, „Liste leeren“) – eigene Logik in js/ausblenden.js, nichts wird gelöscht
-  liste_ausblenden: { titel: "Liste ausblenden", ohneFrage: true },
-  // 1.2.2: kein Eingabefeld mehr – nur „✕“ in der Liste „Gemerkte Hinweise“ (eigene Bestätigung) und „Rückgängig“, beide mit
-  // genau der Nummer aus handy.json bzw. der Antwort (js/kifrage.js)
-  hinweis_loeschen: { titel: "Hinweis löschen", ohneFrage: true },
   push_abo: { titel: "Benachrichtigungen", ohneFrage: true },
 };
 
@@ -402,11 +272,7 @@ function wegText(w) {
 // ------------------------------------------------------------------ ausführen
 
 export async function ausfuehren(m, vorgaben = {}) {
-  let spez = SPEZ[m];
-  if (spez && spez.fuer) {                     // Dialog hängt von den Vorgaben des Knopfs ab (z. B. Richtung beim Umschichten)
-    const s = spez.fuer(vorgaben);
-    spez = s ? Object.assign({}, spez, s) : null;
-  }
+  const spez = SPEZ[m];
   const e = eintrag(m);
   if (!spez || !e) {
     hooks.toast("Dieser Befehl ist gerade nicht erlaubt.");
@@ -528,7 +394,7 @@ function speichern() {
   } catch { /* egal */ }
 }
 
-const FINAL = new Set(["erledigt", "fehlgeschlagen", "verloren", "unklar"]);
+const FINAL = new Set(["erledigt", "fehlgeschlagen", "verloren", "unklar"]);   // „unklar“: nur noch ältere gespeicherte Aufträge
 function istFinal(a) {
   return FINAL.has(a.status);
 }
@@ -549,7 +415,7 @@ export function bitteWarten(kiOffen) {
     titel: "Bitte kurz warten",
     inhalt: [
       "Es läuft noch ein Auftrag: „" + name(kiOffen.modus) + "“ (geschickt " + vor(new Date(kiOffen.zeit).toISOString()) + ").",
-      "Die Cloud arbeitet normale Aufträge nacheinander ab – ein neuer könnte den wartenden verdrängen. Sobald er fertig ist, kannst du den nächsten schicken. Brems-Befehle („Alles parken“, „Nur anhalten“, Coin-Bot aus, Pausieren) gehen immer.",
+      "Die Cloud arbeitet normale Aufträge nacheinander ab – ein neuer könnte den wartenden verdrängen. Sobald er fertig ist, kannst du den nächsten schicken. Brems-Befehle („Alles parken“, „Nur anhalten“, Coin-Bot aus, Stufe → sicher) gehen immer.",
     ],
     okText: "Verstanden", nurOk: true,
   });
@@ -564,7 +430,7 @@ function verfolgen(a) {
   a.status = "gesendet";
   a.runId = null;
   a.max = (BREMSEN.has(a.modus) && a.weg === "express") || a.modus === "allesstopp" || a.modus === "anhalten" ? NEU_SENDEN.bremse
-    : GELD.has(a.modus) ? 0 : NEU_SENDEN.normal;
+    : NEU_SENDEN.normal;
   a.gestartet = false;
   auftraege = auftraege.filter((x) => !istFinal(x) || Date.now() - (x.ende || 0) < FERTIG_ZEIGEN_MS).concat([a]).slice(-6);
   speichern();
@@ -590,17 +456,7 @@ function abschliessen(a, status, text) {
   a.ende = Date.now();
   a.best = undefined;
   speichern();
-  if (status === "unklar") {
-    // B7: geldbewegender Auftrag – NICHT blind neu senden (sonst würde der Betrag womöglich zweimal bewegt)
-    dialog({
-      titel: "Auftrag: Ausgang unklar",
-      inhalt: ["„" + name(a.modus) + "“: " + (a.gestartet ? "der Lauf wurde nach dem Start abgebrochen."
-        : "bei GitHub ist (noch) kein Lauf zu sehen."),
-        "Dieser Auftrag bewegt Geld und wird deshalb NICHT automatisch noch einmal geschickt. Bitte in der Mail bzw. auf github.com → "
-        + "Athokawe/finanzen → Actions nachsehen, ob er gelaufen ist – erst dann (falls nötig) noch einmal drücken."],
-      okText: "Verstanden", nurOk: true,
-    });
-  } else if (status === "verloren") {
+  if (status === "verloren") {
     dialog({
       titel: "Auftrag nicht angekommen",
       inhalt: ["„" + name(a.modus) + "“ ist nicht in der Cloud angekommen – GitHub hat ihn " + (a.versuche > 1 ? a.versuche + "-mal" : "") + " verworfen.",
@@ -666,8 +522,7 @@ export async function pruefen(handy) {
       if (!lauf) {
         if (Date.now() - a.zeit > VERWORFEN_NACH_MS) {
           if (a.versuche - 1 < a.max) await neuSenden(a, "wurde von GitHub verworfen");
-          else if (!GELD.has(a.modus)) abschliessen(a, "verloren");
-          // B7: ein Geld-Auftrag wartet weiter (bis WARTEN_MAX_MIN) – GitHub legt angenommene Läufe oft nur verspätet an
+          else abschliessen(a, "verloren");
         }
         continue;
       }
@@ -683,7 +538,7 @@ export async function pruefen(handy) {
           // B7: nur ein Lauf, der nie lief (in der Warteschlange verdrängt), darf neu gehen – ein schon gestarteter nur bei Bremsen
           const bremse = a.max === NEU_SENDEN.bremse;
           if (a.versuche - 1 < a.max && (bremse || !a.gestartet)) await neuSenden(a, "wurde abgebrochen");
-          else abschliessen(a, GELD.has(a.modus) ? "unklar" : "verloren");
+          else abschliessen(a, "verloren");
         } else abschliessen(a, "fehlgeschlagen", "fehlgeschlagen ✗ – Details in der Mail bzw. bei GitHub (" + (lauf.ergebnis || "Fehler") + ")");
       } else {
         a.status = lauf.status === "in_progress" ? "laeuft" : "angekommen";
@@ -691,7 +546,7 @@ export async function pruefen(handy) {
       }
     }
     for (const a of laufendeAuftraege()) {
-      if ((Date.now() - a.zeit) / 60000 > WARTEN_MAX_MIN) abschliessen(a, GELD.has(a.modus) ? "unklar" : "verloren");
+      if ((Date.now() - a.zeit) / 60000 > WARTEN_MAX_MIN) abschliessen(a, "verloren");
     }
     speichern();
   } finally {
