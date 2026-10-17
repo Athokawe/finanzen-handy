@@ -565,7 +565,6 @@ export function uebersicht(Z) {
           ["Gewinnschutz", anAus(ak.gewinnschutz_an)],
           ["Stand", F.zeit(ak.wert_zeit)],
         ]),
-        ok(ak.ki) ? erklaert("Aktien-KI einfach erklärt", ak.ki.einfach_erklaert) : null,
         reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein"),
           ak.gewinnschutz_an ? A.knopf("gewinnschutz_aktien_aus", "Gewinnschutz aus") : A.knopf("gewinnschutz_aktien_ein", "Gewinnschutz ein")),
       ]),

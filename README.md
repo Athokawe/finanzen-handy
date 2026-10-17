@@ -4,6 +4,12 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.23
+
+* Inhalt wie 1.2.21: Raster- und Trend-Bot mit eigenen Reitern bleiben (1.2.22 hatte sie irrtümlich entfernt). Neue
+  Versionsnummer, damit das iPhone den Zwischenspeicher erneuert. Die Zeile „Aktien-KI einfach erklärt“ ist weg (die Cloud
+  liefert seit 17.10.2026 keine Aktien-KI mehr).
+
 ## Neu in 1.2.21
 
 * **Längere PIN für mehr Sicherheit:** Neue PINs haben jetzt 6 bis 8 Ziffern. Hast du noch eine kürzere PIN, funktioniert sie weiter – in den Einstellungen steht dann oben die Empfehlung „PIN auf 6 Stellen ändern“ mit dem Knopf **PIN ändern** (bisherige PIN, neue PIN zweimal). Warum: Kopiert jemand den Speicher des iPhones, sind 4 Stellen in Minuten durchprobierbar, 6 Stellen erst in Stunden bis Tagen. Am bequemsten und sichersten ist Face ID.
