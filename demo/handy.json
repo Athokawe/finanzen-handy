@@ -108,7 +108,6 @@
    }
   ],
   "status": "im Ziel (ETF-Modus)",
-  "gewinnschutz_an": true,
   "ki": {
    "zeit": "2026-10-09T14:20:00+00:00",
    "entscheidung": "halten",
@@ -540,24 +539,6 @@
    "ja_noetig": true,
    "beispiel": "JA",
    "text": "Gewinnschutz Krypto AUS",
-   "express": false,
-   "express_bestaetigung": null
-  },
-  {
-   "modus": "gewinnschutz_aktien_ein",
-   "bestaetigung": "",
-   "ja_noetig": false,
-   "beispiel": "",
-   "text": "Gewinnschutz Aktien/ETF EIN",
-   "express": false,
-   "express_bestaetigung": null
-  },
-  {
-   "modus": "gewinnschutz_aktien_aus",
-   "bestaetigung": "JA",
-   "ja_noetig": true,
-   "beispiel": "JA",
-   "text": "Gewinnschutz Aktien/ETF AUS",
    "express": false,
    "express_bestaetigung": null
   },

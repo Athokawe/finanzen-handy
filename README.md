@@ -4,6 +4,13 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.2.24
+
+* Aktien-Karte ohne die Zeile „Gewinnschutz“ und ohne den Knopf „Gewinnschutz ein/aus“: Den Gewinnschutz für Aktien und den
+  Welt-ETF gibt es in der Cloud nicht mehr (er wirkte seit „Faber 12 halb“ ohnehin nicht). Die Absicherung des Welt-ETF steht
+  weiter in der Lage-Karte unter dem Aktien-Autopiloten. Alles zum Krypto-Schutz („Alles parken“, Notbremse, Gewinnschutz
+  Krypto) bleibt, wie es ist.
+
 ## Neu in 1.2.23
 
 * Inhalt wie 1.2.21: Raster- und Trend-Bot mit eigenen Reitern bleiben (1.2.22 hatte sie irrtümlich entfernt). Neue

@@ -239,8 +239,6 @@ const SPEZ = {
   },
   gewinnschutz_ein: { titel: "Gewinnschutz Krypto einschalten", text: "Fällt der Kurs um die Grenze der Stufe unter den Höchststand, parkt der Coin-Bot." },
   gewinnschutz_aus: { titel: "Gewinnschutz Krypto ausschalten", text: "Ohne Gewinnschutz wird bei fallenden Kursen nicht mehr automatisch geparkt (die Notbremse bleibt)." },
-  gewinnschutz_aktien_ein: { titel: "Gewinnschutz Aktien/ETF einschalten" },
-  gewinnschutz_aktien_aus: { titel: "Gewinnschutz Aktien/ETF ausschalten" },
   aktien_start: { titel: "Aktien-Autopilot einschalten" },
   aktien_stopp: { titel: "Aktien-Autopilot ausschalten" },
 

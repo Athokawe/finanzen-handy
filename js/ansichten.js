@@ -562,11 +562,11 @@ export function uebersicht(Z) {
           ["Modus", ak.modus === "etf" ? "ETF" : ak.modus === "aktiv" ? "aktiv" : F.text(ak.modus)],
           ["Status", F.text(ak.status)],
           F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? ["Reserve", F.euro(ak.reserve_eur)] : null,
-          ["Gewinnschutz", anAus(ak.gewinnschutz_an)],
           ["Stand", F.zeit(ak.wert_zeit)],
         ]),
-        reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein"),
-          ak.gewinnschutz_an ? A.knopf("gewinnschutz_aktien_aus", "Gewinnschutz aus") : A.knopf("gewinnschutz_aktien_ein", "Gewinnschutz ein")),
+        // 1.2.24: Zeile und Knopf „Gewinnschutz“ entfielen mit dem Gewinnschutz Aktien/ETF (Cloud, 17.10.2026); die Absicherung
+        // des Welt-ETF steht in der Lage-Karte darunter
+        reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein")),
       ]),
     ));
     const lageA = lageKarte(ak.lage, "Lage Aktien-Autopilot", true);   // 1.2.11: eingeklappt, die Übersicht bleibt kurz
