@@ -4,6 +4,12 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.4
+
+* **„Regeln“ wartet nicht mehr auf offene KI-Aufträge** (Gesamtprüfung 18.10.2026): Steht der Autopilot auf „KI“ und läuft noch
+  ein Auftrag in der normalen Warteschlange (etwa eine Frage an die KI), geht „Regeln“ trotzdem sofort raus – als Express-Bremse,
+  die den KI-Autopiloten ausschaltet. Vorher hieß es „Es läuft noch ein Auftrag …“, und die KI handelte bis zu dessen Ende weiter.
+
 ## Neu in 1.3.3
 
 * **Karte „Börsengänge“ im Reiter News** (braucht die Finanz-App ab 18.10.2026 mit `cloud/boersengaenge.json`): angekündigte

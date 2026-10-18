@@ -437,7 +437,10 @@ export async function ausfuehren(m, vorgaben = {}) {
     return;
   }
   const kiOffen = kiAuftragOffen();
-  if (kiOffen && !istBremse(m) && m !== "einstellung" && !gh.istDemo()) {
+  // 1.3.4 (Gesamtprüfung 18.10.2026, B19): „Regeln“ von „KI“ aus (ohne JA) ist eine Express-Bremse – sie darf nicht warten, nur weil
+  // noch ein ki.yml-Auftrag (z. B. eine Frage an die KI) offen ist; der KI-Autopilot würde sonst bis zu dessen Ende weiterhandeln
+  const regelnSofort = m === "autopilot_regeln" && !spez.jaPflicht && !(e.ja_noetig);
+  if (kiOffen && !istBremse(m) && !regelnSofort && m !== "einstellung" && !gh.istDemo()) {
     bitteWarten(kiOffen);
     return;
   }
