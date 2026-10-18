@@ -9,7 +9,7 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
 * **Aktien-KI** (braucht Finanz-App 1.3 mit Teil 2): steht der Autopilot auf „KI“, zeigt die Aktien-Karte die letzte
   Einschätzung der KI – Entscheidung, Zuversicht, Ziel (z. B. „Welt-ETF 60 %, NVIDIA 20 %, Euro 20 %“) und „einfach erklärt“.
   Die Rückfrage beim Wählen von „KI“ nennt jetzt auch den Aktien-Teil; „Regeln“ von „KI“ aus sagt dazu, dass die Aktien der KI
-  liegen bleiben (verkauft wird nichts). Ohne Aktien-KI in der Cloud (ältere Finanz-App) bleibt alles wie in 1.3.
+  liegen bleiben (Geparktes legt der Regel-Autopilot wieder im Welt-ETF an). Ohne Aktien-KI in der Cloud (ältere Finanz-App) bleibt alles wie in 1.3.
 
 ## Neu in 1.3
 

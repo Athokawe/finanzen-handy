@@ -242,7 +242,8 @@ const SPEZ = {
           + "sobald Notbremse oder Gewinnschutz greifen, und kauft Bitcoin nur bei bestätigtem Aufwärtstrend zurück), bei Aktien der "
           + "Aktien-Autopilot (Welt-ETF, Absicherung, Absturz-Regel).", "Die KI schätzt still weiter ein, handelt aber nicht."] }
       : { jaPflicht: false, text: ["Die KI geht aus; die festen Regeln (Regelwerk, Aktien-Autopilot) steuern weiter – sie laufen schon. "
-          + "Aktien, die die KI gekauft hat, bleiben liegen wie deine eigenen (verkauft wird nichts)."] }),
+          + "Aktien, die die KI gekauft hat, bleiben liegen wie deine eigenen; was sie im Geldmarkt-ETF oder in Euro geparkt hat, "
+          + "legt der Regel-Autopilot wieder im Welt-ETF an."] }),
   },
   autopilot_aus: {
     titel: "Autopilot: Aus", gefahr: true, ok: "Ausschalten",
