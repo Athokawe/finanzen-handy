@@ -377,3 +377,16 @@ details.klapp-mehr[open] > summary { margin-bottom: 6px; }
 .wahl-feld.aktiv[data-stellung="aus"] { background: #6b7280; color: #fff; }
 .wahl-feld:active { transform: scale(.97); }
 .wahl-hinweis { flex-basis: 100%; margin: 0; color: var(--gelb); }
+
+/* 1.3.6: Karte „Marktphase“ – Bulle/Bär/Übergang in Klartext, nur Anzeige */
+.mp-phase { font-size: 26px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; margin: 4px 0 2px; }
+.mp-phase.gruen { color: var(--gruen); } .mp-phase.rot { color: var(--rot); } .mp-phase.gelb { color: var(--gelb); } .mp-phase.grau { color: var(--gedimmt); }
+.marktphase-karte.grau h2 { color: var(--gedimmt); }
+.mp-grund { line-height: 1.35; margin: 4px 0 0; }
+.mp-bots { list-style: none; margin: 10px 0 0; padding: 0; font-size: 14px; }
+.mp-bots li { display: flex; align-items: baseline; gap: 6px; padding: 4px 0; line-height: 1.35; }
+.mp-bots li .punkt { flex: 0 0 auto; position: relative; top: 1px; }
+.mp-bots li .titel { font-weight: 600; white-space: nowrap; }
+.punkt.grau { background: var(--gedimmt); }
+.mp-hinweis { color: var(--gelb); font-weight: 600; font-size: 14px; margin: 8px 0 0; }
+.mp-schluss { margin: 8px 0 0; line-height: 1.35; }

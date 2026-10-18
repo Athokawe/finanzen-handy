@@ -8,6 +8,57 @@
   "ausloeser": "wecker",
   "ergebnis": "success"
  },
+ "marktphase": {
+  "phase": "Bullenmarkt",
+  "knapp": true,
+  "phase_text": "Bullenmarkt, knapp",
+  "farbe": "gruen",
+  "grund": "Bitcoin-Tagesschluss vom 10.10. (87.650,00 €) liegt +2,1 % zur 50-Tage-Linie und +18,4 % zur 200-Tage-Linie; die 50-Tage-Linie liegt über der 200-Tage-Linie.",
+  "kurs": {
+   "eur": 88120.5,
+   "symbol": "BTC-EUR",
+   "zeit": "2026-10-11T06:20:00+00:00",
+   "zeit_text": "11.10. 08:20",
+   "schluss_eur": 87650.0,
+   "schluss_datum": "2026-10-10"
+  },
+  "abstaende": {
+   "ma50_prozent": 2.1,
+   "ma200_prozent": 18.4,
+   "hoch_20_prozent": -4.8,
+   "hoch_365_prozent": -16.7
+  },
+  "linien": {
+   "ma50_eur": 85847.21,
+   "ma200_eur": 74029.56,
+   "hoch_20_eur": 92070.0,
+   "hoch_365_eur": 105230.0
+  },
+  "datenpunkte": 731,
+  "bots": {
+   "trend_ampel": {
+    "gruen": true,
+    "abstand_prozent": 2.1,
+    "tag": "2026-10-10",
+    "text": "Markt-Ampel grün – Tagesschluss 10.10. liegt +2,1 % zur 50-Tage-Linie"
+   },
+   "ampel_200": {
+    "farbe": "gruen",
+    "text": "Aufwärtstrend intakt",
+    "zeit": "2026-10-11T06:20:00+00:00"
+   },
+   "ki_ampel": {
+    "farbe": "gruen",
+    "zeit": "2026-10-11T05:05:00+00:00",
+    "zeit_text": "11.10. 07:05"
+   }
+  },
+  "trend_bot_investiert": true,
+  "hinweis": "Trend-Bot investiert, Markt aber nur knapp im Plus.",
+  "satz": "Marktphase: Bullenmarkt, knapp – Bitcoin-Tagesschluss vom 10.10. liegt +2,1 % zur 50-Tage-Linie und +18,4 % zur 200-Tage-Linie (Kursdaten, keine Vorhersage).",
+  "schluss": "Beschreibung der Lage aus Kursdaten, keine Vorhersage. Gehandelt wird nur nach den Regeln der Bots oder nach deinem JA.",
+  "stand": "2026-10-11T06:20:00+00:00"
+ },
  "gesamt": {
   "name": "Gesamtvermögen",
   "gesamt_eur": 1552.06,

@@ -197,6 +197,60 @@ function antragKarte(roh) {
       h("div", { class: "unter" }, F.zeit(a.erledigt_zeit || a.zeit) + (a.ergebnis ? " · " + F.text(a.ergebnis) : ""))))), "zuletzt erledigt (" + erledigt.length + ")") : null);
 }
 
+/**
+ * 1.3.6: Karte „Marktphase“ (handy.json marktphase, Finanz-App ab 18.10.2026) – Bulle/Bär/Übergang in Klartext aus Bitcoin-Kursdaten
+ * (Tagesschluss gegen 50-/200-Tage-Linie, von der Cloud mechanisch gerechnet). NUR Anzeige: keine Knöpfe, löst nichts aus. Phase als
+ * ein Wort in der Farbe, Kursstand mit Zeit, vier Abstände, „Was die Bots daraus machen“ (drei Ampeln), Hinweis, fester Schluss-Satz.
+ * Fehlt das Feld (ältere handy.json) oder ist die Phase „nicht prüfbar“: graue Karte mit dem Grund. Alle Texte nur als Textknoten.
+ */
+const MP_FARBEN = ["gruen", "rot", "gelb", "grau"];
+const MP_SCHLUSS = "Beschreibung der Lage aus Kursdaten, keine Vorhersage. Gehandelt wird nur nach den Regeln der Bots oder nach deinem JA.";
+function mpProzent(v) {
+  if (!F.istZahl(v)) return "–";
+  return (v > 0 ? "+" : "") + Number(v).toLocaleString("de-AT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %";
+}
+function mpBot(titel, farbe, text) {
+  return h("li", null, h("span", { class: "punkt " + (MP_FARBEN.includes(farbe) ? farbe : "grau") }), h("span", { class: "titel" }, titel + ": "), text);
+}
+function marktphaseKarte(roh) {
+  const m = istObj(roh) ? roh : null;
+  const farbe = m && MP_FARBEN.includes(m.farbe) ? m.farbe : "grau";
+  const phase = m ? F.text(m.phase_text || m.phase, "nicht prüfbar") : "nicht prüfbar";
+  const grund = m ? (typeof m.grund === "string" && m.grund ? m.grund : fehlerVon(m) ? "Marktphase nicht prüfbar: " + fehlerVon(m) : "")
+    : "Marktphase nicht prüfbar: noch keine Marktphase in den Handy-Daten (kommt mit dem nächsten Cloud-Lauf).";
+  const kurs = m ? ok(m.kurs) : null;
+  const a = m ? ok(m.abstaende) : null;
+  const l = m && istObj(m.linien) ? m.linien : {};
+  const b = m && istObj(m.bots) ? m.bots : {};
+  const t = ok(b.trend_ampel), z = ok(b.ampel_200), k = ok(b.ki_ampel);
+  const eurZusatz = (v) => (F.istZahl(v) ? " · " + F.euro(v) : "");
+  return h("section", { class: "karte marktphase-karte " + farbe, id: "marktphase" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "Marktphase"),
+      m && m.stand ? h("span", { class: "klein gedimmt" }, "Stand " + F.zeit(m.stand)) : null),
+    h("div", { class: "mp-phase " + farbe, id: "mp-phase" }, phase),
+    kurs && F.istZahl(kurs.eur) ? h("p", { class: "klein gedimmt" }, "Bitcoin " + F.euro(kurs.eur) + (kurs.zeit_text ? " · " + F.text(kurs.zeit_text) : "")) : null,
+    grund ? h("p", { class: "klein mp-grund" }, grund) : null,
+    a ? zeilen([
+      ["Abstand zur 50-Tage-Linie", mpProzent(a.ma50_prozent) + eurZusatz(l.ma50_eur)],
+      ["Abstand zur 200-Tage-Linie", mpProzent(a.ma200_prozent) + eurZusatz(l.ma200_eur)],
+      ["Abstand zum 20-Tage-Hoch", mpProzent(a.hoch_20_prozent) + eurZusatz(l.hoch_20_eur)],
+      ["Abstand zum 365-Tage-Hoch", mpProzent(a.hoch_365_prozent) + eurZusatz(l.hoch_365_eur)],
+    ]) : null,
+    h("ul", { class: "mp-bots" },
+      h("li", { class: "klein gedimmt" }, "Was die Bots daraus machen:"),
+      t && typeof t.gruen === "boolean"
+        ? mpBot("Trend-Bot", t.gruen ? "gruen" : "rot", F.text(t.text, "Markt-Ampel " + (t.gruen ? "grün" : "rot") + ", " + mpProzent(t.abstand_prozent) + " zur 50-Tage-Linie"))
+        : mpBot("Trend-Bot", "grau", "Markt-Ampel nicht prüfbar" + (fehlerVon(b.trend_ampel) ? " (" + fehlerVon(b.trend_ampel) + ")" : "")),
+      z && MP_FARBEN.includes(z.farbe)
+        ? mpBot("200-Tage-Ampel", z.farbe, (z.farbe === "gruen" ? "grün" : z.farbe) + (z.text ? " – " + F.text(z.text) : ""))
+        : mpBot("200-Tage-Ampel", "grau", "nicht prüfbar" + (fehlerVon(b.ampel_200) ? " (" + fehlerVon(b.ampel_200) + ")" : "")),
+      k && MP_FARBEN.includes(k.farbe)
+        ? mpBot("KI-Ampel Coin-Bot", k.farbe, (k.farbe === "gruen" ? "grün" : k.farbe) + (k.zeit_text ? " (Einschätzung " + F.text(k.zeit_text) + ")" : ""))
+        : mpBot("KI-Ampel Coin-Bot", "grau", "nicht prüfbar" + (fehlerVon(b.ki_ampel) ? " (" + fehlerVon(b.ki_ampel) + ")" : ""))),
+    m && typeof m.hinweis === "string" && m.hinweis ? h("p", { class: "mp-hinweis" }, m.hinweis) : null,
+    h("p", { class: "klein gedimmt mp-schluss" }, m && typeof m.schluss === "string" && m.schluss ? m.schluss : MP_SCHLUSS));
+}
+
 /** 1.2.11: Lagebericht je Bot (handy.json <bot>.lage – Liste kurzer Sätze, regelbasiert aus der Cloud). Fehlt er: nichts zeigen. */
 function lageKarte(lage, titel, zu) {
   const saetze = liste(lage).filter((x) => typeof x === "string" && x.trim());
@@ -561,6 +615,7 @@ export function uebersicht(Z) {
   const apk = autopilotKarte(d);                                   // 1.3: Autopilot-Wahlschalter gleich unter dem Gesamtwert
   if (apk) out.push(apk);
   out.push(parkKnoepfe());
+  out.push(marktphaseKarte(d.marktphase));                       // 1.3.6: Marktphase (Bulle/Bär/Übergang) über der Krypto-Karte, nur Anzeige
 
   const k = ok(d.kern_bot);
   if (k) {
