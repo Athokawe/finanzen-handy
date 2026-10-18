@@ -4,6 +4,16 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.7
+
+* **Befehle über „An die KI“** (braucht die Finanz-App ab 18.10.2026): Du kannst im Blatt „An die KI“ auch Befehle tippen
+  („Pausiere den Raster-Bot“, „Hol die News neu“, „Trend-Bot mit 200 Euro einschalten“, „Stufe auf sicher“). Die Cloud ordnet
+  den Befehl einem der bekannten Schalter zu und prüft ihn gegen dasselbe Muster wie beim Senden – ausgeführt wird in der Cloud
+  nichts. Unter der Antwort steht „⚡ Befehl: …“: Harmlose Befehle ohne JA (News, Bericht, Einschätzung, Aus-/Anhalten, Euro-
+  Automatik aus …) schickt die App sofort als normalen Auftrag, sobald die Antwort eintrifft (nur in der laufenden Sitzung – nach
+  einem Neustart gibt es den Knopf „Jetzt ausführen“). Alles mit JA (Geld, Einschalten, Beträge, Deckel, Stufe, Alles parken)
+  bekommt den Knopf „Ausführen …“, der den bekannten Dialog mit vorausgefüllten Feldern öffnet – das JA tippst du.
+
 ## Neu in 1.3.6
 
 * **Karte „Marktphase“** auf der Übersicht über der Coin-Topf-Karte (braucht die Finanz-App ab 18.10.2026 mit dem Feld
