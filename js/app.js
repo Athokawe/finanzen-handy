@@ -21,13 +21,14 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.3.2";
+export const APP_VERSION = "1.3.3";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
 
 // verlauf: cloud/handy_verlauf.json (Statistik, 1.1.0); fehlerVerlauf: "nichtda" (entsteht erst mit dem nächsten Cloud-Lauf) oder Text
-const Z = { handy: null, news: null, verlauf: null, fehlerHandy: null, fehlerNews: null, fehlerVerlauf: null, laedt: false, geladenUm: 0 };
+// boersengaenge: cloud/boersengaenge.json (1.3.3: Börsengänge + Neuzugänge bei Bitpanda, Karte im News-Reiter)
+const Z = { handy: null, news: null, verlauf: null, boersengaenge: null, fehlerHandy: null, fehlerNews: null, fehlerVerlauf: null, fehlerBoersengaenge: null, laedt: false, geladenUm: 0 };
 const demo = new URLSearchParams(location.search).get("demo") === "1";
 let reiter = "uebersicht";
 let entsperrt = false;
@@ -264,8 +265,8 @@ function sperren(manuell) {
   if (demo) return;
   entsperrt = false;
   gh.tokenSetzen(null);
-  Z.handy = Z.news = Z.verlauf = null;
-  Z.fehlerHandy = Z.fehlerNews = Z.fehlerVerlauf = null;
+  Z.handy = Z.news = Z.verlauf = Z.boersengaenge = null;
+  Z.fehlerHandy = Z.fehlerNews = Z.fehlerVerlauf = Z.fehlerBoersengaenge = null;
   for (const k of [...Object.keys(ANSICHT), "mehr"]) leeren($("t-" + k));
   V.klappAllesZu();                    // 1.2.19: nach dem Entsperren ist die Übersicht wieder kurz
   A.dialogZu();
@@ -345,7 +346,8 @@ async function laden() {
   Z.laedt = true;
   $("knopf-aktualisieren").classList.add("dreht");
   standZeigen();
-  const [a, b, c] = await Promise.allSettled([gh.lesen("cloud/handy.json"), gh.lesen("cloud/news.json"), gh.lesen("cloud/handy_verlauf.json")]);
+  const [a, b, c, bg] = await Promise.allSettled([gh.lesen("cloud/handy.json"), gh.lesen("cloud/news.json"), gh.lesen("cloud/handy_verlauf.json"),
+    gh.lesen("cloud/boersengaenge.json")]);
   Z.laedt = false;
   $("knopf-aktualisieren").classList.remove("dreht");
   if (!entsperrt) return; // inzwischen gesperrt
@@ -365,6 +367,16 @@ async function laden() {
     Z.fehlerNews = (b.reason && b.reason.art === "nichtda" && a.status === "fulfilled")
       ? "Noch keine News geholt. Tippe auf „News aktualisieren“ – in ein paar Minuten sind sie da (sonst kommen sie mit dem nächsten Bericht)."
       : (b.reason && b.reason.message ? b.reason.message : "News nicht lesbar.");
+  }
+  if (bg.status === "fulfilled" && bg.value && typeof bg.value === "object") {
+    // 1.3.3: Zeiten NICHT verschieben – die Börsengangs-Tage sind Kalenderdaten, nur der Stand wird im Demo-Modus mitgezogen
+    Z.boersengaenge = demo ? Object.assign({}, bg.value, { zeit: demoZeiten({ zeit: bg.value.zeit }, versatz).zeit }) : bg.value;
+    Z.fehlerBoersengaenge = null;
+  } else if (!Z.boersengaenge) {
+    // boersengaenge.json entsteht mit dem ersten 18:30-Lauf der Finanz-App ab 1.3 (18.10.2026) – kein Fehler, nur ein Hinweis
+    Z.fehlerBoersengaenge = bg.reason && bg.reason.art === "nichtda" && a.status === "fulfilled"
+      ? "Noch keine Börsengänge-Daten – sie kommen mit dem nächsten 18:30-Cloud-Lauf."
+      : (bg.reason && bg.reason.message ? bg.reason.message : "Börsengänge nicht lesbar.");
   }
   if (c.status === "fulfilled" && c.value && Array.isArray(c.value.punkte)) {
     Z.verlauf = demo ? demoZeiten(c.value, versatz) : c.value;
@@ -395,7 +407,7 @@ function abmelden() {
     okText: "Abmelden", okKlasse: "gefahr",
     onOk: async () => {
       T.loeschen(); // löscht auch den Face-ID-Umschlag
-      Z.handy = Z.news = Z.verlauf = null;
+      Z.handy = Z.news = Z.verlauf = Z.boersengaenge = null;
       for (const k of [...Object.keys(ANSICHT), "mehr"]) leeren($("t-" + k));
       K.vergessen();
       verbindenZeigen("Abgemeldet – Token und PIN sind gelöscht.");
@@ -465,7 +477,7 @@ function faceIdEinrichten() {
 /** 5. falsche PIN im Einrichten-Dialog: Token ist gelöscht (wie beim Entsperren) -> alles weg, neu verbinden. */
 function tokenWegNachFehlversuchen() {
   A.dialogZu();
-  Z.handy = Z.news = Z.verlauf = null;
+  Z.handy = Z.news = Z.verlauf = Z.boersengaenge = null;
   for (const k of [...Object.keys(ANSICHT), "mehr"]) leeren($("t-" + k));
   K.vergessen();
   verbindenZeigen("5 falsche PINs – der Token wurde aus Sicherheitsgründen gelöscht. Bitte neu verbinden.");

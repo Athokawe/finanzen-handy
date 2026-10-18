@@ -4,6 +4,14 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.3
+
+* **Karte „Börsengänge“ im Reiter News** (braucht die Finanz-App ab 18.10.2026 mit `cloud/boersengaenge.json`): angekündigte
+  US-Börsengänge und die der letzten 60 Tage aus dem Nasdaq-Kalender, je Firma „Bitpanda: ja (Kürzel) / noch nicht“, dazu
+  „Neu bei Bitpanda“ – jedes Wertpapier, das Bitpanda seit dem Vortag neu aufgenommen hat (30 Tage sichtbar). Je Liste die
+  ersten drei, der Rest hinter „mehr“. Taucht ein Börsengang bei Bitpanda auf oder kommen neue Aktien dazu, schickt die Cloud
+  einen Push. Nur Information, keine Empfehlung. Fehlt die Datei noch (älterer Cloud-Stand), steht nur ein Hinweis da.
+
 ## Neu in 1.3.2
 
 * Texte zur Aktien-KI nach deinen Antworten (braucht die Finanz-App mit dem Folge-PR zu 1.3): Die Rückfrage beim Wählen von
