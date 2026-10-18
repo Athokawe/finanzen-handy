@@ -230,9 +230,11 @@ const SPEZ = {
   autopilot_ki: {
     titel: "Autopilot: KI", ok: "Auf KI stellen",
     // 1.3.1: der Aktien-Teil der KI ist da (Finanz-App 1.3, Teil 2)
+    // 1.3.2: die KI verwaltet den ganzen Aktien-Teil, auch in der Rotation (Toms Antworten 18.10.2026)
     text: ["Der KI-Autopilot handelt dann mit echtem Geld, innerhalb der Leitplanken: beim Coin-Bot Coin-Wahl und Parken, bei den "
-      + "Aktien (Modus „nur ETF“) das Ziel für Reserve, Welt-ETF, Geldmarkt-ETF und Einzelaktien aus den Top 15 der Welt – vor jedem "
-      + "Aktienkauf prüft eine zweite KI. Deine eigenen Einzelaktien fasst er nicht an.",
+      + "Aktien (auch im Modus „Rotation“) alles – Reserve, Welt-ETF, Geldmarkt-ETF und Einzelaktien, auch deine eigenen. Kaufen darf "
+      + "er Einzelaktien nur aus den Top 15 der Welt, vor jedem Aktienkauf prüft eine zweite KI. Was du per Knopf kaufst, bleibt "
+      + "5 Tage unangetastet.",
       "Die festen Regeln (Notbremse, Gewinnschutz, Absturz-Regel) bleiben als Sicherheitsnetz eingeschaltet."],
   },
   autopilot_regeln: {
@@ -242,8 +244,8 @@ const SPEZ = {
           + "sobald Notbremse oder Gewinnschutz greifen, und kauft Bitcoin nur bei bestätigtem Aufwärtstrend zurück), bei Aktien der "
           + "Aktien-Autopilot (Welt-ETF, Absicherung, Absturz-Regel).", "Die KI schätzt still weiter ein, handelt aber nicht."] }
       : { jaPflicht: false, text: ["Die KI geht aus; die festen Regeln (Regelwerk, Aktien-Autopilot) steuern weiter – sie laufen schon. "
-          + "Aktien, die die KI gekauft hat, bleiben liegen wie deine eigenen; was sie im Geldmarkt-ETF oder in Euro geparkt hat, "
-          + "legt der Regel-Autopilot wieder im Welt-ETF an."] }),
+          + "Einzelaktien bleiben liegen, wie sie sind; was die KI im Geldmarkt-ETF oder in Euro geparkt hat, legt der Regel-Autopilot "
+          + "wieder im Welt-ETF an (im Modus „Rotation“ nach der Rotations-Auswahl)."] }),
   },
   autopilot_aus: {
     titel: "Autopilot: Aus", gefahr: true, ok: "Ausschalten",

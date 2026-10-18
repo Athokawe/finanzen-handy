@@ -4,6 +4,12 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.2
+
+* Texte zur Aktien-KI nach deinen Antworten (braucht die Finanz-App mit dem Folge-PR zu 1.3): Die Rückfrage beim Wählen von
+  „KI“ sagt jetzt, dass die KI den ganzen Aktien-Teil verwaltet – auch deine eigenen Einzelaktien und auch im Modus „Rotation“;
+  was du per Knopf kaufst, bleibt 5 Tage unangetastet. „Regeln“ von „KI“ aus: Einzelaktien bleiben liegen, wie sie sind.
+
 ## Neu in 1.3.1
 
 * **Aktien-KI** (braucht Finanz-App 1.3 mit Teil 2): steht der Autopilot auf „KI“, zeigt die Aktien-Karte die letzte
