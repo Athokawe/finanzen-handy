@@ -4,6 +4,15 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.5
+
+* **Karte „KI-Antrag – dein JA ist gefragt“** auf der Übersicht (braucht die Finanz-App mit `cloud/antraege.json`, 18.10.2026):
+  Will die Krypto- oder Aktien-KI etwas tun, das eine ihrer Leitplanken sperrt (Zuversicht, Kostenschwelle, Haltefrist …), legt die
+  Cloud es als Antrag ab statt zu handeln. Die Karte zeigt Begründung, gesperrte Leitplanke und was dein JA auslöst; „JA – ausführen“
+  öffnet den Dialog mit wörtlichem JA (Modus `antrag_ja`). Tageslimit und ein „Aus“ gelten auch dann. Ein Antrag verfällt nach 24 Stunden.
+* **Raster-Bot von der KI geschaltet:** Steht der Autopilot auf „KI“, setzt die Cloud den Raster-Vorschlag der KI selbst um; die
+  Karte „KI-Vorschlag“ zeigt dann „Von der KI geschaltet“. Den Trend-Bot schaltet weiterhin nur dein JA.
+
 ## Neu in 1.3.4
 
 * **„Regeln“ wartet nicht mehr auf offene KI-Aufträge** (Gesamtprüfung 18.10.2026): Steht der Autopilot auf „KI“ und läuft noch

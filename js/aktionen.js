@@ -154,6 +154,25 @@ function klaerSpez(vorgaben) {
   };
 }
 
+/**
+ * 1.3.5: Dialog „KI-Antrag ausführen“ – Vorgaben {id, titel, zusammenfassung} aus der Karte „KI-Antrag“. Die Cloud führt genau diesen
+ * Antrag aus (antrag_ja, JA;id=…); Tageslimit und frische Schalter gelten weiter. Nur mit wörtlichem JA.
+ */
+function antragSpez(vorgaben) {
+  const id = typeof vorgaben.id === "string" && /^[0-9a-f]{8}$/.test(vorgaben.id) ? vorgaben.id : null;
+  if (!id) return null;
+  return {
+    titel: "KI-Antrag ausführen",
+    text: [
+      String(vorgaben.titel || ""),
+      "Dein JA löst aus: " + String(vorgaben.zusammenfassung || ""),
+      "Die KI-Leitplanken werden dafür übersprungen; Tageslimit, Mindestorder und ein „Aus“ gelten weiter. Jede Order kostet Gebühren, auf Gewinne fällt KESt an.",
+    ],
+    jaPflicht: true,
+    bauen: () => "JA;id=" + id,
+  };
+}
+
 /** Dialog für eine Richtung („von“ = abgebender Bot) – null bei unbekannter Richtung. */
 function umschichtSpez(vorgaben) {
   const von = vorgaben.von === "trend" || vorgaben.von === "raster" ? vorgaben.von : null;
@@ -295,6 +314,8 @@ const SPEZ = {
   bot_umschichten: { titel: "Zwischen den Bots umschichten", fuer: umschichtSpez },
   // 1.2.18 (M2e): Auftrag mit unklarem Ausgang klären – Vorgaben {bot, nr} aus der Karte der Bot-Seite
   order_klaeren: { titel: "Auftrag klären", fuer: klaerSpez },
+  // 1.3.5: KI-Antrag außerhalb der Leitplanken ausführen – Vorgaben {id, titel, zusammenfassung} aus der Karte „KI-Antrag“
+  antrag_ja: { titel: "KI-Antrag ausführen", fuer: antragSpez },
 
   // 1.2.0: „An die KI“ ersetzt den Hinweis-Dialog – die KI merkt Bot-Relevantes selbst als Hinweis (js/kifrage.js)
   frage: { titel: "An die KI", ohneFrage: true },
