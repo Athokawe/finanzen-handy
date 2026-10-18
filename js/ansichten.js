@@ -108,6 +108,14 @@ function leer(text) {
   return h("p", { class: "leer" }, text);
 }
 
+// 1.3.1: Entscheidungen der Aktien-KI (Finanz-App 1.3, Teil 2 – handy.json aktien.ki)
+const AKTIEN_KI_TEXT = { halten: "halten", umbauen: "umbauen", parken_welt: "in den Welt-ETF parken", parken_geldmarkt: "parken (Geldmarkt/Euro)" };
+
+function aktienKiZiel(ziel) {
+  if (!Array.isArray(ziel) || !ziel.length) return "–";
+  return ziel.map((z) => F.text(z.name, z.symbol) + " " + (F.istZahl(z.gewicht) ? F.zahl(z.gewicht, 0) + " %" : "–")).join(", ");
+}
+
 function entscheidungText(e) {
   if (!e) return "–";
   if (e === "halten") return "halten";
@@ -593,6 +601,7 @@ export function uebersicht(Z) {
   // 1.2.12: Aktien & ETFs unter dem Krypto-Teil, direkt vor „Letzte Alarme“ – langfristiges Geld, am wenigsten angeschaut (Nutzer 14.10.2026)
   const ak = ok(d.aktien);
   if (ak) {
+    const akKi = ok(ak.ki);
     out.push(karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
       h("div", { class: "mittel", id: "aktien-wert" }, F.euro(ak.wert_eur)),
       F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
@@ -602,7 +611,12 @@ export function uebersicht(Z) {
           ["Status", F.text(ak.status)],
           F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? ["Reserve", F.euro(ak.reserve_eur)] : null,
           ["Stand", F.zeit(ak.wert_zeit)],
+          // 1.3.1: letzte Einschätzung der Aktien-KI (nur bei Autopilot „KI“ wirksam – aktiv)
+          akKi ? ["KI-Autopilot", (akKi.aktiv ? "" : "ruht · ") + F.text(AKTIEN_KI_TEXT[akKi.entscheidung], akKi.entscheidung)
+            + (F.istZahl(akKi.zuversicht) ? " · " + akKi.zuversicht + " % sicher" : "") + " (" + F.zeit(akKi.zeit) + ")"] : null,
+          akKi ? ["KI-Ziel", aktienKiZiel(akKi.ziel)] : null,
         ]),
+        akKi ? erklaert("KI einfach erklärt", akKi.einfach_erklaert) : null,
         // 1.2.24: Zeile und Knopf „Gewinnschutz“ entfielen mit dem Gewinnschutz Aktien/ETF (Cloud, 17.10.2026); die Absicherung
         // des Welt-ETF steht in der Lage-Karte darunter
         // 1.3: derselbe Wahlschalter wie beim Coin-Bot (ältere Cloud: die bisherigen Knöpfe)

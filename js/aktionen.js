@@ -229,9 +229,11 @@ const SPEZ = {
   // 1.3 (Nutzer 18.10.2026): Autopilot-Wahlschalter „KI · Regeln · Aus“ – je Stellung EIN Auftrag
   autopilot_ki: {
     titel: "Autopilot: KI", ok: "Auf KI stellen",
-    text: ["Der KI-Autopilot steuert dann den Coin-Bot selbst (Coin-Wahl, Parken) – mit echtem Geld, innerhalb der Leitplanken. Der "
-      + "Aktien-Teil läuft bis zum nächsten Update nach den festen Regeln.",
-      "Die festen Regeln (Notbremse, Gewinnschutz, Aktien-Autopilot) bleiben als Sicherheitsnetz eingeschaltet."],
+    // 1.3.1: der Aktien-Teil der KI ist da (Finanz-App 1.3, Teil 2)
+    text: ["Der KI-Autopilot handelt dann mit echtem Geld, innerhalb der Leitplanken: beim Coin-Bot Coin-Wahl und Parken, bei den "
+      + "Aktien (Modus „nur ETF“) das Ziel für Reserve, Welt-ETF, Geldmarkt-ETF und Einzelaktien aus den Top 15 der Welt – vor jedem "
+      + "Aktienkauf prüft eine zweite KI. Deine eigenen Einzelaktien fasst er nicht an.",
+      "Die festen Regeln (Notbremse, Gewinnschutz, Absturz-Regel) bleiben als Sicherheitsnetz eingeschaltet."],
   },
   autopilot_regeln: {
     titel: "Autopilot: Regeln", ok: "Auf Regeln stellen",
@@ -239,7 +241,8 @@ const SPEZ = {
       ? { jaPflicht: true, text: ["Der Regel-Autopilot handelt dann mit echtem Geld: im Krypto-Teil das Regelwerk (parkt in EURCV, "
           + "sobald Notbremse oder Gewinnschutz greifen, und kauft Bitcoin nur bei bestätigtem Aufwärtstrend zurück), bei Aktien der "
           + "Aktien-Autopilot (Welt-ETF, Absicherung, Absturz-Regel).", "Die KI schätzt still weiter ein, handelt aber nicht."] }
-      : { jaPflicht: false, text: ["Die KI geht aus; die festen Regeln (Regelwerk, Aktien-Autopilot) steuern weiter – sie laufen schon."] }),
+      : { jaPflicht: false, text: ["Die KI geht aus; die festen Regeln (Regelwerk, Aktien-Autopilot) steuern weiter – sie laufen schon. "
+          + "Aktien, die die KI gekauft hat, bleiben liegen wie deine eigenen (verkauft wird nichts)."] }),
   },
   autopilot_aus: {
     titel: "Autopilot: Aus", gefahr: true, ok: "Ausschalten",
