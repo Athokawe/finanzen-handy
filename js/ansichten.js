@@ -170,6 +170,33 @@ function unklarKarte(roh, bot) {
       h("div", { class: "unter" }, "gesendet " + F.zeit(o.gesendet) + (o.grund ? " · " + F.text(o.grund) : ""))))));
 }
 
+/**
+ * 1.3.5: Karte „KI-Antrag“ (handy.json ki_antraege.offen, unter dem Gesamtwert) – die KI wollte etwas außerhalb ihrer Leitplanken; die Cloud hat es NICHT
+ * ausgeführt, sondern als Antrag abgelegt. Knopf „JA – ausführen“ öffnet den Dialog antrag_ja (JA tippen); dann führt die Cloud genau
+ * diesen Antrag aus (Tageslimit und frische Schalter gelten weiter). Texte sind fremder Text (KI) – nur Textknoten.
+ */
+const BEREICH_NAME = { krypto: "Krypto", aktien: "Aktien" };
+function antragKarte(roh) {
+  const d = istObj(roh) ? roh : null;
+  const offen = d ? liste(d.offen).filter((a) => istObj(a) && typeof a.id === "string") : [];
+  const erledigt = d ? liste(d.erledigt).filter(istObj) : [];
+  if (!offen.length) return null;
+  return h("section", { class: "karte antrag-karte", id: "ki-antraege" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "KI-Antrag – dein JA ist gefragt"), etikett(offen.length + " offen", "gelb")),
+    h("p", { class: "klein gedimmt" }, "Die KI wollte etwas tun, das eine ihrer Leitplanken sperrt. Das Programm führt so etwas nie selbst aus – nur mit deinem JA. Tageslimit und ein „Aus“ gelten auch dann; ein Antrag verfällt nach 24 Stunden."),
+    h("ul", { class: "liste" }, offen.map((a) => h("li", { "data-antrag": a.id },
+      h("div", { class: "oben" }, h("span", { class: "titel" }, (BEREICH_NAME[a.bereich] || F.text(a.bereich)) + ": " + F.text(a.titel)),
+        F.istZahl(a.zuversicht) ? h("span", { class: "klein gedimmt" }, a.zuversicht + " % sicher") : null),
+      h("p", null, F.text(a.text)),
+      h("div", { class: "unter" }, "Gesperrt durch: " + F.text(a.leitplanke)),
+      h("div", { class: "unter" }, "Dein JA löst aus: " + F.text(a.zusammenfassung)),
+      h("div", { class: "unter" }, "gültig bis " + F.zeit(a.gueltig_bis)),
+      reihe(A.knopf("antrag_ja", "JA – ausführen …", "primaer", { id: a.id, titel: F.text(a.titel), zusammenfassung: F.text(a.zusammenfassung) }))))),
+    erledigt.length ? mehrTeil("antraege-erledigt", h("ul", { class: "liste" }, erledigt.map((a) => h("li", null,
+      h("div", { class: "oben" }, h("span", { class: "titel" }, (BEREICH_NAME[a.bereich] || F.text(a.bereich)) + ": " + F.text(a.titel)), etikett(F.text(a.status), a.status === "ausgefuehrt" ? "gruen" : "aus")),
+      h("div", { class: "unter" }, F.zeit(a.erledigt_zeit || a.zeit) + (a.ergebnis ? " · " + F.text(a.ergebnis) : ""))))), "zuletzt erledigt (" + erledigt.length + ")") : null);
+}
+
 /** 1.2.11: Lagebericht je Bot (handy.json <bot>.lage – Liste kurzer Sätze, regelbasiert aus der Cloud). Fehlt er: nichts zeigen. */
 function lageKarte(lage, titel, zu) {
   const saetze = liste(lage).filter((x) => typeof x === "string" && x.trim());
@@ -529,6 +556,8 @@ export function uebersicht(Z) {
   const out = [];
   if (A.erlaubt("frage")) out.push(kiSchnellKarte());             // 1.2.10: Eingabefeld „An die KI“ ganz oben (Nutzer 12.10.2026)
   out.push(gesamtKarte(d, Z));
+  const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert, solange einer offen ist
+  if (ak_) out.push(ak_);
   const apk = autopilotKarte(d);                                   // 1.3: Autopilot-Wahlschalter gleich unter dem Gesamtwert
   if (apk) out.push(apk);
   out.push(parkKnoepfe());

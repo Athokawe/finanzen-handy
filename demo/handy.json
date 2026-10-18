@@ -784,6 +784,15 @@
    "text": "Auftrag mit unklarem Ausgang klären: einer Fusion-Order zuordnen (id=…) oder verwerfen (nie ausgeführt) – nie eine Order",
    "express": false,
    "express_bestaetigung": null
+  },
+  {
+   "modus": "antrag_ja",
+   "bestaetigung": "JA;id=[0-9a-f]{8}",
+   "ja_noetig": true,
+   "beispiel": "JA;id=ab12cd34",
+   "text": "KI-Antrag ausführen – genau der offene Antrag aus der App (außerhalb der KI-Leitplanken; Tageslimit und frische Schalter gelten weiter)",
+   "express": false,
+   "express_bestaetigung": null
   }
  ],
  "push": {
@@ -912,6 +921,39 @@
   "regel": "Automatischer Vergleich ab einem gemeinsamen Startpunkt: Urteil ab 14 Tagen; „klar“ ab 28 Tagen bei mindestens 5 % Abstand UND an den letzten 14 Tagen durchgehend mindestens 2 % in dieselbe Richtung – dann kommt ein Push.",
   "klar": [
    "coin_einfach"
+  ]
+ },
+ "ki_antraege": {
+  "offen": [
+   {
+    "id": "ab12cd34",
+    "zeit": "2026-10-11T06:20:00+00:00",
+    "gueltig_bis": "2026-10-11T06:30:00+00:00",
+    "bereich": "krypto",
+    "aktion": "wechsel",
+    "titel": "Coin-Bot: BTC -> SOL",
+    "text": "Beispiel: Solana ist in 30 Tagen 12 % stärker als Bitcoin gelaufen und liegt über der 50-Tage-Linie; die Kostenschwelle von 1,2 % ist nach meiner Erwartung von 2,5 % gedeckt. (erfunden)",
+    "leitplanke": "erwartete Bewegung 1,0 % liegt nicht über der Kostenschwelle 1,2 % (hin und zurück)",
+    "zuversicht": 72,
+    "status": "offen",
+    "zusammenfassung": "Krypto: BTC -> SOL (über den Handelsweg des Coin-Bots, Tageslimit gilt)"
+   }
+  ],
+  "erledigt": [
+   {
+    "id": "0f0f0f0f",
+    "zeit": "2026-10-09T15:00:00+00:00",
+    "bereich": "aktien",
+    "aktion": "umbau",
+    "titel": "Aktien-KI: umbauen – Ziel NVIDIA 40 %, Welt-ETF 60 %",
+    "text": "Beispiel (erfunden)",
+    "leitplanke": "Haltefrist",
+    "zuversicht": 80,
+    "status": "verfallen",
+    "ergebnis": null,
+    "erledigt_zeit": "2026-10-10T15:00:00+00:00",
+    "zusammenfassung": "Aktien-Teil umbauen auf: NVDA 40 %, VWCE.DE 60 % (Tageslimit 300 € je Richtung gilt)"
+   }
   ]
  }
 }
