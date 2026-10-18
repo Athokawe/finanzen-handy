@@ -474,8 +474,8 @@
    "ja_noetig": false,
    "beispiel": "JA",
    "text": "Autopilot „Regeln“: KI aus, Regelwerk und Aktien-Autopilot EIN (JA nötig, wenn dabei etwas eingeschaltet wird; von „KI“ aus leer)",
-   "express": false,
-   "express_bestaetigung": null
+   "express": true,
+   "express_bestaetigung": ""
   },
   {
    "modus": "autopilot_aus",
