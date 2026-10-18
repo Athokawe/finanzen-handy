@@ -49,7 +49,78 @@ function sauber(d) {
     hinweis_nr: Number.isInteger(o.hinweis_nr) ? o.hinweis_nr : null,
     hinweis_tage: Number.isInteger(o.hinweis_tage) ? o.hinweis_tage : null,
     art: typeof o.art === "string" ? o.art : "antwort",
+    befehl: befehlSauber(o.befehl),            // 1.3.7: Befehl, den die KI zugeordnet hat (nur Daten; geschickt wird über aktionen.js)
   };
+}
+
+/**
+ * 1.3.7 (Nutzer 18.10.2026): „An die KI“ nimmt auch Befehle an. Die Cloud ordnet sie einem erlaubten ki.yml-Modus zu und prüft die
+ * Bestätigung gegen dasselbe Muster wie beim Senden – ausgeführt wird dort nichts. Hier: sofort = Muster ohne JA (harmlos: News,
+ * Bericht, Einschätzung, Aus-/Anhalten …) -> die App schickt den Auftrag von selbst, sobald die Antwort eintrifft (nur in dieser
+ * Sitzung, nie nach einem Neustart – dann gibt es den Knopf). Alles mit JA (Geld, Einschalten, Stufe, Alles parken) -> Knopf, der
+ * den bekannten Dialog mit vorausgefüllten Feldern öffnet; das JA tippt der Nutzer. Geschickt wird nur, was handy.json → modi
+ * erlaubt und was zum Muster passt (aktionen.js) – die Bestätigung der Cloud wird nie blind übernommen.
+ */
+function befehlSauber(b) {
+  if (!b || typeof b !== "object" || typeof b.modus !== "string" || !/^[a-z_]{2,40}$/.test(b.modus)) return null;
+  const felder = {};
+  if (b.felder && typeof b.felder === "object") {
+    for (const k of ["betrag", "prozent", "anzahl", "stufe", "auto"]) {
+      if (typeof b.felder[k] === "string" || typeof b.felder[k] === "number") felder[k] = String(b.felder[k]);
+    }
+  }
+  return { modus: b.modus, bestaetigung: typeof b.bestaetigung === "string" ? b.bestaetigung : "", titel: typeof b.titel === "string" ? b.titel : "",
+    sofort: b.sofort === true, felder, grund: typeof b.grund === "string" ? b.grund : "" };
+}
+
+const befehlGeschickt = new Map();   // lauf-id -> "geschickt" | "fehler: …" (nur Arbeitsspeicher)
+
+/** Sofort-Befehl (ohne JA) schicken – nur, wenn die Cloud den Modus ohne JA erlaubt und die leere Bestätigung passt. */
+async function befehlSofort(id, b) {
+  if (befehlGeschickt.has(id) || gh.istDemo()) return;
+  befehlGeschickt.set(id, "geschickt");
+  const r = await A.sofortSenden(b.modus);
+  if (r !== true) befehlGeschickt.set(id, "fehler: " + (r || "nicht geschickt"));
+  zeichnen();
+}
+
+/** Vorgaben für den Dialog aus den Feldern der Cloud (Betrag/Prozent/Anzahl/Stufe/Automatik) */
+function befehlVorgaben(b) {
+  const v = {};
+  if (b.felder.betrag !== undefined) v.betrag = b.felder.betrag.replace(".", ",");
+  if (b.felder.prozent !== undefined) v.prozent = b.felder.prozent;
+  if (b.felder.anzahl !== undefined) v.anzahl = b.felder.anzahl;
+  if (b.felder.stufe !== undefined) v.stufe = b.felder.stufe;
+  if (b.felder.auto !== undefined) v.auto = b.felder.auto === "1";
+  return v;
+}
+
+function befehlZeigen(id, b) {
+  if (!b) return null;
+  const titel = b.titel || A.name(b.modus);
+  const kopf = h("div", { class: "ki-befehl-kopf" }, "⚡ Befehl: " + titel);
+  const grund = b.grund ? h("div", { class: "unter" }, b.grund) : null;
+  if (!A.erlaubt(b.modus)) {
+    return h("div", { class: "ki-befehl", "data-befehl": b.modus }, kopf, grund,
+      h("div", { class: "unter" }, "Diesen Befehl kennt die App nicht – bitte in der App selbst schalten."));
+  }
+  const stand = befehlGeschickt.get(id);
+  if (b.sofort) {
+    const zeile = stand === "geschickt"
+      ? h("div", { class: "unter" }, "✓ Sofort als Auftrag geschickt (ohne JA, harmlos) – Stand oben im Auftragsband.")
+      : stand ? h("div", { class: "unter fehler" }, stand)
+        : h("div", { class: "unter" }, "Harmloser Befehl (ohne JA).");
+    return h("div", { class: "ki-befehl", "data-befehl": b.modus }, kopf, grund, zeile,
+      stand === "geschickt" ? null : reihe(A.knopf(b.modus, "Jetzt ausführen", "primaer", befehlVorgaben(b))));
+  }
+  return h("div", { class: "ki-befehl", "data-befehl": b.modus }, kopf, grund,
+    h("div", { class: "unter" }, "Braucht dein JA – der Knopf öffnet den bekannten Dialog."),
+    reihe(A.knopf(b.modus, "Ausführen …", "primaer", befehlVorgaben(b))));
+}
+
+function reihe(...knoepfe) {
+  const k = knoepfe.filter(Boolean);
+  return k.length ? h("div", { class: "knopfreihe" }, k) : null;
 }
 
 // ------------------------------------------------------------------ Knopf und Blatt
@@ -227,6 +298,11 @@ export async function laden(erzwingen) {
         continue;
       }
       const r = await antwortHolen(l);
+      // 1.3.7: harmloser Befehl (sofort) – nur, wenn die Antwort in dieser Sitzung neu eintrifft (geladen war schon true)
+      if (r.daten && geladen) {
+        const b = sauber(r.daten).befehl;
+        if (b && b.sofort) befehlSofort(l.id, b);
+      }
       antworten.set(l.id, r.daten ? { zustand: "da", daten: sauber(r.daten), erstellt: l.erstellt }
         : { zustand: "fehlt", erstellt: l.erstellt, nichtLadbar: !!r.nichtLadbar,
           text: r.nichtLadbar ? NICHT_LADBAR + " (" + r.problem.message + ")."
@@ -298,6 +374,7 @@ function eintragZeigen(id, e) {
   return h("li", { class: "ki-eintrag" + (d.art !== "antwort" ? " " + d.art : ""), "data-lauf": String(id) },
     d.frage ? h("div", { class: "ki-frage-text" }, d.frage) : null,
     h("div", { class: "ki-antwort-text" }, d.antwort || "–"),
+    befehlZeigen(id, d.befehl),                // 1.3.7: zugeordneter Befehl (Knopf bzw. „sofort geschickt“)
     hinweis,
     h("div", { class: "unter" }, F.vor(d.zeit || e.erstellt) + " · " + F.zeit(d.zeit || e.erstellt)));
 }

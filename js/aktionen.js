@@ -555,6 +555,25 @@ export async function senden(m, best) {
   return r;
 }
 
+/**
+ * 1.3.7: harmlosen Befehl aus „An die KI“ ohne Dialog schicken – nur, wenn der Modus laut handy.json erlaubt ist, kein JA
+ * verlangt (ja_noetig false) und die LEERE Bestätigung zum Muster passt; nie mit einem automatisch erzeugten „JA“. Wartet wie die
+ * Knöpfe, solange ein normaler Auftrag läuft (Bremsen ausgenommen). true = geschickt, sonst ein Grund (Text).
+ */
+export async function sofortSenden(m) {
+  const e = eintrag(m);
+  if (!e || !SPEZ[m]) return "Dieser Befehl ist gerade nicht erlaubt.";
+  if (e.ja_noetig || !passt(m, "")) return "„" + name(m) + "“ verlangt ein getipptes JA – bitte über den Knopf.";
+  const kiOffen = kiAuftragOffen();
+  if (kiOffen && !istBremse(m) && !gh.istDemo()) return "Es läuft noch ein Auftrag – bitte danach über den Knopf.";
+  try {
+    await senden(m, "");
+    return true;
+  } catch (err) {
+    return err && err.message ? err.message : "konnte nicht geschickt werden.";
+  }
+}
+
 // ------------------------------------------------------------------ Aufträge verfolgen (Actions-API)
 
 /** Liste der verfolgten Aufträge. Im Speicher mit Bestätigung (zum Neu-Senden), in localStorage OHNE sie (nur Modus/Zeit/Status). */
