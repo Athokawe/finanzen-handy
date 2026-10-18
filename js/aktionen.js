@@ -233,8 +233,8 @@ const SPEZ = {
     // 1.3.2: die KI verwaltet den ganzen Aktien-Teil, auch in der Rotation (Toms Antworten 18.10.2026)
     text: ["Der KI-Autopilot handelt dann mit echtem Geld, innerhalb der Leitplanken: beim Coin-Bot Coin-Wahl und Parken, bei den "
       + "Aktien (auch im Modus „Rotation“) alles – Reserve, Welt-ETF, Geldmarkt-ETF und Einzelaktien, auch deine eigenen. Kaufen darf "
-      + "er Einzelaktien nur aus den Top 15 der Welt, vor jedem Aktienkauf prüft eine zweite KI. Was du per Knopf kaufst, bleibt "
-      + "5 Tage unangetastet.",
+      + "er Einzelaktien nur aus den Top 15 der Welt, vor jedem Kauf oder Verkauf einer Einzelaktie prüft eine zweite KI. Was du "
+      + "per Knopf kaufst, bleibt 5 Tage unangetastet (nur die Absturz-Regel darf verkaufen).",
       "Die festen Regeln (Notbremse, Gewinnschutz, Absturz-Regel) bleiben als Sicherheitsnetz eingeschaltet."],
   },
   autopilot_regeln: {
