@@ -1064,12 +1064,76 @@ function textTeilen(t) {
   return m ? [m[1], m[2]] : [s, null];
 }
 
+// ------------------------------------------------------------------ Börsengänge (1.3.3, Finanz-App boersengaenge.py -> cloud/boersengaenge.json)
+// Nutzer 18.10.2026: „welche neuen Aktien anstehen und welche davon bei Bitpanda handelbar sind“ – alle Neuzugänge, nicht nur Anthropic.
+// US-Börsengänge aus dem Nasdaq-Kalender (angekündigt + letzte 60 Tage) mit Bitpanda-Abgleich, dazu „Neu bei Bitpanda“ (jedes seit dem
+// Vortag neu gelistete Wertpapier, 30 Tage). Firmennamen sind fremde Texte – nur Textknoten. Nur Information, keine Empfehlung.
+const BG_KURZ = 3;
+const BG_GRUPPE = { equity_stock: "Aktie", equity_etf: "ETF", equity_complex_etf: "ETF (komplex)", equity_complex_etc: "ETC" };
+
+function bgVolumen(v) {
+  if (!F.istZahl(v) || v <= 0) return null;
+  return v >= 1e9 ? F.zahl(v / 1e9, 1) + " Mrd. $" : F.zahl(v / 1e6, 0) + " Mio. $";
+}
+
+function bgEtikett(e) {
+  const b = e.bitpanda;
+  if (istObj(b) && textOder(b.symbol)) {
+    return b.kaufbar === false ? etikett("Bitpanda: gelistet, Kauf gesperrt · " + b.symbol, "gelb") : etikett("Bitpanda: ja · " + b.symbol, "gruen");
+  }
+  if (b === undefined) return etikett("Bitpanda: nicht geprüft", "");
+  return etikett("Bitpanda: noch nicht", "aus");
+}
+
+function bgZeile(e) {
+  if (!istObj(e) || !textOder(e.name)) return null;
+  const unter = [e.datum ? F.datum(e.datum) : null, textOder(e.kuerzel), textOder(e.boerse), textOder(e.preis_usd) ? e.preis_usd + " $" : null, bgVolumen(e.volumen_usd)]
+    .filter(Boolean).join(" · ");
+  return h("li", null, h("div", { class: "oben" }, h("span", { class: "titel" }, e.name + (e.spac ? " (SPAC)" : "")), bgEtikett(e)),
+    unter ? h("div", { class: "unter" }, unter) : null);
+}
+
+function bgZugang(e) {
+  if (!istObj(e) || !textOder(e.symbol)) return null;
+  const unter = [BG_GRUPPE[e.gruppe] || null, e.symbol, textOder(e.isin), e.seit ? "seit " + F.datum(e.seit) : null].filter(Boolean).join(" · ");
+  return h("li", null, h("div", { class: "oben" }, h("span", { class: "titel" }, F.text(e.name, e.symbol)),
+    e.kaufbar === false ? etikett("Kauf gesperrt", "gelb") : etikett("neu bei Bitpanda", "gruen")), h("div", { class: "unter" }, unter));
+}
+
+function bgListe(titel, eintraege, zeile, leerText, schluessel) {
+  const l = liste(eintraege).map(zeile).filter(Boolean);
+  return [h("h3", null, titel),
+    l.length ? h("ul", { class: "liste" }, l.slice(0, BG_KURZ)) : leer(leerText),
+    l.length > BG_KURZ ? mehrTeil(schluessel, h("ul", { class: "liste" }, l.slice(BG_KURZ)), "mehr (" + (l.length - BG_KURZ) + " weitere)") : null];
+}
+
+function boersengaengeKarte(d, fehler) {
+  const kopf = h("div", { class: "karte-kopf" }, h("h2", null, "Börsengänge"), istObj(d) && d.zeit ? h("span", { class: "klein gedimmt" }, "Stand " + F.zeit(d.zeit)) : null);
+  if (!istObj(d)) {
+    return h("section", { class: "karte", id: "boersengaenge" }, kopf, h("p", { class: "klein gedimmt" }, fehler || "Börsengänge werden geladen …"));
+  }
+  const bp = istObj(d.bitpanda) ? d.bitpanda : {};
+  const hinweise = [];
+  if (textOder(d.fehler)) hinweise.push("Kalender: " + d.fehler);
+  if (bp.geprueft === false) hinweise.push("Bitpanda-Abgleich zuletzt nicht möglich" + (textOder(bp.fehler) ? " (" + bp.fehler + ")" : "") + (bp.zeit ? " – Spalte vom " + F.zeit(bp.zeit) : ""));
+  if (textOder(d.neuzugang_hinweis)) hinweise.push(d.neuzugang_hinweis);
+  return h("section", { class: "karte", id: "boersengaenge" }, kopf,
+    h("p", { class: "klein gedimmt" }, "US-Börsengänge aus dem Nasdaq-Kalender, täglich um 18:30 mit Bitpandas Wertpapierliste"
+      + (F.istZahl(bp.anzahl) ? " (" + F.zahl(bp.anzahl, 0) + " Einträge)" : "") + " abgeglichen. Taucht einer bei Bitpanda auf, kommt ein Push. Nur Information, keine Empfehlung."),
+    ...bgListe("Angekündigt", d.angekuendigt, bgZeile, "Derzeit keine angekündigten Börsengänge im Kalender.", "bg-angekuendigt"),
+    ...bgListe("Kürzlich gestartet (letzte " + (F.istZahl(d.neu_tage) ? d.neu_tage : 60) + " Tage)", d.gestartet, bgZeile, "In diesem Zeitraum keine Börsengänge.", "bg-gestartet"),
+    ...bgListe("Neu bei Bitpanda (letzte " + (F.istZahl(d.neuzugang_tage) ? d.neuzugang_tage : 30) + " Tage)", d.neu_bei_bitpanda, bgZugang,
+      "Seit dem letzten Vergleich nichts Neues bei Bitpanda.", "bg-neu"),
+    hinweise.length ? h("p", { class: "klein gedimmt" }, hinweise.join(" · ")) : null);
+}
+
 export function news(Z) {
   const out = [];
   out.push(reihe(A.knopf("news_jetzt", "News aktualisieren", "primaer")));
   const n = Z.news;
   if (!n) {
     out.push(Z.fehlerNews ? h("p", { class: "fehlerteil" }, Z.fehlerNews) : leer("News werden geladen …"));
+    out.push(boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge));
     return out;
   }
   out.push(h("p", { class: "klein gedimmt" }, "Abgerufen " + F.vor(n.zeit) + " (" + F.zeit(n.zeit) + ", " + (n.anlass === "news_jetzt" ? "von Hand" : "für den Bericht") + "). Neu holen geht höchstens alle 30 Minuten."));
@@ -1091,6 +1155,7 @@ export function news(Z) {
         lang ? mehrTeil("news-ki-" + F.text(r.id, r.name), h("p", { class: "rubrik-text" }, lang)) : null));
     }
   }
+  out.push(boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge));     // 1.3.3: nach der KI-Einordnung, vor den Schlagzeilen
   for (const r of liste(n.rubriken)) {
     const s = liste(r.schlagzeilen);
     out.push(karte(F.text(r.name), h("span", { class: "klein gedimmt" }, s.length + (s.length === 1 ? " Schlagzeile" : " Schlagzeilen")),

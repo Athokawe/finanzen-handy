@@ -1,0 +1,116 @@
+{
+ "_hinweis": "BEISPIEL-DATEN – alle Werte sind erfunden und gehören zu keinem echten Depot",
+ "format": 1,
+ "zeit": "2026-10-10T16:31:00+00:00",
+ "quelle": "Nasdaq-IPO-Kalender (US-Börsen Nasdaq und NYSE)",
+ "neu_tage": 60,
+ "angekuendigt": [
+  {
+   "name": "Beispiel Robotik Inc.",
+   "kuerzel": "BSPR",
+   "boerse": "Nasdaq",
+   "datum": "2026-10-15",
+   "preis_usd": "18.00-20.00",
+   "volumen_usd": 450000000,
+   "status": "angekuendigt",
+   "spac": false,
+   "bitpanda": null
+  },
+  {
+   "name": "Muster Energy Holdings",
+   "kuerzel": "MSTE",
+   "boerse": "NYSE",
+   "datum": null,
+   "preis_usd": null,
+   "volumen_usd": 120000000,
+   "status": "angekuendigt",
+   "spac": false,
+   "bitpanda": null
+  }
+ ],
+ "gestartet": [
+  {
+   "name": "Beispiel Software, Inc.",
+   "kuerzel": "BSPS",
+   "boerse": "Nasdaq",
+   "datum": "2026-10-08",
+   "preis_usd": "33.00",
+   "volumen_usd": 1200000000,
+   "status": "gestartet",
+   "spac": false,
+   "bitpanda": {
+    "symbol": "BSPS",
+    "name": "Beispiel Software Inc",
+    "kaufbar": true
+   }
+  },
+  {
+   "name": "Probe Therapeutics, Inc.",
+   "kuerzel": "PRBT",
+   "boerse": "Nasdaq",
+   "datum": "2026-10-02",
+   "preis_usd": "16.00",
+   "volumen_usd": 150000000,
+   "status": "gestartet",
+   "spac": false,
+   "bitpanda": null
+  },
+  {
+   "name": "Test Acquisition Corp. II",
+   "kuerzel": "TSTAU",
+   "boerse": "NYSE",
+   "datum": "2026-09-29",
+   "preis_usd": "10.00",
+   "volumen_usd": 200000000,
+   "status": "gestartet",
+   "spac": true,
+   "bitpanda": null
+  },
+  {
+   "name": "Demo Minerals Ltd",
+   "kuerzel": "DEMM",
+   "boerse": "Nasdaq",
+   "datum": "2026-09-18",
+   "preis_usd": "5.60",
+   "volumen_usd": 3500000,
+   "status": "gestartet",
+   "spac": false,
+   "bitpanda": {
+    "symbol": "DEMM",
+    "name": "Demo Minerals Ltd",
+    "kaufbar": false
+   }
+  }
+ ],
+ "neu_bei_bitpanda": [
+  {
+   "symbol": "BSPS",
+   "name": "Beispiel Software Inc",
+   "isin": "US0000000000",
+   "gruppe": "equity_stock",
+   "kaufbar": true,
+   "seit": "2026-10-10"
+  },
+  {
+   "symbol": "BSPETF",
+   "name": "Beispiel Welt ETF",
+   "isin": "IE0000000000",
+   "gruppe": "equity_etf",
+   "kaufbar": true,
+   "seit": "2026-10-09"
+  }
+ ],
+ "neuzugang_tage": 30,
+ "neuzugang_hinweis": null,
+ "bitpanda": {
+  "geprueft": true,
+  "zeit": "2026-10-10T16:30:40+00:00",
+  "anzahl": 10906,
+  "fehler": null
+ },
+ "fehler": null,
+ "gemeldet": {
+  "BSPS": "2026-10-10",
+  "DEMM": "2026-09-20"
+ }
+}
