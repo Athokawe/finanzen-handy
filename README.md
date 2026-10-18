@@ -4,6 +4,15 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.6
+
+* **Karte „Marktphase“** auf der Übersicht über der Coin-Topf-Karte (braucht die Finanz-App ab 18.10.2026 mit dem Feld
+  `marktphase` in `cloud/handy.json`): sagt in einem Wort, ob der Krypto-Markt im **Bullenmarkt**, **Bärenmarkt** oder **Übergang**
+  ist (Bitcoin-Tagesschluss gegen 50- und 200-Tage-Linie, bei unter 3 % Abstand zur 50-Tage-Linie „knapp“), dazu Kursstand mit Zeit,
+  die Abstände zu 50-/200-Tage-Linie, 20-Tage- und 365-Tage-Hoch, „Was die Bots daraus machen“ (Markt-Ampel des Trend-Bots,
+  200-Tage-Ampel, KI-Ampel des Coin-Bots) und ein Hinweis, wenn der Trend-Bot investiert ist, der Markt aber nicht klar im
+  Bullenmarkt. Nur Anzeige, keine Knöpfe, keine Vorhersage – fehlen Daten, steht grau „nicht prüfbar“ da.
+
 ## Neu in 1.3.5
 
 * **Karte „KI-Antrag – dein JA ist gefragt“** auf der Übersicht (braucht die Finanz-App mit `cloud/antraege.json`, 18.10.2026):
