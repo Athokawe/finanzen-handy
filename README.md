@@ -4,6 +4,18 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.8
+
+* **Ergebnis eines KI-Antrags bleibt sichtbar** (Gesamtprüfung 19.10.2026): Ist ein KI-Antrag erledigt, steht 24 Stunden lang eine Zeile
+  „KI-Antrag ausgeführt“ bzw. „KI-Antrag nicht ausgeführt“ mit dem Grund auf der Übersicht.
+* **Sofort-Befehle gehen nie doppelt hinaus:** War eine Antwort schon vor dem Öffnen der App fertig, gibt es für ihren Befehl nur
+  den Knopf – auch wenn sie erst nach einem Ladefehler ankommt.
+* **Befehle an die KI mit einem Tipp:** Von selbst gehen nur noch News, Bericht und Einschätzung hinaus. Alles, was Bots oder den
+  Autopiloten abschaltet (Aus, Nur anhalten, Coin-Bot aus, Aktien aus, Euro-Automatik aus, Gewinnschutz), zeigt einen Knopf – ein
+  Tipp, kein JA. Geld und Einschalten brauchen weiter dein JA.
+* **Demo:** Antrag mit 24 Stunden Gültigkeit, Uhrzeiten der Marktphase mitverschoben, gemerkte Hinweise entfernt (gibt es seit
+  17.10.2026 nicht mehr).
+
 ## Neu in 1.3.7
 
 * **Befehle über „An die KI“** (braucht die Finanz-App ab 18.10.2026): Du kannst im Blatt „An die KI“ auch Befehle tippen

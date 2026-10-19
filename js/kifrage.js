@@ -23,6 +23,10 @@ let laeufe = [];
 let laedt = false;
 let fehlerText = null;
 let geladen = false;
+// Gesamtprüfung 19.10.2026 (B14): Läufe, die beim ersten Laden der Sitzung schon fertig waren – deren Sofort-Befehl geht nie
+// (noch einmal) hinaus, auch wenn ihr Artefakt erst nach einem Ladefehler kommt; dafür gibt es den Knopf.
+const vorSitzung = new Set();
+let vorSitzungGemerkt = false;
 const loeschenGeschickt = new Set();  // Hinweis-Nummern, für die „Rückgängig“ bzw. „✕“ (hinweis_loeschen) geschickt wurde
 const loeschAuftraege = new Map();   // Auftrags-Nr. (aktionen.js) -> Hinweis-Nummer: scheitert der Auftrag, gibt es „✕“ wieder
 let demoAntworten = null;
@@ -113,6 +117,19 @@ function befehlZeigen(id, b) {
     return h("div", { class: "ki-befehl", "data-befehl": b.modus }, kopf, grund, zeile,
       stand === "geschickt" ? null : reihe(A.knopf(b.modus, "Jetzt ausführen", "primaer", befehlVorgaben(b))));
   }
+  // 1.3.8 (Tom 19.10.2026): Schaltbefehle ohne JA-Muster (Autopilot „Aus“, Nur anhalten, Coin-Bot aus, Aktien aus, Euro-Automatik aus,
+  // Gewinnschutz ein …) gehen nie von selbst, aber mit EINEM Tipp (kein Dialog, kein JA) – die Cloud liefert sie mit sofort=false
+  const e = A.eintrag(b.modus);
+  if (e && !e.ja_noetig) {
+    const zeile = stand === "geschickt"
+      ? h("div", { class: "unter" }, "✓ Als Auftrag geschickt – Stand oben im Auftragsband.")
+      : stand ? h("div", { class: "unter fehler" }, stand)
+        : h("div", { class: "unter" }, "Ein Tipp genügt (kein JA).");
+    return h("div", { class: "ki-befehl", "data-befehl": b.modus }, kopf, grund, zeile,
+      stand === "geschickt" ? null : reihe(h("button", { type: "button", class: "knopf primaer", "data-modus": b.modus, "data-eintipp": "1",
+        onclick: async () => { const r = await A.sofortSenden(b.modus); befehlGeschickt.set(id, r === true ? "geschickt" : "fehler: " + (r || "nicht geschickt")); zeichnen(); } },
+        "Ausführen")));
+  }
   return h("div", { class: "ki-befehl", "data-befehl": b.modus }, kopf, grund,
     h("div", { class: "unter" }, "Braucht dein JA – der Knopf öffnet den bekannten Dialog."),
     reihe(A.knopf(b.modus, "Ausführen …", "primaer", befehlVorgaben(b))));
@@ -187,6 +204,8 @@ export function vergessen() {
   antworten.clear();
   laeufe = [];
   geladen = false;
+  vorSitzung.clear();
+  vorSitzungGemerkt = false;
   fehlerText = null;
   loeschenGeschickt.clear();
   loeschAuftraege.clear();
@@ -290,6 +309,10 @@ export async function laden(erzwingen) {
   try {
     laeufe = await gh.frageLaeufe();
     fehlerText = null;
+    if (!vorSitzungGemerkt) {
+      for (const l of laeufe) if (l.status === "completed") vorSitzung.add(l.id);
+      vorSitzungGemerkt = true;
+    }
     for (const l of laeufe) {
       const alt = antworten.get(l.id);
       if (l.status !== "completed" || (alt && alt.zustand === "da")) continue;
@@ -299,7 +322,8 @@ export async function laden(erzwingen) {
       }
       const r = await antwortHolen(l);
       // 1.3.7: harmloser Befehl (sofort) – nur, wenn die Antwort in dieser Sitzung neu eintrifft (geladen war schon true)
-      if (r.daten && geladen) {
+      // und der Lauf beim ersten Laden der Sitzung noch nicht fertig war (B14)
+      if (r.daten && geladen && !vorSitzung.has(l.id)) {
         const b = sauber(r.daten).befehl;
         if (b && b.sofort) befehlSofort(l.id, b);
       }
