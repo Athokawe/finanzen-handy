@@ -4,6 +4,11 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.10
+
+* **News: eine Karte je Rubrik.** Der KI-Satz steht oben in der Rubrik-Karte, darunter die neueste Schlagzeile, der Rest hinter
+  „mehr“ – „Wirtschaft & Börse“ und „Notenbanken“ erscheinen nicht mehr zweimal. Börsengänge stehen danach.
+
 ## Neu in 1.3.9
 
 * **Handhabung wie bei Apple** (Tom 19.10.2026: „ich verstehe beim ersten Mal“): jeder Hinweis steht einmal, Erklärungen hinter

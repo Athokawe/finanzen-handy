@@ -1301,20 +1301,31 @@ export function news(Z) {
       wichtig.length ? h("div", null, wichtig.slice(0, NEWS_WICHTIG_KURZ).map(meldung)) : null,
       wichtig.length > NEWS_WICHTIG_KURZ ? mehrTeil("news-wichtig", h("div", null, wichtig.slice(NEWS_WICHTIG_KURZ).map(meldung)),
         "mehr (" + (wichtig.length - NEWS_WICHTIG_KURZ) + " weitere)") : null));
-    for (const r of liste(z.rubriken).filter((r) => r.id !== "einordnung")) {
-      const [kurz, lang] = textTeilen(F.text(r.text));
-      out.push(karte(F.text(r.name), etikett("KI", ""), h("p", { class: "rubrik-text" }, kurz),
-        lang ? mehrTeil("news-ki-" + F.text(r.id, r.name), h("p", { class: "rubrik-text" }, lang)) : null));
-    }
   }
-  out.push(boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge));     // 1.3.3: nach der KI-Einordnung, vor den Schlagzeilen
+  // 1.3.10 (Tom 19.10.2026: „Wirtschaft & Börse und Notenbanken kommen immer zweimal vor“): EINE Karte je Rubrik – oben der KI-Satz
+  // (Abzeichen „KI“), darunter die neueste Schlagzeile, der Rest (längerer KI-Text, weitere Schlagzeilen) hinter „mehr“. Zusammengeführt
+  // über den Rubrik-Namen (die Kennungen unterscheiden sich: „wirtschaft“ gegen „aktien_wirtschaft“); KI-Rubriken ohne Schlagzeilen hängen an.
+  const kiRubriken = z ? liste(z.rubriken).filter((r) => istObj(r) && r.id !== "einordnung") : [];
+  const schluessel = (r) => F.text(r.name).trim().toLowerCase();
+  const benutzt = new Set();
+  const rubrikKarte = (name, id, s, ki) => {
+    const [kurz, lang] = ki ? textTeilen(F.text(ki.text)) : ["", ""];
+    const rechts = s.length ? h("span", { class: "klein gedimmt" }, s.length + (s.length === 1 ? " Schlagzeile" : " Schlagzeilen")) : (ki ? etikett("KI", "") : null);
+    const mehr = [lang ? h("p", { class: "rubrik-text" }, lang) : null, s.length > 1 ? h("div", null, s.slice(1).map(schlagzeile)) : null];
+    const zusatz = s.length > 1 ? "mehr (" + (s.length - 1) + " weitere)" : "mehr";
+    return karte(F.text(name), rechts,
+      kurz ? h("p", { class: "rubrik-text" }, s.length ? etikett("KI", "") : null, s.length ? " " : null, kurz) : null,
+      s.length ? h("div", null, schlagzeile(s[0])) : (ki ? null : leer("Keine Schlagzeilen.")),
+      mehrTeil("news-" + F.text(id, name), mehr, zusatz));
+  };
   for (const r of liste(n.rubriken)) {
-    const s = liste(r.schlagzeilen);
-    out.push(karte(F.text(r.name), h("span", { class: "klein gedimmt" }, s.length + (s.length === 1 ? " Schlagzeile" : " Schlagzeilen")),
-      s.length ? h("div", null, schlagzeile(s[0])) : leer("Keine Schlagzeilen."),
-      s.length > 1 ? mehrTeil("news-" + F.text(r.id, r.name), h("div", null, s.slice(1).map(schlagzeile)),
-        "mehr (" + (s.length - 1) + " weitere)") : null));
+    if (!istObj(r)) continue;
+    const ki = kiRubriken.find((k) => schluessel(k) === schluessel(r) || F.text(k.id) === F.text(r.id));
+    if (ki) benutzt.add(ki);
+    out.push(rubrikKarte(r.name, r.id, liste(r.schlagzeilen), ki));
   }
+  for (const k of kiRubriken) if (!benutzt.has(k)) out.push(rubrikKarte(k.name, k.id, [], k));
+  out.push(boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge));     // 1.3.3: nach den Rubriken (seit 1.3.10), vor dem Schlusssatz
   out.push(h("p", { class: "klein gedimmt" }, "Schlagzeilen sind fremde Texte; Links öffnen in einem neuen Fenster."));
   return out;
 }
