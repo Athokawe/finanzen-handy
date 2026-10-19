@@ -36,9 +36,9 @@
   {
    "vor_min": 14,
    "frage": "SOL hat am Freitag ein großes Netzwerk-Upgrade – ist das für den Bot wichtig?",
-   "antwort": "Beispiel: Ein Upgrade kann den Kurs kurzfristig stärker schwanken lassen. Der Raster-Bot handelt nur nach seinen festen Stufen, und die nächste Raster-Recherche prüft deinen Hinweis gegen Kurse und Nachrichten. Kaufen oder verkaufen kann ein Hinweis nie.\n\n📌 Als Hinweis gemerkt. (Hinweis Nr. 4, gilt 7 Tage)",
-   "hinweis_nr": 4,
-   "hinweis_tage": 7,
+   "antwort": "Beispiel: Ein Upgrade kann den Kurs kurzfristig stärker schwanken lassen. Der Raster-Bot handelt nur nach seinen festen Stufen.",
+   "hinweis_nr": null,
+   "hinweis_tage": null,
    "art": "antwort"
   },
   {

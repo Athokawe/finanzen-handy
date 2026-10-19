@@ -176,11 +176,25 @@ function unklarKarte(roh, bot) {
  * diesen Antrag aus (Tageslimit und frische Schalter gelten weiter). Texte sind fremder Text (KI) – nur Textknoten.
  */
 const BEREICH_NAME = { krypto: "Krypto", aktien: "Aktien" };
+// Gesamtprüfung 19.10.2026 (B27): Status als Wort statt Rohwert; ohne offenen Antrag bleibt das Ergebnis der letzten 24 h als eine Zeile stehen
+const ANTRAG_STATUS = { ausgefuehrt: "ausgeführt", verfallen: "verfallen", abgelehnt: "abgelehnt", fehler: "nicht ausgeführt" };
+const antragStatus = (s) => ANTRAG_STATUS[s] || F.text(s);
+function antragErledigtKarte(frisch) {
+  return h("section", { class: "karte antrag-karte antrag-erledigt", id: "ki-antraege" },
+    h("ul", { class: "liste" }, frisch.map((a) => h("li", { "data-antrag-erledigt": F.text(a.id), "data-status": F.text(a.status) },
+      h("div", { class: "oben" },
+        h("span", { class: "titel" }, a.status === "ausgefuehrt" ? "KI-Antrag ausgeführt"
+          : "KI-Antrag nicht ausgeführt: " + (typeof a.ergebnis === "string" && a.ergebnis.trim() ? a.ergebnis : antragStatus(a.status))),
+        h("span", { class: "klein gedimmt" }, F.zeit(a.erledigt_zeit || a.zeit)))))));
+}
 function antragKarte(roh) {
   const d = istObj(roh) ? roh : null;
   const offen = d ? liste(d.offen).filter((a) => istObj(a) && typeof a.id === "string") : [];
   const erledigt = d ? liste(d.erledigt).filter(istObj) : [];
-  if (!offen.length) return null;
+  if (!offen.length) {
+    const frisch = erledigt.filter((a) => { const t = F.datum(a.erledigt_zeit || a.zeit); return t && Date.now() - t.getTime() < 864e5; }).reverse();
+    return frisch.length ? antragErledigtKarte(frisch) : null;
+  }
   return h("section", { class: "karte antrag-karte", id: "ki-antraege" },
     h("div", { class: "karte-kopf" }, h("h2", null, "KI-Antrag – dein JA ist gefragt"), etikett(offen.length + " offen", "gelb")),
     h("p", { class: "klein gedimmt" }, "Die KI wollte etwas tun, das eine ihrer Leitplanken sperrt. Das Programm führt so etwas nie selbst aus – nur mit deinem JA. Tageslimit und ein „Aus“ gelten auch dann; ein Antrag verfällt nach 24 Stunden."),
@@ -193,7 +207,7 @@ function antragKarte(roh) {
       h("div", { class: "unter" }, "gültig bis " + F.zeit(a.gueltig_bis)),
       reihe(A.knopf("antrag_ja", "JA – ausführen …", "primaer", { id: a.id, titel: F.text(a.titel), zusammenfassung: F.text(a.zusammenfassung) }))))),
     erledigt.length ? mehrTeil("antraege-erledigt", h("ul", { class: "liste" }, erledigt.map((a) => h("li", null,
-      h("div", { class: "oben" }, h("span", { class: "titel" }, (BEREICH_NAME[a.bereich] || F.text(a.bereich)) + ": " + F.text(a.titel)), etikett(F.text(a.status), a.status === "ausgefuehrt" ? "gruen" : "aus")),
+      h("div", { class: "oben" }, h("span", { class: "titel" }, (BEREICH_NAME[a.bereich] || F.text(a.bereich)) + ": " + F.text(a.titel)), etikett(antragStatus(a.status), a.status === "ausgefuehrt" ? "gruen" : "aus")),
       h("div", { class: "unter" }, F.zeit(a.erledigt_zeit || a.zeit) + (a.ergebnis ? " · " + F.text(a.ergebnis) : ""))))), "zuletzt erledigt (" + erledigt.length + ")") : null);
 }
 
@@ -208,6 +222,10 @@ const MP_SCHLUSS = "Beschreibung der Lage aus Kursdaten, keine Vorhersage. Gehan
 function mpProzent(v) {
   if (!F.istZahl(v)) return "–";
   return (v > 0 ? "+" : "") + Number(v).toLocaleString("de-AT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %";
+}
+function mpZeit(x, vor, nach) {
+  const t = F.datum(x.zeit) ? F.zeit(x.zeit) : typeof x.zeit_text === "string" && x.zeit_text ? F.text(x.zeit_text) : "";
+  return t ? vor + t + nach : "";
 }
 function mpBot(titel, farbe, text) {
   return h("li", null, h("span", { class: "punkt " + (MP_FARBEN.includes(farbe) ? farbe : "grau") }), h("span", { class: "titel" }, titel + ": "), text);
@@ -228,7 +246,8 @@ function marktphaseKarte(roh) {
     h("div", { class: "karte-kopf" }, h("h2", null, "Marktphase"),
       m && m.stand ? h("span", { class: "klein gedimmt" }, "Stand " + F.zeit(m.stand)) : null),
     h("div", { class: "mp-phase " + farbe, id: "mp-phase" }, phase),
-    kurs && F.istZahl(kurs.eur) ? h("p", { class: "klein gedimmt" }, "Bitcoin " + F.euro(kurs.eur) + (kurs.zeit_text ? " · " + F.text(kurs.zeit_text) : "")) : null,
+    // Gesamtprüfung 19.10.2026 (B28): Zeit aus „zeit“ (in der Demo mitverschoben, „heute“/„gestern“ wie überall); zeit_text nur als Rückfall
+    kurs && F.istZahl(kurs.eur) ? h("p", { class: "klein gedimmt" }, "Bitcoin " + F.euro(kurs.eur) + mpZeit(kurs, " · ", "")) : null,
     grund ? h("p", { class: "klein mp-grund" }, grund) : null,
     a ? zeilen([
       ["Abstand zur 50-Tage-Linie", mpProzent(a.ma50_prozent) + eurZusatz(l.ma50_eur)],
@@ -245,7 +264,7 @@ function marktphaseKarte(roh) {
         ? mpBot("200-Tage-Ampel", z.farbe, (z.farbe === "gruen" ? "grün" : z.farbe) + (z.text ? " – " + F.text(z.text) : ""))
         : mpBot("200-Tage-Ampel", "grau", "nicht prüfbar" + (fehlerVon(b.ampel_200) ? " (" + fehlerVon(b.ampel_200) + ")" : "")),
       k && MP_FARBEN.includes(k.farbe)
-        ? mpBot("KI-Ampel Coin-Bot", k.farbe, (k.farbe === "gruen" ? "grün" : k.farbe) + (k.zeit_text ? " (Einschätzung " + F.text(k.zeit_text) + ")" : ""))
+        ? mpBot("KI-Ampel Coin-Bot", k.farbe, (k.farbe === "gruen" ? "grün" : k.farbe) + mpZeit(k, " (Einschätzung ", ")"))
         : mpBot("KI-Ampel Coin-Bot", "grau", "nicht prüfbar" + (fehlerVon(b.ki_ampel) ? " (" + fehlerVon(b.ki_ampel) + ")" : ""))),
     m && typeof m.hinweis === "string" && m.hinweis ? h("p", { class: "mp-hinweis" }, m.hinweis) : null,
     h("p", { class: "klein gedimmt mp-schluss" }, m && typeof m.schluss === "string" && m.schluss ? m.schluss : MP_SCHLUSS));
@@ -610,7 +629,7 @@ export function uebersicht(Z) {
   const out = [];
   if (A.erlaubt("frage")) out.push(kiSchnellKarte());             // 1.2.10: Eingabefeld „An die KI“ ganz oben (Nutzer 12.10.2026)
   out.push(gesamtKarte(d, Z));
-  const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert, solange einer offen ist
+  const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert (offen; sonst Ergebnis der letzten 24 h)
   if (ak_) out.push(ak_);
   const apk = autopilotKarte(d);                                   // 1.3: Autopilot-Wahlschalter gleich unter dem Gesamtwert
   if (apk) out.push(apk);
