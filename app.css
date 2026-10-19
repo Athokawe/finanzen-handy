@@ -396,3 +396,19 @@ details.klapp-mehr[open] > summary { margin-bottom: 6px; }
 .ki-befehl-kopf { font-weight: 600; }
 .ki-befehl .knopfreihe { margin-top: 6px; }
 .ki-befehl .unter.fehler { color: var(--rot); }
+
+/* 1.3.9 (Tom 19.10.2026): Erklärungen hinter „mehr“/„ⓘ“ statt dauerhaft sichtbar */
+.mp-kurz { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+.ki-befehl-zeile { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ki-befehl-zeile .knopf { flex: 0 0 auto; }
+details.technik, details.info-klapp { margin: 6px 0 0; }
+details.technik > summary, details.info-klapp > summary { cursor: pointer; color: var(--gedimmt); font-size: 13px; padding: 4px 0;
+  -webkit-tap-highlight-color: transparent; }
+details.technik[open] > summary, details.info-klapp[open] > summary { margin-bottom: 4px; }
+details.info-klapp > summary { list-style: none; }
+details.info-klapp > summary::-webkit-details-marker { display: none; }
+details.info-klapp p { margin: 0; line-height: 1.35; }
+.autopilot-karte .wahl-label { color: var(--text); font-size: 18px; font-weight: 700; flex: 1 1 auto; }
+.autopilot-karte .autopilot-wahl { margin: 0; }
+.lage-im-mehr { margin-top: 10px; }
+.lage-im-mehr h3 { margin: 0 0 6px; }

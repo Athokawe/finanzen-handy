@@ -188,7 +188,7 @@ export function svgDiagramm(serien, einheit, info, beschreibung) {
       info.classList.add("aktiv");
     }
   };
-  flaeche.addEventListener("pointerdown", zeigen);
+  flaeche.addEventListener("pointerdown", (ev) => { schonAngetippt = true; zeigen(ev); });
   flaeche.addEventListener("pointermove", (ev) => { if (ev.pointerType === "mouse" || ev.buttons) zeigen(ev); });
   return svg;
 }
@@ -200,8 +200,11 @@ export function svgDiagramm(serien, einheit, info, beschreibung) {
  *   serien(p)   -> [{name, klasse, werte}] für die Punkte im Zeitraum,
  *   einheit     "eur" | "prozent",
  *   kennzahl(p, serien) -> [[label, text, klasse?]] (Zeile unter dem Diagramm),
- *   beschreibung  Text für Screenreader.
+ *   beschreibung  Text für Screenreader,
+ *   tippHinweis   1.3.9 (V31): nur die erste Statistik je Reiter sagt „Antippen zeigt Datum und Wert.“ – und nur, bis einmal angetippt wurde.
  */
+let schonAngetippt = false;
+const TIPP = "Antippen zeigt Datum und Wert.";
 export function statistik(opt) {
   const huelle = h("div", { class: "statistik", "data-statistik": opt.schluessel });
   const zeichne = () => {
@@ -219,7 +222,7 @@ export function statistik(opt) {
           : "In diesem Zeitraum gibt es noch zu wenige Punkte – bitte einen längeren Zeitraum wählen."));
       return;
     }
-    const info = h("div", { class: "diagramm-info", "aria-live": "polite" }, "Antippen zeigt Datum und Wert.");
+    const info = h("div", { class: "diagramm-info", "aria-live": "polite" }, opt.tippHinweis && !schonAngetippt ? TIPP : "");
     huelle.appendChild(info);
     huelle.appendChild(svgDiagramm(serien.filter((r) => r.werte.length), opt.einheit, info, opt.beschreibung));
     huelle.appendChild(h("div", { class: "legende" }, serien.filter((r) => r.werte.length).map((r) =>

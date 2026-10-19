@@ -99,40 +99,33 @@ function befehlVorgaben(b) {
   return v;
 }
 
+/**
+ * 1.3.9 (Tom 19.10.2026, V25): eine Zeile, ein Knopf – „⚡ <Titel>“ und der Knopf, dessen Wort die Art sagt: „Jetzt ausführen“ (Sofort-
+ * Befehl nach einem Neustart), „Ausführen“ (ein Tipp, kein JA), „Ausführen …“ (öffnet den bekannten Dialog mit JA). Nach dem Senden nur
+ * „✓ <Titel> geschickt“ (der Titel aus der Cloud-Liste belegt, was wirklich ging). Kein „grund“ (sagt die Antwort schon), keine
+ * Erklärzeile; Fehler und „kennt die App nicht“ bleiben sichtbar. Verhalten (sofortSenden, data-eintipp, A.knopf-Dialog) wie in 1.3.8.
+ */
 function befehlZeigen(id, b) {
   if (!b) return null;
   const titel = b.titel || A.name(b.modus);
-  const kopf = h("div", { class: "ki-befehl-kopf" }, "⚡ Befehl: " + titel);
-  const grund = b.grund ? h("div", { class: "unter" }, b.grund) : null;
+  const kachel = (...kinder) => h("div", { class: "ki-befehl", "data-befehl": b.modus }, ...kinder);
+  const zeile = (knopf) => h("div", { class: "ki-befehl-zeile" }, h("span", { class: "ki-befehl-kopf" }, "⚡ " + titel), knopf);
   if (!A.erlaubt(b.modus)) {
-    return h("div", { class: "ki-befehl", "data-befehl": b.modus }, kopf, grund,
-      h("div", { class: "unter" }, "Diesen Befehl kennt die App nicht – bitte in der App selbst schalten."));
+    return kachel(zeile(null), h("div", { class: "unter" }, "Diesen Befehl kennt die App nicht – bitte in der App selbst schalten."));
   }
   const stand = befehlGeschickt.get(id);
-  if (b.sofort) {
-    const zeile = stand === "geschickt"
-      ? h("div", { class: "unter" }, "✓ Sofort als Auftrag geschickt (ohne JA, harmlos) – Stand oben im Auftragsband.")
-      : stand ? h("div", { class: "unter fehler" }, stand)
-        : h("div", { class: "unter" }, "Harmloser Befehl (ohne JA).");
-    return h("div", { class: "ki-befehl", "data-befehl": b.modus }, kopf, grund, zeile,
-      stand === "geschickt" ? null : reihe(A.knopf(b.modus, "Jetzt ausführen", "primaer", befehlVorgaben(b))));
-  }
+  const fehlerZeile = stand && stand !== "geschickt" ? h("div", { class: "unter fehler" }, stand) : null;
+  if (stand === "geschickt") return kachel(h("div", { class: "ki-befehl-kopf" }, "✓ " + titel + " geschickt"));
+  if (b.sofort) return kachel(zeile(A.knopf(b.modus, "Jetzt ausführen", "primaer", befehlVorgaben(b))), fehlerZeile);
   // 1.3.8 (Tom 19.10.2026): Schaltbefehle ohne JA-Muster (Autopilot „Aus“, Nur anhalten, Coin-Bot aus, Aktien aus, Euro-Automatik aus,
   // Gewinnschutz ein …) gehen nie von selbst, aber mit EINEM Tipp (kein Dialog, kein JA) – die Cloud liefert sie mit sofort=false
   const e = A.eintrag(b.modus);
   if (e && !e.ja_noetig) {
-    const zeile = stand === "geschickt"
-      ? h("div", { class: "unter" }, "✓ Als Auftrag geschickt – Stand oben im Auftragsband.")
-      : stand ? h("div", { class: "unter fehler" }, stand)
-        : h("div", { class: "unter" }, "Ein Tipp genügt (kein JA).");
-    return h("div", { class: "ki-befehl", "data-befehl": b.modus }, kopf, grund, zeile,
-      stand === "geschickt" ? null : reihe(h("button", { type: "button", class: "knopf primaer", "data-modus": b.modus, "data-eintipp": "1",
-        onclick: async () => { const r = await A.sofortSenden(b.modus); befehlGeschickt.set(id, r === true ? "geschickt" : "fehler: " + (r || "nicht geschickt")); zeichnen(); } },
-        "Ausführen")));
+    return kachel(zeile(h("button", { type: "button", class: "knopf primaer", "data-modus": b.modus, "data-eintipp": "1",
+      onclick: async () => { const r = await A.sofortSenden(b.modus); befehlGeschickt.set(id, r === true ? "geschickt" : "fehler: " + (r || "nicht geschickt")); zeichnen(); } },
+      "Ausführen")), fehlerZeile);
   }
-  return h("div", { class: "ki-befehl", "data-befehl": b.modus }, kopf, grund,
-    h("div", { class: "unter" }, "Braucht dein JA – der Knopf öffnet den bekannten Dialog."),
-    reihe(A.knopf(b.modus, "Ausführen …", "primaer", befehlVorgaben(b))));
+  return kachel(zeile(A.knopf(b.modus, "Ausführen …", "primaer", befehlVorgaben(b))));
 }
 
 function reihe(...knoepfe) {
@@ -482,8 +475,8 @@ export function hinweisLoeschenFragen(x) {
     inhalt: [
       h("p", null, "Diesen Hinweis löschen? Bot und KI beachten ihn danach nicht mehr. Gekauft oder verkauft wird dabei nichts."),
       h("p", { class: "hinweis-zitat" }, "Nr. " + nr + ": „", x.text, "“"),
-      h("p", { class: "klein gedimmt" }, "Wird an die Cloud geschickt:"),
-      h("div", { class: "vorschau", id: "dialog-vorschau" }, "modus = hinweis_loeschen\nbestaetigung = " + best + "\nweg = normale Warteschlange (ki.yml)"),
+      // 1.3.9 (V17): Vorschau eingeklappt unter „Technik“ wie in allen Dialogen
+      A.technik(h("div", { class: "vorschau", id: "dialog-vorschau" }, "modus = hinweis_loeschen\nbestaetigung = " + best + "\nweg = normale Warteschlange (ki.yml)")),
     ],
     okText: "Löschen",
     onOk: async () => {

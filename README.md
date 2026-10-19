@@ -4,6 +4,19 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.9
+
+* **Handhabung wie bei Apple** (Tom 19.10.2026: „ich verstehe beim ersten Mal“): jeder Hinweis steht einmal, Erklärungen hinter
+  „mehr“ oder „ⓘ“. Die Übersicht ist rund ein Viertel kürzer (Demo: 4.121 → 3.064 px).
+* **Marktphase:** sichtbar nur Phase und „+2,1 % zur 50-Tage-Linie · Kurs …“; Grund, Abstände und Bots hinter „mehr“. Der Hinweis
+  „Trend-Bot investiert …“ kommt nur bei echtem Geld.
+* **KI-Antrag:** die Karte hat einen Satz und den Knopf; was dein JA auslöst, „gültig bis“ und die Folgen stehen einmal im Dialog.
+* **Dialoge:** die technische Vorschau liegt eingeklappt unter „Technik“.
+* **Autopilot:** „Was bedeuten die Stellungen?“ zum Aufklappen. **KI-Vorschlag:** Knopf „Mit JA übernehmen …“.
+* **An die KI:** Befehle als eine Zeile mit Knopf („Ausführen …“ mit JA, „Ausführen“ mit einem Tipp), danach „✓ … geschickt“.
+* **Börsengänge:** Herkunft hinter „ⓘ“; unter „Kürzlich gestartet“ zuerst die Treffer bei Bitpanda, der Rest als eine Zeile.
+* JA-Dialoge, Muster und Sofort-Regeln sind unverändert.
+
 ## Neu in 1.3.8
 
 * **Ergebnis eines KI-Antrags bleibt sichtbar** (Gesamtprüfung 19.10.2026): Ist ein KI-Antrag erledigt, steht 24 Stunden lang eine Zeile
@@ -39,7 +52,7 @@ Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – p
 
 * **Karte „KI-Antrag – dein JA ist gefragt“** auf der Übersicht (braucht die Finanz-App mit `cloud/antraege.json`, 18.10.2026):
   Will die Krypto- oder Aktien-KI etwas tun, das eine ihrer Leitplanken sperrt (Zuversicht, Kostenschwelle, Haltefrist …), legt die
-  Cloud es als Antrag ab statt zu handeln. Die Karte zeigt Begründung, gesperrte Leitplanke und was dein JA auslöst; „JA – ausführen“
+  Cloud es als Antrag ab statt zu handeln. Die Karte zeigt Begründung, gesperrte Leitplanke und was dein JA auslöst (seit 1.3.9 im Dialog); „JA – ausführen“
   öffnet den Dialog mit wörtlichem JA (Modus `antrag_ja`). Tageslimit und ein „Aus“ gelten auch dann. Ein Antrag verfällt nach 24 Stunden.
 * **Raster-Bot von der KI geschaltet:** Steht der Autopilot auf „KI“, setzt die Cloud den Raster-Vorschlag der KI selbst um; die
   Karte „KI-Vorschlag“ zeigt dann „Von der KI geschaltet“. Den Trend-Bot schaltet weiterhin nur dein JA.
