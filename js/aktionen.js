@@ -18,7 +18,7 @@
 
 import { h, $, leeren } from "./dom.js";
 import * as gh from "./github.js";
-import { datum, vor } from "./format.js";
+import { datum, vor, zeit } from "./format.js";
 
 let hooks = { neuLaden: () => {}, toast: () => {}, handy: () => null, entsperrt: () => true, fertig: () => {}, geaendert: () => {} };
 let modiListe = [];
@@ -157,16 +157,21 @@ function klaerSpez(vorgaben) {
 /**
  * 1.3.5: Dialog „KI-Antrag ausführen“ – Vorgaben {id, titel, zusammenfassung} aus der Karte „KI-Antrag“. Die Cloud führt genau diesen
  * Antrag aus (antrag_ja, JA;id=…); Tageslimit und frische Schalter gelten weiter. Nur mit wörtlichem JA.
+ * 1.3.9 (Tom 19.10.2026, V1/V7/V9): der Dialog sagt jeden Hinweis EINMAL – was das JA auslöst, „gültig bis“ (Vorgabe gueltig_bis) und
+ * die Folgen. Nennt die Zusammenfassung der Cloud das Tageslimit schon (bei Aktien mit Betrag), lässt der Folgesatz es weg.
  */
 function antragSpez(vorgaben) {
   const id = typeof vorgaben.id === "string" && /^[0-9a-f]{8}$/.test(vorgaben.id) ? vorgaben.id : null;
   if (!id) return null;
+  const zus = String(vorgaben.zusammenfassung || "").trim() || String(vorgaben.titel || "");
+  const bis = typeof vorgaben.gueltig_bis === "string" && datum(vorgaben.gueltig_bis) ? zeit(vorgaben.gueltig_bis) : null;
+  const limit = /Tageslimit/.test(zus) ? "" : "Tageslimit, ";
   return {
     titel: "KI-Antrag ausführen",
     text: [
-      String(vorgaben.titel || ""),
-      "Dein JA löst aus: " + String(vorgaben.zusammenfassung || ""),
-      "Die KI-Leitplanken werden dafür übersprungen; Tageslimit, Mindestorder und ein „Aus“ gelten weiter. Jede Order kostet Gebühren, auf Gewinne fällt KESt an.",
+      "Dein JA löst aus: " + zus,
+      bis ? "gültig bis " + bis : null,
+      "Die KI-Leitplanken werden dafür übersprungen; " + limit + "Mindestorder und ein „Aus“ gelten weiter. Jede Order kostet Gebühren, auf Gewinne fällt KESt an.",
     ],
     jaPflicht: true,
     bauen: () => "JA;id=" + id,
@@ -440,6 +445,12 @@ function bestaetigungBauen(m, spez, w) {
   return e && (e.ja_noetig || spez.jaPflicht) ? "JA" : "";   // 1.3: jaPflicht – JA je nach Lage (Autopilot „Regeln“)
 }
 
+/** 1.3.9 (V17): „Wird an die Cloud geschickt:“ + Vorschau (id dialog-vorschau, wird weiter live aktualisiert) in einem zugeklappten „Technik“ */
+export function technik(vorschau) {
+  return h("details", { class: "klein technik" }, h("summary", null, "Technik"),
+    h("p", { class: "klein gedimmt" }, "Wird an die Cloud geschickt:"), vorschau);
+}
+
 function wegText(w) {
   return w === "express" ? "Express-Bremse (express.yml, sofort)" : "normale Warteschlange (ki.yml)";
 }
@@ -494,7 +505,8 @@ export async function ausfuehren(m, vorgaben = {}) {
     jaFeld = h("input", { id: "ja-feld", class: "ja-feld", type: "text", autocomplete: "off", autocapitalize: "characters", autocorrect: "off", spellcheck: "false", placeholder: "JA", enterkeyhint: "send" });
     inhalt.push(h("div", { class: "formfeld" }, h("label", { for: "ja-feld" }, "Wirklich? Zur Bestätigung wörtlich JA eintippen:"), jaFeld));
   }
-  inhalt.push(h("p", { class: "klein gedimmt" }, "Wird an die Cloud geschickt:"), vorschau);
+  // 1.3.9 (V17): die technische Vorschau eingeklappt unter „Technik“ – sichtbar bleiben Titel, Wirkungssatz, Felder, JA-Feld und Knopf
+  inhalt.push(technik(vorschau));
   const huelle = h("div", null, inhalt);
   dialog({
     titel: spez.titel, inhalt: [huelle], okText: spez.ok || (jaNoetig ? "Mit JA senden" : "Senden"), okKlasse: spez.gefahr ? "gefahr" : "primaer",

@@ -90,7 +90,9 @@ function coinLink(coin) {
 
 /** 1.2.5: kurzer Hinweis unter den Bitpanda-Knöpfen (Universal Link statt Safari mit Passwort + 2FA) */
 function bitpandaHinweis() {
-  return h("p", { class: "klein gedimmt bitpanda-hinweis" }, "Öffnet die Bitpanda-App; falls Safari kommt: Link lange drücken → „In Bitpanda öffnen“.");
+  // 1.3.9 (Tom 19.10.2026): steht auf vier Reitern – der Safari-Kniff hinter „ⓘ“, sichtbar bleibt eine kurze Zeile
+  return h("details", { class: "info-klapp klein gedimmt bitpanda-hinweis" }, h("summary", null, "ⓘ Öffnet die Bitpanda-App"),
+    h("p", null, "Falls Safari kommt: Link lange drücken → „In Bitpanda öffnen“."));
 }
 
 /** 1.2.5: Fuß der Raster-/Trend-Ansicht – beide Bots handeln über Fusion (COIN-EURCV), daher auch ein Fusion-Link */
@@ -195,17 +197,18 @@ function antragKarte(roh) {
     const frisch = erledigt.filter((a) => { const t = F.datum(a.erledigt_zeit || a.zeit); return t && Date.now() - t.getTime() < 864e5; }).reverse();
     return frisch.length ? antragErledigtKarte(frisch) : null;
   }
+  // 1.3.9 (Tom 19.10.2026, Gesamtprüfung V1/V7/V9): ein Satz statt drei; was das JA auslöst, die Folgen und „gültig bis“ stehen nur
+  // noch EINMAL im Dialog antrag_ja (dort wird das JA getippt). Verfällt ein Antrag, sagt es danach die Zeile „nicht ausgeführt: verfallen“.
   return h("section", { class: "karte antrag-karte", id: "ki-antraege" },
-    h("div", { class: "karte-kopf" }, h("h2", null, "KI-Antrag – dein JA ist gefragt"), etikett(offen.length + " offen", "gelb")),
-    h("p", { class: "klein gedimmt" }, "Die KI wollte etwas tun, das eine ihrer Leitplanken sperrt. Das Programm führt so etwas nie selbst aus – nur mit deinem JA. Tageslimit und ein „Aus“ gelten auch dann; ein Antrag verfällt nach 24 Stunden."),
+    h("div", { class: "karte-kopf" }, h("h2", null, "KI-Antrag"), etikett(offen.length + " offen", "gelb")),
+    h("p", { class: "klein gedimmt" }, "Die KI will mehr, als ihre Leitplanken erlauben – nur mit deinem JA."),
     h("ul", { class: "liste" }, offen.map((a) => h("li", { "data-antrag": a.id },
       h("div", { class: "oben" }, h("span", { class: "titel" }, (BEREICH_NAME[a.bereich] || F.text(a.bereich)) + ": " + F.text(a.titel)),
         F.istZahl(a.zuversicht) ? h("span", { class: "klein gedimmt" }, a.zuversicht + " % sicher") : null),
       h("p", null, F.text(a.text)),
       h("div", { class: "unter" }, "Gesperrt durch: " + F.text(a.leitplanke)),
-      h("div", { class: "unter" }, "Dein JA löst aus: " + F.text(a.zusammenfassung)),
-      h("div", { class: "unter" }, "gültig bis " + F.zeit(a.gueltig_bis)),
-      reihe(A.knopf("antrag_ja", "JA – ausführen …", "primaer", { id: a.id, titel: F.text(a.titel), zusammenfassung: F.text(a.zusammenfassung) }))))),
+      reihe(A.knopf("antrag_ja", "JA – ausführen …", "primaer", { id: a.id, titel: F.text(a.titel), zusammenfassung: F.text(a.zusammenfassung),
+        gueltig_bis: typeof a.gueltig_bis === "string" ? a.gueltig_bis : null }))))),
     erledigt.length ? mehrTeil("antraege-erledigt", h("ul", { class: "liste" }, erledigt.map((a) => h("li", null,
       h("div", { class: "oben" }, h("span", { class: "titel" }, (BEREICH_NAME[a.bereich] || F.text(a.bereich)) + ": " + F.text(a.titel)), etikett(antragStatus(a.status), a.status === "ausgefuehrt" ? "gruen" : "aus")),
       h("div", { class: "unter" }, F.zeit(a.erledigt_zeit || a.zeit) + (a.ergebnis ? " · " + F.text(a.ergebnis) : ""))))), "zuletzt erledigt (" + erledigt.length + ")") : null);
@@ -216,6 +219,10 @@ function antragKarte(roh) {
  * (Tagesschluss gegen 50-/200-Tage-Linie, von der Cloud mechanisch gerechnet). NUR Anzeige: keine Knöpfe, löst nichts aus. Phase als
  * ein Wort in der Farbe, Kursstand mit Zeit, vier Abstände, „Was die Bots daraus machen“ (drei Ampeln), Hinweis, fester Schluss-Satz.
  * Fehlt das Feld (ältere handy.json) oder ist die Phase „nicht prüfbar“: graue Karte mit dem Grund. Alle Texte nur als Textknoten.
+ * 1.3.9 (Tom 19.10.2026, Gesamtprüfung V16/V19/V24): sichtbar nur Phasenwort und EIN Halbsatz („+2,1 % zur 50-Tage-Linie · Kurs …“, die
+ * Zahl aus abstaende.ma50_prozent); Grund-Satz, Abstände, Bots, Hinweis und Schluss-Satz hinter „mehr“. Bei „nicht prüfbar“ steht der
+ * Grund sichtbar da. Die Trend-Zeile nennt keine eigene Zahl mehr (sonst zwei 50-Tage-Abstände für denselben Tag), der Hinweis kommt
+ * nur, wenn der echte Trend-Topf investiert ist (trend_bot_investiert true – nicht beim Schattendepot).
  */
 const MP_FARBEN = ["gruen", "rot", "gelb", "grau"];
 const MP_SCHLUSS = "Beschreibung der Lage aus Kursdaten, keine Vorhersage. Gehandelt wird nur nach den Regeln der Bots oder nach deinem JA.";
@@ -224,7 +231,7 @@ function mpProzent(v) {
   return (v > 0 ? "+" : "") + Number(v).toLocaleString("de-AT", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %";
 }
 function mpZeit(x, vor, nach) {
-  const t = F.datum(x.zeit) ? F.zeit(x.zeit) : typeof x.zeit_text === "string" && x.zeit_text ? F.text(x.zeit_text) : "";
+  const t = x && F.datum(x.zeit) ? F.zeit(x.zeit) : x && typeof x.zeit_text === "string" && x.zeit_text ? F.text(x.zeit_text) : "";
   return t ? vor + t + nach : "";
 }
 function mpBot(titel, farbe, text) {
@@ -242,23 +249,30 @@ function marktphaseKarte(roh) {
   const b = m && istObj(m.bots) ? m.bots : {};
   const t = ok(b.trend_ampel), z = ok(b.ampel_200), k = ok(b.ki_ampel);
   const eurZusatz = (v) => (F.istZahl(v) ? " · " + F.euro(v) : "");
+  // 1.3.9: EIN Halbsatz statt Kursstand + Grund + Abstände; ohne Phase oder ohne 50-Tage-Abstand steht stattdessen der Grund sichtbar da
+  const kurz = farbe !== "grau" && a && F.istZahl(a.ma50_prozent)
+    ? mpProzent(a.ma50_prozent) + " zur 50-Tage-Linie" + (kurs && F.istZahl(kurs.eur) ? " · Kurs " + F.euro(kurs.eur) : "") : null;
+  // Gesamtprüfung 19.10.2026 (B28): Zeiten aus „zeit“ (in der Demo mitverschoben, „heute“/„gestern“ wie überall); zeit_text nur als Rückfall
+  const stand = m && m.stand ? "Stand " + F.zeit(m.stand) : mpZeit(kurs, "Stand ", "");
   return h("section", { class: "karte marktphase-karte " + farbe, id: "marktphase" },
-    h("div", { class: "karte-kopf" }, h("h2", null, "Marktphase"),
-      m && m.stand ? h("span", { class: "klein gedimmt" }, "Stand " + F.zeit(m.stand)) : null),
+    h("div", { class: "karte-kopf" }, h("h2", null, "Marktphase"), stand ? h("span", { class: "klein gedimmt" }, stand) : null),
     h("div", { class: "mp-phase " + farbe, id: "mp-phase" }, phase),
-    // Gesamtprüfung 19.10.2026 (B28): Zeit aus „zeit“ (in der Demo mitverschoben, „heute“/„gestern“ wie überall); zeit_text nur als Rückfall
-    kurs && F.istZahl(kurs.eur) ? h("p", { class: "klein gedimmt" }, "Bitcoin " + F.euro(kurs.eur) + mpZeit(kurs, " · ", "")) : null,
-    grund ? h("p", { class: "klein mp-grund" }, grund) : null,
-    a ? zeilen([
-      ["Abstand zur 50-Tage-Linie", mpProzent(a.ma50_prozent) + eurZusatz(l.ma50_eur)],
-      ["Abstand zur 200-Tage-Linie", mpProzent(a.ma200_prozent) + eurZusatz(l.ma200_eur)],
-      ["Abstand zum 20-Tage-Hoch", mpProzent(a.hoch_20_prozent) + eurZusatz(l.hoch_20_eur)],
-      ["Abstand zum 365-Tage-Hoch", mpProzent(a.hoch_365_prozent) + eurZusatz(l.hoch_365_eur)],
-    ]) : null,
-    h("ul", { class: "mp-bots" },
+    kurz ? h("p", { class: "klein mp-kurz", id: "mp-kurz" }, kurz) : grund ? h("p", { class: "klein mp-grund" }, grund) : null,
+    // Warnung bleibt sichtbar (nicht hinter „mehr“): sie ist der einzige Satz der Karte, der zum Handeln rät
+    m && m.trend_bot_investiert === true && typeof m.hinweis === "string" && m.hinweis ? h("p", { class: "mp-hinweis" }, m.hinweis) : null,
+    mehrTeil("marktphase", [
+      kurz && grund ? h("p", { class: "klein mp-grund" }, grund) : null,
+      a ? zeilen([
+        ["Abstand zur 50-Tage-Linie", mpProzent(a.ma50_prozent) + eurZusatz(l.ma50_eur)],
+        ["Abstand zur 200-Tage-Linie", mpProzent(a.ma200_prozent) + eurZusatz(l.ma200_eur)],
+        ["Abstand zum 20-Tage-Hoch", mpProzent(a.hoch_20_prozent) + eurZusatz(l.hoch_20_eur)],
+        ["Abstand zum 365-Tage-Hoch", mpProzent(a.hoch_365_prozent) + eurZusatz(l.hoch_365_eur)],
+      ]) : null,
+      h("ul", { class: "mp-bots" },
       h("li", { class: "klein gedimmt" }, "Was die Bots daraus machen:"),
+      // 1.3.9 (V24): nur die Ampel – der 50-Tage-Abstand steht oben einmal (aus abstaende); die Fusion-Kerze weicht oft um 0,1 ab
       t && typeof t.gruen === "boolean"
-        ? mpBot("Trend-Bot", t.gruen ? "gruen" : "rot", F.text(t.text, "Markt-Ampel " + (t.gruen ? "grün" : "rot") + ", " + mpProzent(t.abstand_prozent) + " zur 50-Tage-Linie"))
+        ? mpBot("Trend-Bot", t.gruen ? "gruen" : "rot", "Markt-Ampel " + (t.gruen ? "grün" : "rot"))
         : mpBot("Trend-Bot", "grau", "Markt-Ampel nicht prüfbar" + (fehlerVon(b.trend_ampel) ? " (" + fehlerVon(b.trend_ampel) + ")" : "")),
       z && MP_FARBEN.includes(z.farbe)
         ? mpBot("200-Tage-Ampel", z.farbe, (z.farbe === "gruen" ? "grün" : z.farbe) + (z.text ? " – " + F.text(z.text) : ""))
@@ -266,11 +280,15 @@ function marktphaseKarte(roh) {
       k && MP_FARBEN.includes(k.farbe)
         ? mpBot("KI-Ampel Coin-Bot", k.farbe, (k.farbe === "gruen" ? "grün" : k.farbe) + mpZeit(k, " (Einschätzung ", ")"))
         : mpBot("KI-Ampel Coin-Bot", "grau", "nicht prüfbar" + (fehlerVon(b.ki_ampel) ? " (" + fehlerVon(b.ki_ampel) + ")" : ""))),
-    m && typeof m.hinweis === "string" && m.hinweis ? h("p", { class: "mp-hinweis" }, m.hinweis) : null,
-    h("p", { class: "klein gedimmt mp-schluss" }, m && typeof m.schluss === "string" && m.schluss ? m.schluss : MP_SCHLUSS));
+      h("p", { class: "klein gedimmt mp-schluss" }, m && typeof m.schluss === "string" && m.schluss ? m.schluss : MP_SCHLUSS)]));
 }
 
 /** 1.2.11: Lagebericht je Bot (handy.json <bot>.lage – Liste kurzer Sätze, regelbasiert aus der Cloud). Fehlt er: nichts zeigen. */
+function lageListe(lage, titel) {
+  const saetze = liste(lage).filter((x) => typeof x === "string" && x.trim());
+  if (!saetze.length) return null;
+  return h("div", { class: "lage-im-mehr" }, h("h3", null, titel), h("ul", { class: "lage-liste" }, saetze.map((t) => h("li", null, F.text(t)))));
+}
 function lageKarte(lage, titel, zu) {
   const saetze = liste(lage).filter((x) => typeof x === "string" && x.trim());
   if (!saetze.length) return null;
@@ -281,7 +299,7 @@ function lageKarte(lage, titel, zu) {
 
 /**
  * 1.2.13 (Paket E): Karte „KI-Vorschlag“ – die KI schlägt vor, Trend-/Raster-Bot ein-, auszuschalten oder zu pausieren (handy.json
- * <bot>.ki_vorschlag). Nur ein Vorschlag: „Vorschlag übernehmen …“ öffnet den bekannten Dialog (surfen_ein/trend_ein mit
+ * <bot>.ki_vorschlag). Nur ein Vorschlag: „Mit JA übernehmen …“ (bis 1.3.8 „Vorschlag übernehmen …“) öffnet den bekannten Dialog (surfen_ein/trend_ein mit
  * vorausgefülltem Betrag, *_pause, *_aus) mit JA. Bei „keine“ steht die Einschätzung da (warum gerade nicht). Fehlt sie: nichts.
  */
 function vorschlagKarte(v, teil, deckel, kurz) {
@@ -289,15 +307,19 @@ function vorschlagKarte(v, teil, deckel, kurz) {
   const aktiv = v.aktion && v.aktion !== "keine";
   if (kurz && !aktiv) return null;
   const betrag = v.aktion === "einschalten" ? (F.istZahl(v.betrag_eur) && v.betrag_eur > 0 ? v.betrag_eur : teil && teil.topf_eur) : null;
-  const knopf = aktiv && v.modus ? A.knopf(v.modus, "Vorschlag übernehmen …", "primaer",
+  // 1.3.9 (V31): „erst mit deinem JA“ steht EINMAL – am Knopf selbst
+  const knopf = aktiv && v.modus ? A.knopf(v.modus, "Mit JA übernehmen …", "primaer",
     F.istZahl(betrag) ? { betrag: String(Math.round(betrag * 100) / 100).replace(".", ",") } : undefined) : null;
   const sicher = F.istZahl(v.zuversicht) ? v.zuversicht + " % sicher" : null;
   const frei = ok(deckel) && F.istZahl(deckel.frei_eur) ? "50-%-Deckel: noch " + F.euro(deckel.frei_eur) + " frei für Trend- und Raster-Topf." : null;
-  return karte(aktiv ? "KI-Vorschlag" : "KI-Einschätzung", sicher ? h("span", { class: "klein gedimmt" }, sicher) : null,
+  // 1.3.9 (V31): Zeit und Zuversicht im Kopf; „nur mit JA“ steht EINMAL am Knopf (ohne Knopf – nur Einschätzung – gibt es nichts zu schalten)
+  const rechts = [sicher, F.datum(v.zeit) ? F.zeit(v.zeit) : null].filter(Boolean).join(" · ");
+  // auf der Übersicht (kurz) nur Titel und Knopf – die Begründung steht dort schon im „mehr“ der Bot-Karte darüber („KI: …“)
+  return karte(aktiv ? "KI-Vorschlag" : "KI-Einschätzung", rechts ? h("span", { class: "klein gedimmt" }, rechts) : null,
     h("p", { class: aktiv ? "vorschlag-titel" : "" }, h("b", null, F.text(v.titel))),
-    v.begruendung ? h("p", null, F.text(v.begruendung)) : null,
-    v.hinweis ? h("p", { class: "klein gedimmt" }, F.text(v.hinweis)) : null,
-    h("p", { class: "klein gedimmt" }, "Nur ein Vorschlag der KI (" + F.zeit(v.zeit) + ") – geschaltet wird erst mit deinem JA." + (frei && !kurz ? " " + frei : "")),
+    !kurz && v.begruendung ? h("p", null, F.text(v.begruendung)) : null,
+    !kurz && v.hinweis ? h("p", { class: "klein gedimmt" }, F.text(v.hinweis)) : null,
+    frei && !kurz ? h("p", { class: "klein gedimmt" }, frei) : null,
     reihe(knopf));
 }
 
@@ -366,7 +388,7 @@ function gesamtStatistik(Z) {
   const hinweis = verlaufHinweis(Z);
   if (hinweis) return hinweis;
   return D.statistik({
-    schluessel: "gesamt", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens",
+    schluessel: "gesamt", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens", tippHinweis: true,
     serien: (p) => [
       { name: "Gesamt", klasse: "l-haupt", werte: D.reihe(p, "gesamt_eur") },
       { name: "Coin-Topf", klasse: "l-zweit", werte: D.reihe(p, "coin_topf_eur") },
@@ -384,7 +406,7 @@ function coinStatistik(Z) {
   const punkte = D.punkteLesen(Z.verlauf);
   return [
     D.statistik({
-      schluessel: "coin", punkte, einheit: "prozent", beschreibung: "Coin-Topf gegen Bitcoin halten in Prozent seit Zeitraumbeginn",
+      schluessel: "coin", punkte, einheit: "prozent", beschreibung: "Coin-Topf gegen Bitcoin halten in Prozent seit Zeitraumbeginn", tippHinweis: true,
       serien: (p) => [
         { name: "Coin-Topf", klasse: "l-haupt", werte: D.zeitgewichtet(p) },
         { name: "Bitcoin halten", klasse: "l-halten", werte: D.bitcoinProzent(p) },
@@ -425,7 +447,7 @@ export function botStatistik(Z, bot) {   // export: Handy-Tests (B13)
     h("p", { class: "klein gedimmt" }, echt ? "Echter Topf gegen „Bitcoin halten“ mit demselben Startbetrag."
       : "Schattendepot (Rechengeld) gegen „Bitcoin halten“ mit demselben Startbetrag."),
     D.statistik({
-      schluessel: bot, punkte, einheit: "eur", beschreibung: (echt ? "Echter Topf" : "Schattendepot") + " gegen Bitcoin halten",
+      schluessel: bot, punkte, einheit: "eur", beschreibung: (echt ? "Echter Topf" : "Schattendepot") + " gegen Bitcoin halten", tippHinweis: true,
       serien: (p) => [
         { name: echt ? "Echter Topf" : "Schattendepot", klasse: "l-haupt", werte: D.reihe(p, feld + "_eur") },
         { name: "Bitcoin halten", klasse: "l-halten", werte: D.reihe(p, feld + "_halten_eur") },
@@ -573,9 +595,13 @@ function kiSchnellKarte() {
     h("div", { class: "ki-schnell" }, feld, h("button", { type: "button", class: "knopf primaer", onclick: los }, "Senden")));
 }
 
-/** 1.2.19: Kurzzeile einer Bot-Karte der Übersicht – läuft der echte Topf: sein Stand (+ Ergebnis), sonst das Schattendepot. */
+/** 1.2.19: Kurzzeile einer Bot-Karte der Übersicht – läuft der echte Topf: sein Stand (+ Ergebnis), sonst das Schattendepot.
+ *  1.3.9: zeigt die Kurzzeile das Schattendepot, steht es im „mehr“ nicht noch einmal (zeigtEcht) – „Rechengeld“ je Karte einmal. */
+function zeigtEcht(status, topf) {
+  return status !== "aus" && F.istZahl(topf);
+}
 function botKurz(status, topf, ergEur, ergPz, schatten, id) {
-  if (status !== "aus" && F.istZahl(topf)) {
+  if (zeigtEcht(status, topf)) {
     const erg = F.istZahl(ergEur) || F.istZahl(ergPz)
       ? h("p", { class: "klapp-kurz " + F.vorzeichenKlasse(F.istZahl(ergEur) ? ergEur : ergPz) },
         "Ergebnis " + (F.istZahl(ergEur) ? F.euroPlus(ergEur) : "–") + (F.istZahl(ergPz) ? " (" + F.prozent(ergPz) + ")" : ""))
@@ -583,8 +609,9 @@ function botKurz(status, topf, ergEur, ergPz, schatten, id) {
     return [h("div", { class: "mittel", id }, F.euro(topf)), erg];
   }
   const s = ok(schatten);
+  const diff = s && F.istZahl(s.wert_eur) && F.istZahl(s.bitcoin_halten_eur) ? s.wert_eur - s.bitcoin_halten_eur : null;
   return h("p", { class: "klapp-kurz", id }, "nur Schattendepot (Rechengeld)" + (s && F.istZahl(s.wert_eur) ? ": " + F.euro(s.wert_eur)
-    + (F.istZahl(s.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur) : "") : ""));
+    + (F.istZahl(s.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur) : "") + (diff !== null ? " → " + F.euroPlus(diff) : "") : ""));
 }
 
 // ------------------------------------------------------------------ Autopilot-Wahlschalter (1.3, Nutzer 18.10.2026)
@@ -618,9 +645,11 @@ function autopilotWahl(d, id) {
 function autopilotKarte(d) {
   const w = autopilotWahl(d, "autopilot-uebersicht");
   if (!w) return null;
-  return karte("Autopilot", null, w,
-    h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
-      + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."));
+  // 1.3.9 (Tom 19.10.2026, V4): die Erklärung der drei Stellungen zum Aufklappen statt bei jedem Öffnen (die Dialoge sagen es beim Schalten)
+  // 1.3.9: keine eigene Überschrift – die Zeile „Autopilot [KI | Regeln | Aus]“ ist der Titel (wie eine Einstellung bei Apple)
+  return h("section", { class: "karte autopilot-karte" }, w,
+    mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
+      + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?"));
 }
 
 export function uebersicht(Z) {
@@ -669,7 +698,7 @@ export function uebersicht(Z) {
       mehrTeil("raster", [
         zeilen([["Topf", F.euro(r.topf_eur)], ergebnisZeile("Ergebnis", r.ergebnis_eur, r.ergebnis_prozent),
           ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
-        schattenHinweis(r.schatten),
+        zeigtEcht(r.status, r.topf_eur) ? schattenHinweis(r.schatten) : null,
         kiZeile(r.ki_vorschlag),
         botKnoepfe(r.status, "surfen_ein", "surfen_pause", "surfen_aus", d.bot_deckel)])));
   } else out.push(fehlerKarte("Raster-Bot", d.raster_bot));
@@ -686,7 +715,8 @@ export function uebersicht(Z) {
           t.modus === "echt" ? ergebnisZeile("Ergebnis", t.ergebnis_eur, t.ergebnis_prozent) : null,
           ["Nächste Umschichtung", F.text(t.naechste_umschichtung)],
         ]),
-        schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", ")),
+        zeigtEcht(t.modus === "echt" ? t.status : "aus", t.topf_eur) ? schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", "))
+          : ok(t.schatten) && liste(t.schatten.positionen).length ? h("p", { class: "klein gedimmt" }, "Schattendepot hält " + liste(t.schatten.positionen).join(", ")) : null,
         straffZeile(t.schatten_straff),
         kiZeile(t.ki_vorschlag),
         botKnoepfe(t.status, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel)])));
@@ -721,13 +751,13 @@ export function uebersicht(Z) {
         ]),
         akKi ? erklaert("KI einfach erklärt", akKi.einfach_erklaert) : null,
         // 1.2.24: Zeile und Knopf „Gewinnschutz“ entfielen mit dem Gewinnschutz Aktien/ETF (Cloud, 17.10.2026); die Absicherung
-        // des Welt-ETF steht in der Lage-Karte darunter
+        // des Welt-ETF steht in der Lage darunter
         // 1.3: derselbe Wahlschalter wie beim Coin-Bot (ältere Cloud: die bisherigen Knöpfe)
         autopilotWahl(d, "autopilot-aktien") || reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein")),
+        // 1.3.9: die Lage im selben „mehr“ statt als eigene eingeklappte Karte darunter (ein Aufklappen je Rubrik)
+        lageListe(ak.lage, "Lage"),
       ]),
     ));
-    const lageA = lageKarte(ak.lage, "Lage Aktien-Autopilot", true);   // 1.2.11: eingeklappt, die Übersicht bleibt kurz
-    if (lageA) out.push(lageA);
   } else out.push(fehlerKarte("Aktien-Autopilot", d.aktien));
 
   out.push(alarmKarte(d));
@@ -1210,6 +1240,23 @@ function bgListe(titel, eintraege, zeile, leerText, schluessel) {
     l.length > BG_KURZ ? mehrTeil(schluessel, h("ul", { class: "liste" }, l.slice(BG_KURZ)), "mehr (" + (l.length - BG_KURZ) + " weitere)") : null];
 }
 
+/**
+ * 1.3.9 (Tom 19.10.2026, V26): „Kürzlich gestartet“ – zuerst die Treffer bei Bitpanda (gelistet, auch „Kauf gesperrt“), die übrigen als
+ * EINE aufklappbare Zeile. „nicht bei Bitpanda“ steht nur da, wenn der Abgleich gelaufen ist (bitpanda.geprueft true) und jeder übrige
+ * Eintrag geprüft ist (bitpanda null, nicht fehlend) – sonst sagt die Zeile „Bitpanda nicht geprüft“ bzw. nur die Zahl.
+ */
+function bgGestartet(titel, eintraege, bp) {
+  const alle = liste(eintraege).filter((e) => istObj(e) && textOder(e.name));
+  const treffer = alle.filter((e) => istObj(e.bitpanda) && textOder(e.bitpanda.symbol));
+  const rest = alle.filter((e) => !treffer.includes(e));
+  const geprueft = bp.geprueft === true && rest.every((e) => e.bitpanda === null);
+  const ungeprueft = bp.geprueft !== true || rest.every((e) => e.bitpanda === undefined);
+  const zu = rest.length + " weitere" + (geprueft ? " (nicht bei Bitpanda)" : ungeprueft ? " (Bitpanda nicht geprüft)" : "");
+  return [h("h3", null, titel),
+    !alle.length ? leer("In diesem Zeitraum keine Börsengänge.") : treffer.length ? h("ul", { class: "liste" }, treffer.map(bgZeile)) : null,
+    rest.length ? mehrTeil("bg-gestartet", h("ul", { class: "liste" }, rest.map(bgZeile)), zu) : null];
+}
+
 function boersengaengeKarte(d, fehler) {
   const kopf = h("div", { class: "karte-kopf" }, h("h2", null, "Börsengänge"), istObj(d) && d.zeit ? h("span", { class: "klein gedimmt" }, "Stand " + F.zeit(d.zeit)) : null);
   if (!istObj(d)) {
@@ -1220,11 +1267,13 @@ function boersengaengeKarte(d, fehler) {
   if (textOder(d.fehler)) hinweise.push("Kalender: " + d.fehler);
   if (bp.geprueft === false) hinweise.push("Bitpanda-Abgleich zuletzt nicht möglich" + (textOder(bp.fehler) ? " (" + bp.fehler + ")" : "") + (bp.zeit ? " – Spalte vom " + F.zeit(bp.zeit) : ""));
   if (textOder(d.neuzugang_hinweis)) hinweise.push(d.neuzugang_hinweis);
+  // 1.3.9 (V26): die Herkunft hinter „ⓘ“; der Halbsatz „Nur Information, keine Empfehlung“ bleibt sichtbar (Einwand des Prüfers)
   return h("section", { class: "karte", id: "boersengaenge" }, kopf,
-    h("p", { class: "klein gedimmt" }, "US-Börsengänge aus dem Nasdaq-Kalender, täglich um 18:30 mit Bitpandas Wertpapierliste"
-      + (F.istZahl(bp.anzahl) ? " (" + F.zahl(bp.anzahl, 0) + " Einträge)" : "") + " abgeglichen. Taucht einer bei Bitpanda auf, kommt ein Push. Nur Information, keine Empfehlung."),
+    h("details", { class: "info-klapp klein gedimmt", id: "bg-info" }, h("summary", null, "ⓘ Nur Information, keine Empfehlung"),
+      h("p", null, "US-Börsengänge aus dem Nasdaq-Kalender, täglich um 18:30 mit Bitpandas Wertpapierliste"
+        + (F.istZahl(bp.anzahl) ? " (" + F.zahl(bp.anzahl, 0) + " Einträge)" : "") + " abgeglichen. Taucht einer bei Bitpanda auf, kommt ein Push.")),
     ...bgListe("Angekündigt", d.angekuendigt, bgZeile, "Derzeit keine angekündigten Börsengänge im Kalender.", "bg-angekuendigt"),
-    ...bgListe("Kürzlich gestartet (letzte " + (F.istZahl(d.neu_tage) ? d.neu_tage : 60) + " Tage)", d.gestartet, bgZeile, "In diesem Zeitraum keine Börsengänge.", "bg-gestartet"),
+    ...bgGestartet("Kürzlich gestartet (letzte " + (F.istZahl(d.neu_tage) ? d.neu_tage : 60) + " Tage)", d.gestartet, bp),
     ...bgListe("Neu bei Bitpanda (letzte " + (F.istZahl(d.neuzugang_tage) ? d.neuzugang_tage : 30) + " Tage)", d.neu_bei_bitpanda, bgZugang,
       "Seit dem letzten Vergleich nichts Neues bei Bitpanda.", "bg-neu"),
     hinweise.length ? h("p", { class: "klein gedimmt" }, hinweise.join(" · ")) : null);
