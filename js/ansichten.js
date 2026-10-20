@@ -1398,6 +1398,14 @@ export function mehr(Z, ctx) {
 
   // Push
   const pk = [];
+  // 1.3.11 (20.10.2026, Push-Ausfall-Alarm der Cloud): push.ausfall = {folge, grund, seit, letzter} ab 3 Sendeversuchen ohne
+  // Zustellung – EIN Satz, nur als Text; die Cloud hat dann schon gemailt und meldet „Mitteilungen gehen wieder“ von selbst
+  const ausfall = pushTeil.ausfall && typeof pushTeil.ausfall === "object" ? pushTeil.ausfall : null;
+  if (ausfall && Number(ausfall.folge) >= 1) {
+    pk.push(h("p", { class: "fehlerteil", "data-push-ausfall": String(ausfall.folge) },
+      "Mitteilungen kommen seit " + F.zeit(ausfall.seit) + " nicht an (" + Number(ausfall.folge) + " Versuche"
+      + (ausfall.grund ? ": " + String(ausfall.grund) : "") + ") – die Cloud hat dir eine Mail geschickt; die Bots laufen weiter."));
+  }
   if (!P.alsHomeApp()) {
     pk.push(h("p", null, "Erst zum Home-Bildschirm hinzufügen: in Safari unten auf Teilen (□↑) → „Zum Home-Bildschirm“, dann die App von dort öffnen. Nur so erlaubt das iPhone Mitteilungen."));
   } else if (!P.unterstuetzt()) {
