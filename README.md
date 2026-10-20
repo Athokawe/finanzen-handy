@@ -4,6 +4,11 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.11
+
+* **Hinweis bei Push-Ausfall.** Zählt die Cloud drei Sendeversuche ohne Zustellung (`push.ausfall` in handy.json, seit 20.10.2026 mit
+  Alarm-Mail), steht in der Karte „Benachrichtigungen“ ein Satz mit Zeitpunkt, Zahl der Versuche und Grund – die Bots laufen weiter.
+
 ## Neu in 1.3.10
 
 * **News: eine Karte je Rubrik.** Der KI-Satz steht oben in der Rubrik-Karte, darunter die neueste Schlagzeile, der Rest hinter
