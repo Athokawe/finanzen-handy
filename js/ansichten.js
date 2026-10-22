@@ -390,11 +390,12 @@ function gesamtStatistik(Z) {
   return D.statistik({
     schluessel: "gesamt", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens", tippHinweis: true,
     serien: (p) => [
-      { name: "Gesamt", klasse: "l-haupt", werte: D.reihe(p, "gesamt_eur") },
-      { name: "Coin-Topf", klasse: "l-zweit", werte: D.reihe(p, "coin_topf_eur") },
+      // 1.3.12: eigene Farbe je Teil (wie Balken und Punkte), Gesamt hell – die anderen Diagramme behalten l-haupt/l-zweit/l-dritt
+      { name: "Gesamt", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") },
+      { name: "Coin-Topf", klasse: "l-coin", werte: D.reihe(p, "coin_topf_eur") },
       { name: "Trend-Topf", klasse: "l-trend", werte: D.reihe(p, "trend_echt_eur") },
       { name: "Raster-Topf", klasse: "l-raster", werte: D.reihe(p, "raster_echt_eur") },
-      { name: "Aktien & ETFs", klasse: "l-dritt", werte: D.reihe(p, "aktien_eur") },
+      { name: "Aktien & ETFs", klasse: "l-aktien", werte: D.reihe(p, "aktien_eur") },
     ],
     kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
   });
