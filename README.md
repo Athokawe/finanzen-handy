@@ -4,6 +4,11 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.3.13
+
+* **↻ misst frisch.** Der Kreispfeil oben rechts lässt die Cloud gleich bei Bitpanda nachmessen (Coin-Topf, Euro-Guthaben, Aktien &
+  ETFs) und lädt nach, sobald der Lauf fertig ist – etwa eine Minute. Innerhalb von 2 Minuten nach der letzten Messung lädt er nur neu.
+
 ## Neu in 1.3.12
 
 * **Gesamt-Diagramm: eine Farbe je Teil.** Gesamt hell, Coin-Topf grün-türkis, Trend-Topf hellviolett und gestrichelt, Raster-Topf
