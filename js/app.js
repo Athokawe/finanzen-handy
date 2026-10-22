@@ -21,7 +21,7 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.3.12";
+export const APP_VERSION = "1.3.13";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -341,6 +341,45 @@ function demoZeiten(x, versatz) {
   return x;
 }
 
+// 1.3.13 (22.10.2026, Tom: „Systemrefresh mit dem Kreispfeil“): ↻ lässt die Cloud frisch bei Bitpanda messen (express.yml, Modus
+// „auffrischen“: Bilanz-Punkt, Aktien-Bestand, handy.json – nur lesen, nie eine Order), zeigt sofort den letzten Stand und lädt nach,
+// sobald der Lauf fertig ist (höchstens ~3 min). Innerhalb von 2 min nach der letzten Messung nur neu laden (kein neuer Lauf).
+const AUFFRISCHEN_PAUSE_MS = 2 * 60000;
+const AUFFRISCHEN_MAX_MS = 3 * 60000;
+let auffrischenSeit = 0;
+
+async function auffrischen() {
+  if (!entsperrt) return;
+  if (Z.misst || Date.now() - auffrischenSeit < AUFFRISCHEN_PAUSE_MS) { laden(); return; }
+  const start = Date.now();
+  try {
+    await gh.auftrag("auffrischen", "", "express");
+  } catch {
+    laden();                                     // Cloud kennt den Modus noch nicht o. Ä.: wie bisher nur neu laden
+    return;
+  }
+  auffrischenSeit = start;
+  if (gh.istDemo()) { laden(); return; }
+  Z.misst = true;
+  $("knopf-aktualisieren").classList.add("dreht");
+  toast("Misst frisch bei Bitpanda – etwa eine Minute.");
+  laden();
+  const seit = new Date(start - 60000).toISOString();
+  let fertig = false;
+  while (!fertig && Date.now() - start < AUFFRISCHEN_MAX_MS && entsperrt) {
+    await new Promise((r) => setTimeout(r, 10000));
+    try {
+      const l = await gh.laeufe("express");
+      fertig = l.some((x) => x.titel === "Express: auffrischen" && x.erstellt >= seit && x.status === "completed");
+    } catch { /* Netz kurz weg: weiter warten */ }
+  }
+  Z.misst = false;
+  $("knopf-aktualisieren").classList.remove("dreht");
+  if (!entsperrt) return;
+  await laden();
+  toast(fertig ? "Frisch gemessen ✓" : "Die Messung dauert länger – der Stand kommt mit dem nächsten Laden.");
+}
+
 async function laden() {
   if (Z.laedt || !entsperrt) return;
   Z.laedt = true;
@@ -349,7 +388,7 @@ async function laden() {
   const [a, b, c, bg] = await Promise.allSettled([gh.lesen("cloud/handy.json"), gh.lesen("cloud/news.json"), gh.lesen("cloud/handy_verlauf.json"),
     gh.lesen("cloud/boersengaenge.json")]);
   Z.laedt = false;
-  $("knopf-aktualisieren").classList.remove("dreht");
+  if (!Z.misst) $("knopf-aktualisieren").classList.remove("dreht");
   if (!entsperrt) return; // inzwischen gesperrt
   const versatz = demo ? Date.now() - 3 * 60000 - DEMO_BEZUG : 0;
   if (a.status === "fulfilled") {
@@ -703,7 +742,7 @@ function verdrahten() {
   $("pin-feld").addEventListener("input", () => { $("pin-feld").value = $("pin-feld").value.replace(/\D/g, "").slice(0, 8); });
   $("pin-vergessen").addEventListener("click", pinVergessen);
   $("faceid-knopf").addEventListener("click", faceIdEntsperren);
-  $("knopf-aktualisieren").addEventListener("click", () => laden());
+  $("knopf-aktualisieren").addEventListener("click", () => auffrischen());
   $("knopf-mehr").addEventListener("click", () => reiterZeigen(reiter === "mehr" ? "uebersicht" : "mehr"));
   for (const b of document.querySelectorAll(".reiter")) b.addEventListener("click", () => reiterZeigen(b.dataset.reiter));
 
