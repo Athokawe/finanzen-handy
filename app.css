@@ -412,3 +412,24 @@ details.info-klapp p { margin: 0; line-height: 1.35; }
 .autopilot-karte .autopilot-wahl { margin: 0; }
 .lage-im-mehr { margin-top: 10px; }
 .lage-im-mehr h3 { margin: 0 0 6px; }
+
+/* ---------- 1.3.12 (22.10.2026, Tom: „Gesamt“ und „Coin-Topf“ waren beide grün): eine Farbe je Teil im Gesamtvermögen ----------
+   Gesamt hell, Coin-Topf grün-türkis, Trend-Topf hellviolett + gestrichelt, Raster-Topf ocker, Aktien blau, Aktien-Reserve pink,
+   Euro-Guthaben grau. Linien voll deckend. Geprüft mit Farbsehschwäche-Simulation (Deutan/Protan/Tritan: Linien mind. ΔE 18). */
+.anteil-coin { background: #2ec4a0; } .punkt.coin { background: #2ec4a0; }
+.anteil-trend { background: #d4b8ff; } .punkt.trend { background: #d4b8ff; }
+.anteil-raster { background: #e3a33b; } .punkt.raster { background: #e3a33b; }
+.anteil-aktien { background: #2f86e8; } .punkt.aktien { background: #2f86e8; }
+.anteil-reserve { background: #f08cc0; } .punkt.reserve { background: #f08cc0; }
+.anteil-euro { background: #8e8e93; } .punkt.euro { background: #8e8e93; }
+svg.diagramm .l-gesamt { stroke: #f2f2f7; stroke-width: 2.6; }
+svg.diagramm .l-coin { stroke: #2ec4a0; stroke-width: 1.8; opacity: 1; }
+svg.diagramm .l-trend { stroke: #d4b8ff; stroke-width: 1.8; opacity: 1; stroke-dasharray: 5 3; }
+svg.diagramm .l-raster { stroke: #e3a33b; stroke-width: 1.8; opacity: 1; }
+svg.diagramm .l-aktien { stroke: #2f86e8; stroke-width: 1.8; opacity: 1; }
+svg.diagramm .marke-punkt.l-gesamt { stroke: #f2f2f7; stroke-dasharray: none; } svg.diagramm .marke-punkt.l-coin { stroke: #2ec4a0; }
+svg.diagramm .marke-punkt.l-trend { stroke: #d4b8ff; stroke-dasharray: none; } svg.diagramm .marke-punkt.l-raster { stroke: #e3a33b; }
+svg.diagramm .marke-punkt.l-aktien { stroke: #2f86e8; }
+.legende-strich.l-gesamt { border-top-color: #f2f2f7; } .legende-strich.l-coin { border-top-color: #2ec4a0; }
+.legende-strich.l-trend { border-top: 3px dashed #d4b8ff; } .legende-strich.l-raster { border-top-color: #e3a33b; }
+.legende-strich.l-aktien { border-top-color: #2f86e8; }
