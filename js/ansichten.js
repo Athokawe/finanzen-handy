@@ -388,7 +388,7 @@ function gesamtStatistik(Z) {
   const hinweis = verlaufHinweis(Z);
   if (hinweis) return hinweis;
   return D.statistik({
-    schluessel: "gesamt", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens", tippHinweis: true,
+    schluessel: "gesamt", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens", tippHinweis: false,   // 1.4: der Hinweis steht schon in der Verlauf-Karte
     serien: (p) => [
       // 1.3.12: eigene Farbe je Teil (wie Balken und Punkte), Gesamt hell – die anderen Diagramme behalten l-haupt/l-zweit/l-dritt
       { name: "Gesamt", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") },
@@ -566,9 +566,11 @@ function parkKnoepfe() {
   const gross = A.knopf("allesstopp", "Alles parken", "gefahr stopp-knopf");
   const klein = A.knopf("anhalten", "Nur anhalten", "gefahr-rand anhalten-knopf");
   if (!gross && !klein) return null;
+  // 1.3.14 (Tom 23.10.2026): beide Knöpfe nebeneinander und gleich groß, die Erklärungen darunter
   return h("div", { class: "park-knoepfe" },
-    gross, gross ? bremsErklaerung("allesstopp") : null,
-    klein, klein ? bremsErklaerung("anhalten") : null);
+    h("div", { class: "park-reihe" }, gross, klein),
+    gross ? bremsErklaerung("allesstopp") : null,
+    klein ? bremsErklaerung("anhalten") : null);
 }
 
 /** 1.2.5: Erklärtext + „Sinnvoll, wenn:“ in Stichworten + Hinweis (A.BREMS_WANN) */
@@ -643,37 +645,59 @@ function autopilotWahl(d, id) {
       feld("ki", "autopilot_ki"), feld("regeln", "autopilot_regeln", { ja: regelnJa }), feld("aus", "autopilot_aus")),
     s.hinweis ? h("p", { class: "klein gedimmt wahl-hinweis" }, "(" + s.hinweis + ")") : null);
 }
-function autopilotKarte(d) {
-  const w = autopilotWahl(d, "autopilot-uebersicht");
-  if (!w) return null;
-  // 1.3.9 (Tom 19.10.2026, V4): die Erklärung der drei Stellungen zum Aufklappen statt bei jedem Öffnen (die Dialoge sagen es beim Schalten)
-  // 1.3.9: keine eigene Überschrift – die Zeile „Autopilot [KI | Regeln | Aus]“ ist der Titel (wie eine Einstellung bei Apple)
-  return h("section", { class: "karte autopilot-karte" }, w,
-    mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
-      + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?"));
+/** 1.3.14 (Tom 23.10.2026, Reihenfolge Teil 1): Verlauf NUR des Gesamtvermögens als eigene Karte über dem Gesamtwert – die Linien
+ *  je Teil (1.3.12) bleiben im „mehr“ der Gesamt-Karte. */
+function gesamtVerlaufKarte(Z) {
+  const hinweis = verlaufHinweis(Z);
+  return h("section", { class: "karte", id: "gesamt-verlauf" }, h("div", { class: "karte-kopf" }, h("h2", null, "Verlauf")),
+    hinweis || D.statistik({
+      schluessel: "gesamt-nur", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens", tippHinweis: true,
+      serien: (p) => [{ name: "Gesamtvermögen", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") }],
+      kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
+    }));
+}
+
+/** 1.3.14: „Coin-Topf gesamt“ – alle Krypto-Töpfe zusammengefasst (Coin-Bot + Raster-Bot + Trend-Bot, Werte aus dem Gesamtvermögen) */
+function kryptoGesamtKarte(d) {
+  const g = gesamtTeil(d);
+  if (!g) return null;
+  const teile = [["Coin-Bot", g.coin_topf_eur], ["Raster-Bot", g.raster_topf_eur], ["Trend-Bot", g.trend_topf_eur]];
+  if (!teile.some(([, v]) => F.istZahl(v))) return null;
+  const summe = teile.reduce((s, [, v]) => s + (F.istZahl(v) ? v : 0), 0);
+  return h("section", { class: "karte", id: "krypto-gesamt" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "Coin-Topf gesamt")),
+    h("div", { class: "gross", id: "krypto-gesamt-wert" }, F.euro(summe)),
+    zeilen(teile.map(([n, v]) => [n, F.istZahl(v) ? F.euro(v) : "–"])));
 }
 
 export function uebersicht(Z) {
   const d = Z.handy;
   if (!d) return [Z.fehlerHandy ? h("p", { class: "leer" }, "Noch keine Daten.") : leer("Daten werden geladen …")];
   const out = [];
-  if (A.erlaubt("frage")) out.push(kiSchnellKarte());             // 1.2.10: Eingabefeld „An die KI“ ganz oben (Nutzer 12.10.2026)
+  // 1.3.14 (Tom 23.10.2026, Reihenfolge Teil 1): KI-Frage · Marktphase · Verlauf · Gesamtvermögen · Parken/Anhalten · Coin-Topf gesamt ·
+  // Coin-Bot (mit dem Autopilot-Wahlschalter) · Raster-Bot · Trend-Bot · Schattendepots · Aktien · Wichtige Hinweise
+  if (A.erlaubt("frage")) out.push(kiSchnellKarte());
+  out.push(marktphaseKarte(d.marktphase));
+  out.push(gesamtVerlaufKarte(Z));
   out.push(gesamtKarte(d, Z));
   const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert (offen; sonst Ergebnis der letzten 24 h)
   if (ak_) out.push(ak_);
-  const apk = autopilotKarte(d);                                   // 1.3: Autopilot-Wahlschalter gleich unter dem Gesamtwert
-  if (apk) out.push(apk);
   out.push(parkKnoepfe());
-  out.push(marktphaseKarte(d.marktphase));                       // 1.3.6: Marktphase (Bulle/Bär/Übergang) über der Krypto-Karte, nur Anzeige
+  const kg = kryptoGesamtKarte(d);
+  if (kg) out.push(kg);
 
   const k = ok(d.kern_bot);
   if (k) {
     const ki = ok(k.ki);
     const pos = k.geparkt ? "geparkt in EURCV" : k.position ? F.text(k.position) : "–";
     const stK = autopilotStellung(d).stellung;                     // 1.3: der Coin-Bot läuft mit KI ODER Regeln
-    out.push(karte(F.text(k.topf_name, "Coin-Topf"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
+    const wahl = autopilotWahl(d, "autopilot-uebersicht");         // 1.3.14: der Wahlschalter steht in der Coin-Bot-Karte
+    out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
       h("div", { class: "gross", id: "kern-wert" }, F.euro(k.wert_eur)),
-      h("p", { class: "klapp-kurz" }, F.text(k.name, "Coin-Bot") + " · Autopilot " + STELLUNG_TEXT[stK] + " · hält " + pos),
+      h("p", { class: "klapp-kurz" }, F.text(k.topf_name, "Coin-Topf") + " · hält " + pos),
+      wahl,
+      wahl ? mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
+        + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?") : null,
       mehrTeil("kern", [
         h("p", { class: "klein gedimmt" }, "Stand " + F.zeit(k.wert_zeit) + (F.istZahl(k.bitcoin_kurs_eur) ? " · Bitcoin " + F.euro(k.bitcoin_kurs_eur) : "")),
         zeilen([
@@ -688,9 +712,6 @@ export function uebersicht(Z) {
       ]),
     ));
   } else out.push(fehlerKarte("Coin-Topf", d.kern_bot));
-
-  out.push(reihe(bitpandaKnopf("Zu Bitpanda", BITPANDA_URL, "primaer"), bitpandaKnopf("Einzahlen", BITPANDA_EINZAHLEN_URL)));
-  out.push(bitpandaHinweis());
 
   const r = ok(d.raster_bot);
   if (r) {
@@ -826,14 +847,15 @@ function alarmKarte(d) {
   const eintrag = (x) => h("li", { class: "alarm " + F.text(x.stufe, ""), "data-alarm": Number.isInteger(x.id) ? String(x.id) : null },
     h("div", { class: "oben" }, h("span", { class: "titel" }, F.text(x.titel)),
       h("span", { class: "alarm-rechts" }, h("span", { class: "klein gedimmt" }, F.zeit(x.zeit)),
-        darf && Number.isInteger(x.id) ? h("button", { type: "button", class: "alarm-weg", "aria-label": "Alarm löschen", "data-weg": String(x.id),
+        darf && Number.isInteger(x.id) ? h("button", { type: "button", class: "alarm-weg", "aria-label": "Hinweis löschen", "data-weg": String(x.id),
           onclick: () => AL.ausblenden([x.id]) }, "✕") : null)),
     x.text ? h("div", { class: "unter" }, x.text) : null);
   const rest = al.slice(ALARME_KURZ);                               // 1.2.19: die neuesten drei, der Rest im „mehr“
-  return h("section", { class: "karte", id: "alarm-karte" }, h("div", { class: "karte-kopf" }, h("h2", null, "Letzte Alarme"), alle),
+  // 1.3.14 (Tom 23.10.2026): „Wichtige Hinweise“ statt „Letzte Alarme“ (Inhalt unverändert: die Alarme der Cloud)
+  return h("section", { class: "karte", id: "alarm-karte" }, h("div", { class: "karte-kopf" }, h("h2", null, "Wichtige Hinweise"), alle),
     al.length ? [h("ul", { class: "liste" }, al.slice(0, ALARME_KURZ).map(eintrag)),
       rest.length ? mehrTeil("alarme", h("ul", { class: "liste" }, rest.map(eintrag)), "mehr (" + rest.length + " weitere)") : null]
-      : leer(fehlerVon(d.alarme) || (roh.length ? "Alle Alarme gelöscht." : "Keine Alarme.")),
+      : leer(fehlerVon(d.alarme) || (roh.length ? "Alle Hinweise gelöscht." : "Keine wichtigen Hinweise.")),
     AL.wartet() ? h("p", { class: "klein gedimmt" }, "Ausgeblendet – wird an die Cloud geschickt, sobald der laufende Auftrag fertig ist.") : null);
 }
 
@@ -1394,6 +1416,9 @@ export function mehr(Z, ctx) {
   const d = Z.handy || {};
   const pinTeil = pinKarte(ctx);
   if (pinTeil && ctx.pin.kurz) out.push(pinTeil);          // Empfehlung ganz oben, gut sichtbar
+  // 1.3.14 (Tom 23.10.2026): „Zu Bitpanda“ und „Einzahlen“ aus der Übersicht hierher
+  out.push(h("section", { class: "karte", id: "bitpanda-karte" }, h("div", { class: "karte-kopf" }, h("h2", null, "Bitpanda")),
+    reihe(bitpandaKnopf("Zu Bitpanda", BITPANDA_URL, "primaer"), bitpandaKnopf("Einzahlen", BITPANDA_EINZAHLEN_URL)), bitpandaHinweis()));
   const pushTeil = ok(d.push) || {};
   const abos = liste(pushTeil.abos);
 
