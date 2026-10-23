@@ -4,6 +4,13 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.1
+
+* **Spielgeld-Ansicht.** Solange echt 0 € liegen, zeigt die Übersicht das Spielgeld: Verlauf und Karte „Spielgeld“ (je Bot sein
+  Haupt-Schattendepot mit je 1.000 €: Coin-Bot KI bzw. Regeln, Raster, Trend, Welt-ETF mit Faber 12), dazu Coin-Topf gesamt,
+  Coin-Bot und Aktien in Spielgeld. Alle Schattendepots stehen „je 1.000 € ab Vergleichsstart“ (nur Anzeige, kein Neustart).
+  Liegt wieder echtes Geld, zeigt die Übersicht von selbst das echte.
+
 ## Neu in 1.4
 
 * **Übersicht neu geordnet.** Von oben: Frage an die KI · Marktphase · Verlauf des Gesamtvermögens · Gesamtvermögen · „Alles parken“

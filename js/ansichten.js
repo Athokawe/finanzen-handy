@@ -603,7 +603,7 @@ function kiSchnellKarte() {
 function zeigtEcht(status, topf) {
   return status !== "aus" && F.istZahl(topf);
 }
-function botKurz(status, topf, ergEur, ergPz, schatten, id) {
+function botKurz(status, topf, ergEur, ergPz, schatten, id, je) {
   if (zeigtEcht(status, topf)) {
     const erg = F.istZahl(ergEur) || F.istZahl(ergPz)
       ? h("p", { class: "klapp-kurz " + F.vorzeichenKlasse(F.istZahl(ergEur) ? ergEur : ergPz) },
@@ -611,7 +611,8 @@ function botKurz(status, topf, ergEur, ergPz, schatten, id) {
       : null;
     return [h("div", { class: "mittel", id }, F.euro(topf)), erg];
   }
-  const s = ok(schatten);
+  // 1.4.1 (Spielgeld-Ansicht): mit „je 1.000 €“ der Cloud (schattendepots je_1000) dieselben Zahlen wie in der Schattendepot-Liste
+  const s = je && F.istZahl(je.wert) ? { wert_eur: je.wert, bitcoin_halten_eur: je.referenz } : ok(schatten);
   const diff = s && F.istZahl(s.wert_eur) && F.istZahl(s.bitcoin_halten_eur) ? s.wert_eur - s.bitcoin_halten_eur : null;
   return h("p", { class: "klapp-kurz", id }, "nur Schattendepot (Rechengeld)" + (s && F.istZahl(s.wert_eur) ? ": " + F.euro(s.wert_eur)
     + (F.istZahl(s.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur) : "") + (diff !== null ? " → " + F.euroPlus(diff) : "") : ""));
@@ -647,27 +648,64 @@ function autopilotWahl(d, id) {
 }
 /** 1.3.14 (Tom 23.10.2026, Reihenfolge Teil 1): Verlauf NUR des Gesamtvermögens als eigene Karte über dem Gesamtwert – die Linien
  *  je Teil (1.3.12) bleiben im „mehr“ der Gesamt-Karte. */
-function gesamtVerlaufKarte(Z) {
+function gesamtVerlaufKarte(Z, spiel) {
   const hinweis = verlaufHinweis(Z);
-  return h("section", { class: "karte", id: "gesamt-verlauf" }, h("div", { class: "karte-kopf" }, h("h2", null, "Verlauf")),
+  // 1.4.1: solange echt 0 € liegen, zeigt die Karte den Verlauf des Spielgelds (Verlaufspunkte spielgeld_eur, seit 23.10.2026)
+  return h("section", { class: "karte", id: "gesamt-verlauf" }, h("div", { class: "karte-kopf" }, h("h2", null, spiel ? "Verlauf · Spielgeld" : "Verlauf")),
     hinweis || D.statistik({
-      schluessel: "gesamt-nur", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens", tippHinweis: true,
-      serien: (p) => [{ name: "Gesamtvermögen", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") }],
+      schluessel: spiel ? "spielgeld" : "gesamt-nur", punkte: D.punkteLesen(Z.verlauf), einheit: "eur",
+      beschreibung: spiel ? "Verlauf des Spielgelds" : "Verlauf des Gesamtvermögens", tippHinweis: true,
+      serien: (p) => [spiel ? { name: "Spielgeld", klasse: "l-gesamt", werte: D.reihe(p, "spielgeld_eur") }
+        : { name: "Gesamtvermögen", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") }],
       kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
     }));
 }
 
 /** 1.3.14: „Coin-Topf gesamt“ – alle Krypto-Töpfe zusammengefasst (Coin-Bot + Raster-Bot + Trend-Bot, Werte aus dem Gesamtvermögen) */
-function kryptoGesamtKarte(d) {
+function kryptoGesamtKarte(d, sg) {
   const g = gesamtTeil(d);
-  if (!g) return null;
-  const teile = [["Coin-Bot", g.coin_topf_eur], ["Raster-Bot", g.raster_topf_eur], ["Trend-Bot", g.trend_topf_eur]];
+  if (!g && !sg) return null;
+  const sgW = (k) => { const t = sg && liste(sg.teile).find((x) => istObj(x) && x.k === k); return t && F.istZahl(t.wert_eur) ? t.wert_eur : null; };
+  const teile = sg ? [["Coin-Bot", sgW("coin")], ["Raster-Bot", sgW("raster")], ["Trend-Bot", sgW("trend")]]
+    : [["Coin-Bot", g.coin_topf_eur], ["Raster-Bot", g.raster_topf_eur], ["Trend-Bot", g.trend_topf_eur]];
   if (!teile.some(([, v]) => F.istZahl(v))) return null;
   const summe = teile.reduce((s, [, v]) => s + (F.istZahl(v) ? v : 0), 0);
   return h("section", { class: "karte", id: "krypto-gesamt" },
-    h("div", { class: "karte-kopf" }, h("h2", null, "Coin-Topf gesamt")),
+    h("div", { class: "karte-kopf" }, h("h2", null, "Coin-Topf gesamt"), sg ? etikett("Spielgeld", "") : null),
     h("div", { class: "gross", id: "krypto-gesamt-wert" }, F.euro(summe)),
     zeilen(teile.map(([n, v]) => [n, F.istZahl(v) ? F.euro(v) : "–"])));
+}
+
+/** 1.4.1 (Tom 23.10.2026): „solange wir nur mit Spielgeld trainieren, das Spielgeld anzeigen“ – je Bot sein Haupt-Schattendepot mit
+ *  je 1.000 € ab Vergleichsstart (handy.json spielgeld). Ersetzt die Gesamt-Karte, solange echt 0 € liegen. */
+function spielgeldModus(d) {
+  const sg = ok(d.spielgeld);
+  const g = gesamtTeil(d);
+  return sg && F.istZahl(sg.gesamt_eur) && liste(sg.teile).length && g && F.istZahl(g.gesamt_eur) && g.gesamt_eur < 1 ? sg : null;
+}
+const SG_KLASSE = { coin: "coin", raster: "raster", trend: "trend", aktien: "aktien" };
+function spielgeldKarte(sg) {
+  const teile = liste(sg.teile).filter((t) => istObj(t) && F.istZahl(t.wert_eur));
+  const je = F.istZahl(sg.je_eur) ? sg.je_eur : 1000;
+  const balken = h("div", { class: "anteil-balken", "aria-hidden": "true" }, teile.filter((t) => F.istZahl(t.anteil_prozent) && t.anteil_prozent > 0).map((t) => {
+    const el = h("div", { class: "anteil-" + (SG_KLASSE[t.k] || "euro") });
+    el.style.width = Math.max(0, Math.min(100, t.anteil_prozent)).toFixed(1) + "%";
+    return el;
+  }));
+  const diff = F.istZahl(sg.start_eur) ? sg.gesamt_eur - sg.start_eur : null;
+  return h("section", { class: "karte gesamt-karte", id: "spielgeld-karte" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "Spielgeld"), etikett("Rechengeld", "")),
+    h("div", { class: "gross", id: "spielgeld-wert" }, F.euro(sg.gesamt_eur)),
+    h("p", { class: "klein " + (diff !== null ? F.vorzeichenKlasse(diff) : "gedimmt") },
+      (diff !== null ? F.euroPlus(diff) + " seit Start (" + F.euro(sg.start_eur) + ")" : "") + " · je Bot " + F.euro(je) + " ab Vergleichsstart"),
+    balken,
+    zeilen(teile.map((t) => [h("span", null, h("span", { class: "punkt " + (SG_KLASSE[t.k] || "euro") }), " " + F.text(t.name)),
+      h("span", { class: F.vorzeichenKlasse(t.wert_eur - je) }, F.euro(t.wert_eur))])),
+    h("p", { class: "klein gedimmt" }, "Echtes Geld: 0 € – die Übersicht zeigt das Spielgeld, bis wieder echtes Geld liegt."));
+}
+function sdJe(d, kennung) {
+  const e = liste((ok(d.schattendepots) || {}).liste).find((x) => istObj(x) && x.kennung === kennung);
+  return e && istObj(e.je_1000) ? e.je_1000 : null;
 }
 
 export function uebersicht(Z) {
@@ -678,12 +716,13 @@ export function uebersicht(Z) {
   // Coin-Bot (mit dem Autopilot-Wahlschalter) · Raster-Bot · Trend-Bot · Schattendepots · Aktien · Wichtige Hinweise
   if (A.erlaubt("frage")) out.push(kiSchnellKarte());
   out.push(marktphaseKarte(d.marktphase));
-  out.push(gesamtVerlaufKarte(Z));
-  out.push(gesamtKarte(d, Z));
+  const sg = spielgeldModus(d);                                    // 1.4.1: echt 0 € -> Spielgeld-Ansicht
+  out.push(gesamtVerlaufKarte(Z, !!sg));
+  out.push(sg ? spielgeldKarte(sg) : gesamtKarte(d, Z));
   const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert (offen; sonst Ergebnis der letzten 24 h)
   if (ak_) out.push(ak_);
   out.push(parkKnoepfe());
-  const kg = kryptoGesamtKarte(d);
+  const kg = kryptoGesamtKarte(d, sg);
   if (kg) out.push(kg);
 
   const k = ok(d.kern_bot);
@@ -692,9 +731,10 @@ export function uebersicht(Z) {
     const pos = k.geparkt ? "geparkt in EURCV" : k.position ? F.text(k.position) : "–";
     const stK = autopilotStellung(d).stellung;                     // 1.3: der Coin-Bot läuft mit KI ODER Regeln
     const wahl = autopilotWahl(d, "autopilot-uebersicht");         // 1.3.14: der Wahlschalter steht in der Coin-Bot-Karte
+    const sgCoin = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === "coin") : null;
     out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
-      h("div", { class: "gross", id: "kern-wert" }, F.euro(k.wert_eur)),
-      h("p", { class: "klapp-kurz" }, F.text(k.topf_name, "Coin-Topf") + " · hält " + pos),
+      h("div", { class: "gross", id: "kern-wert" }, F.euro(sgCoin ? sgCoin.wert_eur : k.wert_eur)),
+      h("p", { class: "klapp-kurz" }, sgCoin ? "Spielgeld · " + F.text(sgCoin.name) : F.text(k.topf_name, "Coin-Topf") + " · hält " + pos),
       wahl,
       wahl ? mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
         + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?") : null,
@@ -716,7 +756,7 @@ export function uebersicht(Z) {
   const r = ok(d.raster_bot);
   if (r) {
     out.push(karte(F.text(r.name, "Raster-Bot"), statusEtikett(r.status),
-      botKurz(r.status, r.topf_eur, r.ergebnis_eur, r.ergebnis_prozent, r.schatten, "raster-wert"),
+      botKurz(r.status, r.topf_eur, r.ergebnis_eur, r.ergebnis_prozent, r.schatten, "raster-wert", sdJe(d, "raster_schatten")),
       mehrTeil("raster", [
         zeilen([["Topf", F.euro(r.topf_eur)], ergebnisZeile("Ergebnis", r.ergebnis_eur, r.ergebnis_prozent),
           ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
@@ -729,7 +769,7 @@ export function uebersicht(Z) {
   if (t) {
     const ma = ok(t.markt_ampel);
     out.push(karte(F.text(t.name, "Trend-Bot"), statusEtikett(t.status),
-      botKurz(t.modus === "echt" ? t.status : "aus", t.topf_eur, t.ergebnis_eur, t.ergebnis_prozent, t.schatten, "trend-wert"),
+      botKurz(t.modus === "echt" ? t.status : "aus", t.topf_eur, t.ergebnis_eur, t.ergebnis_prozent, t.schatten, "trend-wert", sdJe(d, "trend_schatten")),
       h("button", { type: "button", class: "knopf-text seite-link", id: "trend-seite", onclick: () => seiteOeffnen("trend") }, "Trend-Seite ›"),
       mehrTeil("trend", [
         zeilen([
@@ -757,7 +797,7 @@ export function uebersicht(Z) {
   // 1.2.12: Aktien & ETFs unter dem Krypto-Teil, direkt vor „Letzte Alarme“ – langfristiges Geld, am wenigsten angeschaut (Nutzer 14.10.2026)
   const ak = ok(d.aktien);
   if (ak) {
-    out.push(aktienKarte(d, ak, false));
+    out.push(aktienKarte(d, ak, false, sg));
   } else out.push(fehlerKarte("Aktien-Autopilot", d.aktien));
 
   out.push(alarmKarte(d));
@@ -765,7 +805,8 @@ export function uebersicht(Z) {
 }
 
 /** Aktien-Karte: Übersicht (offen=false: Details im „mehr“) und Reiter „Aktien“ (1.4, offen=true: alles offen, dazu die Positionen). */
-function aktienKarte(d, ak, offen) {
+function aktienKarte(d, ak, offen, sg) {
+  const sgAk = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === "aktien") : null;   // 1.4.1: Spielgeld statt 0 €
   const akKi = ok(ak.ki);
   const details = [
     zeilen([
@@ -788,7 +829,8 @@ function aktienKarte(d, ak, offen) {
   ];
   const pos = liste(ak.positionen);
   return karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
-    h("div", { class: "mittel", id: offen ? "aktien-wert-seite" : "aktien-wert" }, F.euro(ak.wert_eur)),
+    h("div", { class: "mittel", id: offen ? "aktien-wert-seite" : "aktien-wert" }, F.euro(sgAk ? sgAk.wert_eur : ak.wert_eur)),
+    sgAk ? h("p", { class: "klapp-kurz" }, "Spielgeld · " + F.text(sgAk.name)) : null,
     F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
     offen ? [details, pos.length ? zeilen(pos.map((p) => [F.text(p.name, p.symbol), F.euro(p.wert_eur)])) : leer("Keine Aktien oder ETFs im Depot.")]
       : mehrTeil("aktien", details));
@@ -800,7 +842,7 @@ export function aktien(Z) {
   if (!d) return [leer("Daten werden geladen …")];
   const ak = ok(d.aktien);
   if (!ak) return [fehlerKarte("Aktien-Autopilot", d.aktien)];
-  return [aktienKarte(d, ak, true), schattenKarte(d.schattendepots, "Aktien-Teil")];
+  return [aktienKarte(d, ak, true, spielgeldModus(d)), schattenKarte(d.schattendepots, "Aktien-Teil")];
 }
 
 /** 1.4 (Teil 3): die Trend-Seite hat keinen Reiter mehr – ein Tipp auf die Trend-Karte öffnet sie, „‹ Übersicht“ führt zurück */
@@ -876,7 +918,10 @@ function schattenKarte(sd, nur) {
           F.istZahl(a.vorsprung_prozent) ? h("span", { class: "klein" }, " " + F.prozent(a.vorsprung_prozent, 1)) : null),
         h("div", { class: "sd-inhalt klein" },
           e.testet ? h("p", null, F.text(e.testet)) : null,
-          h("p", null, h("b", null, F.euro(e.wert_eur)), " gegen " + F.text(ref.name, "Referenz") + " " + F.euro(ref.wert_eur)
+          istObj(e.je_1000) && F.istZahl(e.je_1000.wert)
+            ? h("p", null, h("b", null, F.euro(e.je_1000.wert)), " gegen " + F.text(ref.name, "Referenz") + " " + F.euro(e.je_1000.referenz)
+              + " (je 1.000 € ab Vergleichsstart)" + (e.status ? " · " + F.text(e.status) : ""))
+            : h("p", null, h("b", null, F.euro(e.wert_eur)), " gegen " + F.text(ref.name, "Referenz") + " " + F.euro(ref.wert_eur)
             + (weitere ? " · " + weitere : "") + (e.status ? " · " + F.text(e.status) : "")),
           a.text ? h("p", null, F.text(a.text)) : null,
           h("p", { class: "gedimmt" }, "läuft seit " + sdTag(e.seit) + " · Vergleich seit " + (a.seit ? sdTag(a.seit) : "jetzt")
