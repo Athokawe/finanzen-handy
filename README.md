@@ -4,6 +4,20 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4
+
+* **Übersicht neu geordnet.** Von oben: Frage an die KI · Marktphase · Verlauf des Gesamtvermögens · Gesamtvermögen · „Alles parken“
+  und „Nur anhalten“ nebeneinander, gleich groß · Coin-Topf gesamt (Coin-, Raster- und Trend-Bot zusammen) · Coin-Bot mit dem
+  Autopilot-Schalter · Raster-Bot · Trend-Bot · Schattendepots · Aktien · Wichtige Hinweise (statt „Letzte Alarme“).
+  „Zu Bitpanda“ und „Einzahlen“ stehen jetzt unter „Mehr“.
+* **Schattendepots in Gruppen.** Coin-Teil: „Bitcoin halten“ gegen Raster, Trend und Tagesgewinner, dann Raster gegen Trend, Raster
+  gegen Tagesgewinner, Trend gegen Tagesgewinner · Coin-Bot: KI, Regeln und Varianten · Aktien-Teil: Welt-ETF „Faber 12“ gegen
+  „Halten“, Momentum-Rotation.
+* **Reiter unten:** Übersicht · Coin-Bot · Raster-Bot · Aktien · News. Die Trend-Seite öffnet ein Tipp auf „Trend-Seite ›“ in der
+  Trend-Karte, zurück mit „‹ Übersicht“. Der neue Reiter „Aktien“ zeigt das Depot offen samt Aktien-Schattendepots.
+* **News kompakt:** Gesamtbild mit kurzer Analyse (im „mehr“ Wirtschaft und Notenbanken), Krypto im Detail, Aktien im Detail (im
+  „mehr“ die Börsengänge).
+
 ## Neu in 1.3.13
 
 * **↻ misst frisch.** Der Kreispfeil oben rechts lässt die Cloud gleich bei Bitpanda nachmessen (Coin-Topf, Euro-Guthaben, Aktien &

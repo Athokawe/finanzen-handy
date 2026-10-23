@@ -21,7 +21,7 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.3.13";
+export const APP_VERSION = "1.4";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -43,8 +43,9 @@ let faceIdAutoVersucht = false; // pro Sperre höchstens EIN automatischer Versu
 let faceIdEndeUm = 0;         // wann die letzte Face-ID-Anfrage endete
 let verstecktBeiFaceId = false; // Seite wurde während/gleich nach einer Face-ID-Anfrage verdeckt (das iOS-Blatt selbst)
 
-const TITEL = { uebersicht: "Übersicht", kern: "Coin-Bot", raster: "Raster-Bot", trend: "Trend-Bot", news: "News", mehr: "Einstellungen" };
-const ANSICHT = { uebersicht: V.uebersicht, kern: V.kern, raster: V.raster, trend: V.trend, news: V.news };
+// 1.4 (Tom 23.10.2026, Teil 3): Reiter Übersicht · Coin-Bot · Raster-Bot · Aktien · News; die Trend-Seite öffnet die Trend-Karte
+const TITEL = { uebersicht: "Übersicht", kern: "Coin-Bot", raster: "Raster-Bot", trend: "Trend-Bot", aktien: "Aktien", news: "News", mehr: "Einstellungen" };
+const ANSICHT = { uebersicht: V.uebersicht, kern: V.kern, raster: V.raster, trend: V.trend, aktien: V.aktien, news: V.news };
 
 // ------------------------------------------------------------------ kleine Helfer
 
@@ -743,6 +744,7 @@ function verdrahten() {
   $("pin-vergessen").addEventListener("click", pinVergessen);
   $("faceid-knopf").addEventListener("click", faceIdEntsperren);
   $("knopf-aktualisieren").addEventListener("click", () => auffrischen());
+  document.addEventListener("fh-reiter", (e) => { if (TITEL[e.detail]) reiterZeigen(e.detail); });
   $("knopf-mehr").addEventListener("click", () => reiterZeigen(reiter === "mehr" ? "uebersicht" : "mehr"));
   for (const b of document.querySelectorAll(".reiter")) b.addEventListener("click", () => reiterZeigen(b.dataset.reiter));
 

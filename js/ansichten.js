@@ -388,7 +388,7 @@ function gesamtStatistik(Z) {
   const hinweis = verlaufHinweis(Z);
   if (hinweis) return hinweis;
   return D.statistik({
-    schluessel: "gesamt", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens", tippHinweis: true,
+    schluessel: "gesamt", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens", tippHinweis: false,   // 1.4: der Hinweis steht schon in der Verlauf-Karte
     serien: (p) => [
       // 1.3.12: eigene Farbe je Teil (wie Balken und Punkte), Gesamt hell – die anderen Diagramme behalten l-haupt/l-zweit/l-dritt
       { name: "Gesamt", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") },
@@ -566,9 +566,11 @@ function parkKnoepfe() {
   const gross = A.knopf("allesstopp", "Alles parken", "gefahr stopp-knopf");
   const klein = A.knopf("anhalten", "Nur anhalten", "gefahr-rand anhalten-knopf");
   if (!gross && !klein) return null;
+  // 1.3.14 (Tom 23.10.2026): beide Knöpfe nebeneinander und gleich groß, die Erklärungen darunter
   return h("div", { class: "park-knoepfe" },
-    gross, gross ? bremsErklaerung("allesstopp") : null,
-    klein, klein ? bremsErklaerung("anhalten") : null);
+    h("div", { class: "park-reihe" }, gross, klein),
+    gross ? bremsErklaerung("allesstopp") : null,
+    klein ? bremsErklaerung("anhalten") : null);
 }
 
 /** 1.2.5: Erklärtext + „Sinnvoll, wenn:“ in Stichworten + Hinweis (A.BREMS_WANN) */
@@ -643,37 +645,59 @@ function autopilotWahl(d, id) {
       feld("ki", "autopilot_ki"), feld("regeln", "autopilot_regeln", { ja: regelnJa }), feld("aus", "autopilot_aus")),
     s.hinweis ? h("p", { class: "klein gedimmt wahl-hinweis" }, "(" + s.hinweis + ")") : null);
 }
-function autopilotKarte(d) {
-  const w = autopilotWahl(d, "autopilot-uebersicht");
-  if (!w) return null;
-  // 1.3.9 (Tom 19.10.2026, V4): die Erklärung der drei Stellungen zum Aufklappen statt bei jedem Öffnen (die Dialoge sagen es beim Schalten)
-  // 1.3.9: keine eigene Überschrift – die Zeile „Autopilot [KI | Regeln | Aus]“ ist der Titel (wie eine Einstellung bei Apple)
-  return h("section", { class: "karte autopilot-karte" }, w,
-    mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
-      + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?"));
+/** 1.3.14 (Tom 23.10.2026, Reihenfolge Teil 1): Verlauf NUR des Gesamtvermögens als eigene Karte über dem Gesamtwert – die Linien
+ *  je Teil (1.3.12) bleiben im „mehr“ der Gesamt-Karte. */
+function gesamtVerlaufKarte(Z) {
+  const hinweis = verlaufHinweis(Z);
+  return h("section", { class: "karte", id: "gesamt-verlauf" }, h("div", { class: "karte-kopf" }, h("h2", null, "Verlauf")),
+    hinweis || D.statistik({
+      schluessel: "gesamt-nur", punkte: D.punkteLesen(Z.verlauf), einheit: "eur", beschreibung: "Verlauf des Gesamtvermögens", tippHinweis: true,
+      serien: (p) => [{ name: "Gesamtvermögen", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") }],
+      kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
+    }));
+}
+
+/** 1.3.14: „Coin-Topf gesamt“ – alle Krypto-Töpfe zusammengefasst (Coin-Bot + Raster-Bot + Trend-Bot, Werte aus dem Gesamtvermögen) */
+function kryptoGesamtKarte(d) {
+  const g = gesamtTeil(d);
+  if (!g) return null;
+  const teile = [["Coin-Bot", g.coin_topf_eur], ["Raster-Bot", g.raster_topf_eur], ["Trend-Bot", g.trend_topf_eur]];
+  if (!teile.some(([, v]) => F.istZahl(v))) return null;
+  const summe = teile.reduce((s, [, v]) => s + (F.istZahl(v) ? v : 0), 0);
+  return h("section", { class: "karte", id: "krypto-gesamt" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "Coin-Topf gesamt")),
+    h("div", { class: "gross", id: "krypto-gesamt-wert" }, F.euro(summe)),
+    zeilen(teile.map(([n, v]) => [n, F.istZahl(v) ? F.euro(v) : "–"])));
 }
 
 export function uebersicht(Z) {
   const d = Z.handy;
   if (!d) return [Z.fehlerHandy ? h("p", { class: "leer" }, "Noch keine Daten.") : leer("Daten werden geladen …")];
   const out = [];
-  if (A.erlaubt("frage")) out.push(kiSchnellKarte());             // 1.2.10: Eingabefeld „An die KI“ ganz oben (Nutzer 12.10.2026)
+  // 1.3.14 (Tom 23.10.2026, Reihenfolge Teil 1): KI-Frage · Marktphase · Verlauf · Gesamtvermögen · Parken/Anhalten · Coin-Topf gesamt ·
+  // Coin-Bot (mit dem Autopilot-Wahlschalter) · Raster-Bot · Trend-Bot · Schattendepots · Aktien · Wichtige Hinweise
+  if (A.erlaubt("frage")) out.push(kiSchnellKarte());
+  out.push(marktphaseKarte(d.marktphase));
+  out.push(gesamtVerlaufKarte(Z));
   out.push(gesamtKarte(d, Z));
   const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert (offen; sonst Ergebnis der letzten 24 h)
   if (ak_) out.push(ak_);
-  const apk = autopilotKarte(d);                                   // 1.3: Autopilot-Wahlschalter gleich unter dem Gesamtwert
-  if (apk) out.push(apk);
   out.push(parkKnoepfe());
-  out.push(marktphaseKarte(d.marktphase));                       // 1.3.6: Marktphase (Bulle/Bär/Übergang) über der Krypto-Karte, nur Anzeige
+  const kg = kryptoGesamtKarte(d);
+  if (kg) out.push(kg);
 
   const k = ok(d.kern_bot);
   if (k) {
     const ki = ok(k.ki);
     const pos = k.geparkt ? "geparkt in EURCV" : k.position ? F.text(k.position) : "–";
     const stK = autopilotStellung(d).stellung;                     // 1.3: der Coin-Bot läuft mit KI ODER Regeln
-    out.push(karte(F.text(k.topf_name, "Coin-Topf"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
+    const wahl = autopilotWahl(d, "autopilot-uebersicht");         // 1.3.14: der Wahlschalter steht in der Coin-Bot-Karte
+    out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
       h("div", { class: "gross", id: "kern-wert" }, F.euro(k.wert_eur)),
-      h("p", { class: "klapp-kurz" }, F.text(k.name, "Coin-Bot") + " · Autopilot " + STELLUNG_TEXT[stK] + " · hält " + pos),
+      h("p", { class: "klapp-kurz" }, F.text(k.topf_name, "Coin-Topf") + " · hält " + pos),
+      wahl,
+      wahl ? mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
+        + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?") : null,
       mehrTeil("kern", [
         h("p", { class: "klein gedimmt" }, "Stand " + F.zeit(k.wert_zeit) + (F.istZahl(k.bitcoin_kurs_eur) ? " · Bitcoin " + F.euro(k.bitcoin_kurs_eur) : "")),
         zeilen([
@@ -688,9 +712,6 @@ export function uebersicht(Z) {
       ]),
     ));
   } else out.push(fehlerKarte("Coin-Topf", d.kern_bot));
-
-  out.push(reihe(bitpandaKnopf("Zu Bitpanda", BITPANDA_URL, "primaer"), bitpandaKnopf("Einzahlen", BITPANDA_EINZAHLEN_URL)));
-  out.push(bitpandaHinweis());
 
   const r = ok(d.raster_bot);
   if (r) {
@@ -709,6 +730,7 @@ export function uebersicht(Z) {
     const ma = ok(t.markt_ampel);
     out.push(karte(F.text(t.name, "Trend-Bot"), statusEtikett(t.status),
       botKurz(t.modus === "echt" ? t.status : "aus", t.topf_eur, t.ergebnis_eur, t.ergebnis_prozent, t.schatten, "trend-wert"),
+      h("button", { type: "button", class: "knopf-text seite-link", id: "trend-seite", onclick: () => seiteOeffnen("trend") }, "Trend-Seite ›"),
       mehrTeil("trend", [
         zeilen([
           ["Markt-Ampel", ma ? ampel(ma.gruen ? "gruen" : "rot") : "–"],
@@ -735,34 +757,55 @@ export function uebersicht(Z) {
   // 1.2.12: Aktien & ETFs unter dem Krypto-Teil, direkt vor „Letzte Alarme“ – langfristiges Geld, am wenigsten angeschaut (Nutzer 14.10.2026)
   const ak = ok(d.aktien);
   if (ak) {
-    const akKi = ok(ak.ki);
-    out.push(karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
-      h("div", { class: "mittel", id: "aktien-wert" }, F.euro(ak.wert_eur)),
-      F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
-      mehrTeil("aktien", [
-        zeilen([
-          ["Modus", ak.modus === "etf" ? "ETF" : ak.modus === "aktiv" ? "aktiv" : F.text(ak.modus)],
-          ["Status", F.text(ak.status)],
-          F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? ["Reserve", F.euro(ak.reserve_eur)] : null,
-          ["Stand", F.zeit(ak.wert_zeit)],
-          // 1.3.1: letzte Einschätzung der Aktien-KI (nur bei Autopilot „KI“ wirksam – aktiv)
-          akKi ? ["KI-Autopilot", (akKi.aktiv ? "" : "ruht · ") + F.text(AKTIEN_KI_TEXT[akKi.entscheidung], akKi.entscheidung)
-            + (F.istZahl(akKi.zuversicht) ? " · " + akKi.zuversicht + " % sicher" : "") + " (" + F.zeit(akKi.zeit) + ")"] : null,
-          akKi ? ["KI-Ziel", aktienKiZiel(akKi.ziel)] : null,
-        ]),
-        akKi ? erklaert("KI einfach erklärt", akKi.einfach_erklaert) : null,
-        // 1.2.24: Zeile und Knopf „Gewinnschutz“ entfielen mit dem Gewinnschutz Aktien/ETF (Cloud, 17.10.2026); die Absicherung
-        // des Welt-ETF steht in der Lage darunter
-        // 1.3: derselbe Wahlschalter wie beim Coin-Bot (ältere Cloud: die bisherigen Knöpfe)
-        autopilotWahl(d, "autopilot-aktien") || reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein")),
-        // 1.3.9: die Lage im selben „mehr“ statt als eigene eingeklappte Karte darunter (ein Aufklappen je Rubrik)
-        lageListe(ak.lage, "Lage"),
-      ]),
-    ));
+    out.push(aktienKarte(d, ak, false));
   } else out.push(fehlerKarte("Aktien-Autopilot", d.aktien));
 
   out.push(alarmKarte(d));
   return out;
+}
+
+/** Aktien-Karte: Übersicht (offen=false: Details im „mehr“) und Reiter „Aktien“ (1.4, offen=true: alles offen, dazu die Positionen). */
+function aktienKarte(d, ak, offen) {
+  const akKi = ok(ak.ki);
+  const details = [
+    zeilen([
+      ["Modus", ak.modus === "etf" ? "ETF" : ak.modus === "aktiv" ? "aktiv" : F.text(ak.modus)],
+      ["Status", F.text(ak.status)],
+      F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? ["Reserve", F.euro(ak.reserve_eur)] : null,
+      ["Stand", F.zeit(ak.wert_zeit)],
+      // 1.3.1: letzte Einschätzung der Aktien-KI (nur bei Autopilot „KI“ wirksam – aktiv)
+      akKi ? ["KI-Autopilot", (akKi.aktiv ? "" : "ruht · ") + F.text(AKTIEN_KI_TEXT[akKi.entscheidung], akKi.entscheidung)
+        + (F.istZahl(akKi.zuversicht) ? " · " + akKi.zuversicht + " % sicher" : "") + " (" + F.zeit(akKi.zeit) + ")"] : null,
+      akKi ? ["KI-Ziel", aktienKiZiel(akKi.ziel)] : null,
+    ]),
+    akKi ? erklaert("KI einfach erklärt", akKi.einfach_erklaert) : null,
+    // 1.2.24: Zeile und Knopf „Gewinnschutz“ entfielen mit dem Gewinnschutz Aktien/ETF (Cloud, 17.10.2026); die Absicherung
+    // des Welt-ETF steht in der Lage darunter
+    // 1.3: derselbe Wahlschalter wie beim Coin-Bot (ältere Cloud: die bisherigen Knöpfe)
+    autopilotWahl(d, "autopilot-aktien") || reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein")),
+    // 1.3.9: die Lage im selben „mehr“ statt als eigene eingeklappte Karte darunter (ein Aufklappen je Rubrik)
+    lageListe(ak.lage, "Lage"),
+  ];
+  const pos = liste(ak.positionen);
+  return karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
+    h("div", { class: "mittel", id: offen ? "aktien-wert-seite" : "aktien-wert" }, F.euro(ak.wert_eur)),
+    F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
+    offen ? [details, pos.length ? zeilen(pos.map((p) => [F.text(p.name, p.symbol), F.euro(p.wert_eur)])) : leer("Keine Aktien oder ETFs im Depot.")]
+      : mehrTeil("aktien", details));
+}
+
+/** 1.4 (Tom 23.10.2026, Teil 3): eigener Reiter „Aktien“ – die Aktien-Karte offen, darunter die Aktien-Schattendepots */
+export function aktien(Z) {
+  const d = Z.handy;
+  if (!d) return [leer("Daten werden geladen …")];
+  const ak = ok(d.aktien);
+  if (!ak) return [fehlerKarte("Aktien-Autopilot", d.aktien)];
+  return [aktienKarte(d, ak, true), schattenKarte(d.schattendepots, "Aktien-Teil")];
+}
+
+/** 1.4 (Teil 3): die Trend-Seite hat keinen Reiter mehr – ein Tipp auf die Trend-Karte öffnet sie, „‹ Übersicht“ führt zurück */
+function seiteOeffnen(r) {
+  document.dispatchEvent(new CustomEvent("fh-reiter", { detail: r }));
 }
 
 /**
@@ -775,11 +818,38 @@ const sdTag = (iso) => {
   const d = F.datum(iso);
   return d ? d.toLocaleDateString("de-AT", { timeZone: "Europe/Vienna", day: "numeric", month: "numeric" }) : "–";
 };
-function schattenKarte(sd) {
+// 1.4 (Tom 23.10.2026, Teil 2): Schattendepots in Gruppen und Toms Reihenfolge; je Paar „Referenz“ vs. „getestet“ (der Vorsprung gilt
+// für das zweite). Unbekannte Kennungen (neue Versuche der Cloud) stehen unter „Weitere“.
+const SD_GRUPPEN = [
+  ["Coin-Teil", [["raster_schatten", "„Bitcoin halten“ vs. „Raster“"], ["trend_schatten", "„Bitcoin halten“ vs. „Trend“"],
+    ["gewinner_schatten", "„Bitcoin halten“ vs. „Tagesgewinner“"], ["trend_gegen_raster", "„Raster“ vs. „Trend“"],
+    ["gewinner_gegen_raster", "„Raster“ vs. „Tagesgewinner“"], ["gewinner_gegen_trend", "„Trend“ vs. „Tagesgewinner“"]]],
+  ["Coin-Bot", [["ki_schatten", "„Bitcoin halten“ vs. „KI“"], ["ki_gegen_regeln", "„Regeln“ vs. „KI“"],
+    ["coin_leiter", "„Bitcoin halten“ vs. „Regeln“"], ["coin_einfach", "„Regeln“ vs. „Rückkauf einfach“"],
+    ["coin_alt_neu", "„Regeln alt“ vs. „Regeln neu“"], ["trend_straff", "„Trend“ vs. „Trend straff“"]]],
+  ["Aktien-Teil", [["etf_faber", "Welt-ETF: „Faber 12“ gegen „Halten“"], ["aktien_rotation", "Momentum-Rotation"]]],
+];
+const SD_NAME = new Map(SD_GRUPPEN.flatMap(([, l]) => l));
+function sdGruppen(eintraege, nur) {
+  const nachKennung = new Map(eintraege.map((e) => [F.text(e.kennung, ""), e]));
+  const out = [];
+  for (const [titel, l] of SD_GRUPPEN) {
+    if (nur && titel !== nur) continue;
+    const da = l.map(([k]) => nachKennung.get(k)).filter(Boolean);
+    if (da.length) out.push([titel, da]);
+  }
+  const rest = nur ? [] : eintraege.filter((e) => !SD_NAME.has(F.text(e.kennung, "")));
+  if (rest.length) out.push(["Weitere", rest]);
+  return out;
+}
+
+function schattenKarte(sd, nur) {
   if (fehlerVon(sd)) return fehlerKarte("Schattendepots", sd);
   const s = ok(sd);
   if (!s || !Array.isArray(s.liste)) return null;
-  const eintraege = s.liste.filter(istObj);
+  const gruppen = sdGruppen(s.liste.filter(istObj), nur);
+  const eintraege = gruppen.flatMap(([, l]) => l);
+  if (nur && !eintraege.length) return null;
   const klar = eintraege.filter((e) => ["klar_vorne", "klar_hinten"].includes((ok(e.auswertung) || {}).urteil)).length;
   const urteile = new Map();                                       // 1.2.19: Kurzzeile „6 laufen · 4 zu früh, 2 gleichauf“
   for (const e of eintraege) {
@@ -793,14 +863,15 @@ function schattenKarte(sd) {
     mehrTeil("schattendepots", eintraege.length ? [
     h("p", { class: "klein gedimmt" }, "Nur Rechengeld, keine Orders. Die Cloud vergleicht jedes Depot laufend mit seiner Referenz und meldet "
       + "sich per Push, sobald eines klar vorne oder klar hinten liegt."),
-    eintraege.map((e) => {
+    gruppen.map(([titel, l]) => [h("h3", { class: "sd-gruppe" }, titel), l.map((e) => {
       const a = ok(e.auswertung) || {};
       const ref = ok(e.referenz) || {};
       const weitere = liste(e.weitere).filter(istObj).map((w) => F.text(w.name) + " " + F.euro(w.wert_eur)).join(" · ");
       const kennung = F.text(e.kennung, "");
       return h("details", { class: "sd-eintrag", "data-sd": kennung, open: sdOffen.has(kennung) || null,
         ontoggle: (ev) => { if (ev.target.open) sdOffen.add(kennung); else sdOffen.delete(kennung); } },
-        h("summary", null, h("span", { class: "klein gedimmt" }, F.text(e.bot, "")), " ", h("b", null, F.text(e.name)), " ",
+        h("summary", null, SD_NAME.has(kennung) ? null : [h("span", { class: "klein gedimmt" }, F.text(e.bot, "")), " "],
+          h("b", null, SD_NAME.get(kennung) || F.text(e.name)), " ",
           etikett(F.text(a.urteil_text), SD_KLASSE[a.urteil] || ""),
           F.istZahl(a.vorsprung_prozent) ? h("span", { class: "klein" }, " " + F.prozent(a.vorsprung_prozent, 1)) : null),
         h("div", { class: "sd-inhalt klein" },
@@ -810,7 +881,7 @@ function schattenKarte(sd) {
           a.text ? h("p", null, F.text(a.text)) : null,
           h("p", { class: "gedimmt" }, "läuft seit " + sdTag(e.seit) + " · Vergleich seit " + (a.seit ? sdTag(a.seit) : "jetzt")
             + (e.stand ? " · Stand " + F.zeit(e.stand) : ""))));
-    }),
+    })]),
     s.regel ? h("p", { class: "klein gedimmt" }, F.text(s.regel)) : null] : null, "mehr – alle Depots"));
 }
 
@@ -826,14 +897,15 @@ function alarmKarte(d) {
   const eintrag = (x) => h("li", { class: "alarm " + F.text(x.stufe, ""), "data-alarm": Number.isInteger(x.id) ? String(x.id) : null },
     h("div", { class: "oben" }, h("span", { class: "titel" }, F.text(x.titel)),
       h("span", { class: "alarm-rechts" }, h("span", { class: "klein gedimmt" }, F.zeit(x.zeit)),
-        darf && Number.isInteger(x.id) ? h("button", { type: "button", class: "alarm-weg", "aria-label": "Alarm löschen", "data-weg": String(x.id),
+        darf && Number.isInteger(x.id) ? h("button", { type: "button", class: "alarm-weg", "aria-label": "Hinweis löschen", "data-weg": String(x.id),
           onclick: () => AL.ausblenden([x.id]) }, "✕") : null)),
     x.text ? h("div", { class: "unter" }, x.text) : null);
   const rest = al.slice(ALARME_KURZ);                               // 1.2.19: die neuesten drei, der Rest im „mehr“
-  return h("section", { class: "karte", id: "alarm-karte" }, h("div", { class: "karte-kopf" }, h("h2", null, "Letzte Alarme"), alle),
+  // 1.3.14 (Tom 23.10.2026): „Wichtige Hinweise“ statt „Letzte Alarme“ (Inhalt unverändert: die Alarme der Cloud)
+  return h("section", { class: "karte", id: "alarm-karte" }, h("div", { class: "karte-kopf" }, h("h2", null, "Wichtige Hinweise"), alle),
     al.length ? [h("ul", { class: "liste" }, al.slice(0, ALARME_KURZ).map(eintrag)),
       rest.length ? mehrTeil("alarme", h("ul", { class: "liste" }, rest.map(eintrag)), "mehr (" + rest.length + " weitere)") : null]
-      : leer(fehlerVon(d.alarme) || (roh.length ? "Alle Alarme gelöscht." : "Keine Alarme.")),
+      : leer(fehlerVon(d.alarme) || (roh.length ? "Alle Hinweise gelöscht." : "Keine wichtigen Hinweise.")),
     AL.wartet() ? h("p", { class: "klein gedimmt" }, "Ausgeblendet – wird an die Cloud geschickt, sobald der laufende Auftrag fertig ist.") : null);
 }
 
@@ -1029,7 +1101,7 @@ export function trend(Z) {
   if (!d) return [leer("Daten werden geladen …")];
   const t = ok(d.trend_bot);
   if (!t) return [fehlerKarte("Trend-Bot", d.trend_bot)];
-  const out = [];
+  const out = [h("button", { type: "button", class: "knopf-text seite-zurueck", id: "trend-zurueck", onclick: () => seiteOeffnen("uebersicht") }, "‹ Übersicht")];
   const uT = unklarKarte(t.unklare_auftraege, "trend");           // 1.2.18 (M2e): ganz oben, solange etwas offen ist
   if (uT) out.push(uT);
   const lageT = lageKarte(t.lage);
@@ -1170,26 +1242,42 @@ function einordnungTeil(e) {
     bots ? h("p", { class: "news-bots" }, h("span", { class: "label" }, "Für deine Bots: "), bots) : null);
 }
 
-function gesamtbildKarte(g, lage) {
+function gesamtbildKarte(g, lage, extra) {
   const zeilen_ = liste(lage).filter((x) => istObj(x) && textOder(x.text));
   const gb = istObj(g) ? g : null;
   const text = gb && textOder(gb.text), bots = gb && textOder(gb.bots);
   const teile = gb ? [["bitcoin", "Bitcoin"], ["welt_etf", "Welt-ETF"]]
     .filter(([k]) => istObj(gb[k]) && RICHTUNG[gb[k].richtung])
     .map(([k, name]) => richtungEtikett(gb[k].richtung, name + (STAERKE[gb[k].staerke] ? " · " + STAERKE[gb[k].staerke] : ""))) : [];
-  if (!text && !bots && !teile.length && !zeilen_.length) return null;
+  const dazu = liste(extra).filter(Boolean);
+  if (!text && !bots && !teile.length && !zeilen_.length && !dazu.length) return null;
+  // 1.4 (Tom 23.10.2026, Teil 4): oben die kurze Analyse für Krypto und Aktien, im „mehr“ Wirtschaft und Notenbanken (und der Stand der Bots)
   return h("section", { class: "karte", id: "news-gesamtbild" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Gesamtbild")),
     teile.length ? h("div", { class: "etiketten" }, teile) : null,
     text ? h("p", { class: "gesamt-text" }, text) : null,
     bots ? h("p", { class: "gesamt-bots" }, bots) : null,
     mehrTeil("news-gesamtbild", [
+      dazu,
       zeilen_.length ? h("div", { class: "bot-lage" }, h("span", { class: "label" }, "Stand deiner Bots"),
         h("ul", { class: "liste" }, zeilen_.map((x) => h("li", null, x.text)))) : null,
-      h("p", { class: "klein gedimmt" }, (gb && textOder(gb.hinweis)) || NEWS_HINWEIS)], "mehr – Stand deiner Bots"));
+      h("p", { class: "klein gedimmt" }, (gb && textOder(gb.hinweis)) || NEWS_HINWEIS)],
+      dazu.length ? "mehr – Wirtschaft und Notenbanken" : "mehr – Stand deiner Bots"));
 }
 
-const NEWS_WICHTIG_KURZ = 2;
+/** 1.4 (Teil 4): Karte „Aktien“ der News – neueste Schlagzeile zu deinen Aktien, im „mehr“ die übrigen und die Börsengänge */
+function aktienNewsKarte(rub, bg) {
+  const s = rub.flatMap((r) => r.s);
+  const ki = rub.map((r) => r.ki).find(Boolean);
+  const [kurz, lang] = ki ? textTeilen(F.text(ki.text)) : ["", ""];
+  return h("section", { class: "karte", id: "news-aktien" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "Aktien"), s.length ? h("span", { class: "klein gedimmt" }, s.length + (s.length === 1 ? " Schlagzeile" : " Schlagzeilen")) : null),
+    kurz ? h("p", { class: "rubrik-text" }, etikett("KI", ""), " ", kurz) : null,
+    s.length ? h("div", null, schlagzeile(s[0])) : (kurz ? null : leer("Keine Schlagzeilen zu deinen Aktien.")),
+    mehrTeil("news-aktien", [lang ? h("p", { class: "rubrik-text" }, lang) : null, s.length > 1 ? h("div", null, s.slice(1).map(schlagzeile)) : null, bg],
+      "mehr – Börsengänge"));
+}
+
 /** 1.2.19: ein KI-Text in [erster Satz, Rest] – kurze Texte (bis 160 Zeichen) bleiben ganz (Rest null) */
 function textTeilen(t) {
   const s = String(t || "");
@@ -1292,17 +1380,7 @@ export function news(Z) {
   out.push(h("p", { class: "klein gedimmt" }, "Abgerufen " + F.vor(n.zeit) + " (" + F.zeit(n.zeit) + ", " + (n.anlass === "news_jetzt" ? "von Hand" : "für den Bericht") + "). Neu holen geht höchstens alle 30 Minuten."));
   if (n.fehler) out.push(h("p", { class: "fehlerteil" }, F.text(n.fehler)));
   const z = ok(n.zusammenfassung);
-  out.push(gesamtbildKarte(z && z.gesamtbild, n.bot_lage));
-  if (z) {
-    const wichtig = liste(z.wichtigste);
-    // 1.2.19: je Karte nur das Neueste, der Rest im „mehr“
-    const meldung = (s) => [schlagzeile(s), istObj(s) ? einordnungTeil(s.einordnung) : null];
-    out.push(karte("Das Wichtigste", null,
-      liste(z.rubriken).filter((r) => r.id === "einordnung").map((r) => erklaert(F.text(r.name), r.text)),
-      wichtig.length ? h("div", null, wichtig.slice(0, NEWS_WICHTIG_KURZ).map(meldung)) : null,
-      wichtig.length > NEWS_WICHTIG_KURZ ? mehrTeil("news-wichtig", h("div", null, wichtig.slice(NEWS_WICHTIG_KURZ).map(meldung)),
-        "mehr (" + (wichtig.length - NEWS_WICHTIG_KURZ) + " weitere)") : null));
-  }
+  const meldung = (s) => [schlagzeile(s), istObj(s) ? einordnungTeil(s.einordnung) : null];
   // 1.3.10 (Tom 19.10.2026: „Wirtschaft & Börse und Notenbanken kommen immer zweimal vor“): EINE Karte je Rubrik – oben der KI-Satz
   // (Abzeichen „KI“), darunter die neueste Schlagzeile, der Rest (längerer KI-Text, weitere Schlagzeilen) hinter „mehr“. Zusammengeführt
   // über den Rubrik-Namen (die Kennungen unterscheiden sich: „wirtschaft“ gegen „aktien_wirtschaft“); KI-Rubriken ohne Schlagzeilen hängen an.
@@ -1319,14 +1397,30 @@ export function news(Z) {
       s.length ? h("div", null, schlagzeile(s[0])) : (ki ? null : leer("Keine Schlagzeilen.")),
       mehrTeil("news-" + F.text(id, name), mehr, zusatz));
   };
+  // 1.4 (Tom 23.10.2026, Teil 4): kompakt – Gesamtbild (im „mehr“ Wirtschaft und Notenbanken), Krypto im Detail, Aktien im Detail
+  // (im „mehr“ die Börsengänge). Rubriken sammeln: Schlagzeilen + KI-Text je Rubrik (zusammengeführt wie bisher über den Namen)
+  const rub = [];
   for (const r of liste(n.rubriken)) {
     if (!istObj(r)) continue;
     const ki = kiRubriken.find((k) => schluessel(k) === schluessel(r) || F.text(k.id) === F.text(r.id));
     if (ki) benutzt.add(ki);
-    out.push(rubrikKarte(r.name, r.id, liste(r.schlagzeilen), ki));
+    rub.push({ id: F.text(r.id), name: r.name, s: liste(r.schlagzeilen), ki });
   }
-  for (const k of kiRubriken) if (!benutzt.has(k)) out.push(rubrikKarte(k.name, k.id, [], k));
-  out.push(boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge));     // 1.3.3: nach den Rubriken (seit 1.3.10), vor dem Schlusssatz
+  for (const k of kiRubriken) if (!benutzt.has(k)) rub.push({ id: F.text(k.id), name: k.name, s: [], ki: k });
+  const art = (r) => (/krypto/i.test(r.id) ? "krypto" : /aktie/i.test(r.id) && !/wirtschaft/i.test(r.id) ? "aktien" : "markt");
+  const unterteil = (r) => h("div", { class: "news-unterteil", "data-rubrik": r.id }, h("h3", null, F.text(r.name)),
+    r.ki ? h("p", { class: "rubrik-text" }, etikett("KI", ""), " ", F.text(r.ki.text)) : null,
+    r.s.length ? h("div", null, r.s.map(schlagzeile)) : null);
+  const wichtig = z ? liste(z.wichtigste) : [];
+  const einordnung = z ? liste(z.rubriken).filter((r) => istObj(r) && r.id === "einordnung") : [];
+  const dasWichtigste = wichtig.length || einordnung.length ? h("div", { class: "news-unterteil", "data-rubrik": "wichtig" }, h("h3", null, "Das Wichtigste"),
+    einordnung.map((r) => erklaert(F.text(r.name), r.text)), wichtig.map(meldung)) : null;
+  out.push(gesamtbildKarte(z && z.gesamtbild, n.bot_lage, [dasWichtigste, ...rub.filter((r) => art(r) === "markt").map(unterteil)]));
+  for (const r of rub.filter((x) => art(x) === "krypto")) out.push(rubrikKarte(r.name, r.id, r.s, r.ki));
+  const aktienRub = rub.filter((x) => art(x) === "aktien");
+  const bg = boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge);   // 1.3.3 – seit 1.4 im „mehr“ der Aktien-Karte
+  if (bg) { bg.classList.remove("karte"); bg.classList.add("news-unterteil"); }
+  out.push(aktienNewsKarte(aktienRub, bg));
   out.push(h("p", { class: "klein gedimmt" }, "Schlagzeilen sind fremde Texte; Links öffnen in einem neuen Fenster."));
   return out;
 }
@@ -1394,6 +1488,9 @@ export function mehr(Z, ctx) {
   const d = Z.handy || {};
   const pinTeil = pinKarte(ctx);
   if (pinTeil && ctx.pin.kurz) out.push(pinTeil);          // Empfehlung ganz oben, gut sichtbar
+  // 1.3.14 (Tom 23.10.2026): „Zu Bitpanda“ und „Einzahlen“ aus der Übersicht hierher
+  out.push(h("section", { class: "karte", id: "bitpanda-karte" }, h("div", { class: "karte-kopf" }, h("h2", null, "Bitpanda")),
+    reihe(bitpandaKnopf("Zu Bitpanda", BITPANDA_URL, "primaer"), bitpandaKnopf("Einzahlen", BITPANDA_EINZAHLEN_URL)), bitpandaHinweis()));
   const pushTeil = ok(d.push) || {};
   const abos = liste(pushTeil.abos);
 
