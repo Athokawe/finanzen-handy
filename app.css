@@ -97,6 +97,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .stopp-knopf { width: 100%; min-height: 58px; font-size: 19px; margin: 2px 0 4px; letter-spacing: .01em; }
 .park-knoepfe { margin: 0 0 14px; }
 .park-knoepfe .anhalten-knopf { width: 100%; min-height: 42px; font-size: 15px; margin-top: 4px; }
+/* 1.4: Schattendepots in Gruppen (Coin-Teil, Coin-Bot, Aktien-Teil) */
+.sd-gruppe { margin: 12px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--gedimmt); }
 /* 1.4: News kompakt – Rubriken als Unterteile im „mehr“ */
 .news-unterteil { margin: 10px 0 4px; padding-top: 8px; border-top: 1px solid var(--rand); }
 .news-unterteil h3 { margin: 0 0 6px; font-size: 15px; }

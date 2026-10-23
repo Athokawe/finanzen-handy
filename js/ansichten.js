@@ -800,7 +800,7 @@ export function aktien(Z) {
   if (!d) return [leer("Daten werden geladen …")];
   const ak = ok(d.aktien);
   if (!ak) return [fehlerKarte("Aktien-Autopilot", d.aktien)];
-  return [aktienKarte(d, ak, true)];
+  return [aktienKarte(d, ak, true), schattenKarte(d.schattendepots, "Aktien-Teil")];
 }
 
 /** 1.4 (Teil 3): die Trend-Seite hat keinen Reiter mehr – ein Tipp auf die Trend-Karte öffnet sie, „‹ Übersicht“ führt zurück */
@@ -818,11 +818,38 @@ const sdTag = (iso) => {
   const d = F.datum(iso);
   return d ? d.toLocaleDateString("de-AT", { timeZone: "Europe/Vienna", day: "numeric", month: "numeric" }) : "–";
 };
-function schattenKarte(sd) {
+// 1.4 (Tom 23.10.2026, Teil 2): Schattendepots in Gruppen und Toms Reihenfolge; je Paar „Referenz“ vs. „getestet“ (der Vorsprung gilt
+// für das zweite). Unbekannte Kennungen (neue Versuche der Cloud) stehen unter „Weitere“.
+const SD_GRUPPEN = [
+  ["Coin-Teil", [["raster_schatten", "„Bitcoin halten“ vs. „Raster“"], ["trend_schatten", "„Bitcoin halten“ vs. „Trend“"],
+    ["gewinner_schatten", "„Bitcoin halten“ vs. „Tagesgewinner“"], ["trend_gegen_raster", "„Raster“ vs. „Trend“"],
+    ["gewinner_gegen_raster", "„Raster“ vs. „Tagesgewinner“"], ["gewinner_gegen_trend", "„Trend“ vs. „Tagesgewinner“"]]],
+  ["Coin-Bot", [["ki_schatten", "„Bitcoin halten“ vs. „KI“"], ["ki_gegen_regeln", "„Regeln“ vs. „KI“"],
+    ["coin_leiter", "„Bitcoin halten“ vs. „Regeln“"], ["coin_einfach", "„Regeln“ vs. „Rückkauf einfach“"],
+    ["coin_alt_neu", "„Regeln alt“ vs. „Regeln neu“"], ["trend_straff", "„Trend“ vs. „Trend straff“"]]],
+  ["Aktien-Teil", [["etf_faber", "Welt-ETF: „Faber 12“ gegen „Halten“"], ["aktien_rotation", "Momentum-Rotation"]]],
+];
+const SD_NAME = new Map(SD_GRUPPEN.flatMap(([, l]) => l));
+function sdGruppen(eintraege, nur) {
+  const nachKennung = new Map(eintraege.map((e) => [F.text(e.kennung, ""), e]));
+  const out = [];
+  for (const [titel, l] of SD_GRUPPEN) {
+    if (nur && titel !== nur) continue;
+    const da = l.map(([k]) => nachKennung.get(k)).filter(Boolean);
+    if (da.length) out.push([titel, da]);
+  }
+  const rest = nur ? [] : eintraege.filter((e) => !SD_NAME.has(F.text(e.kennung, "")));
+  if (rest.length) out.push(["Weitere", rest]);
+  return out;
+}
+
+function schattenKarte(sd, nur) {
   if (fehlerVon(sd)) return fehlerKarte("Schattendepots", sd);
   const s = ok(sd);
   if (!s || !Array.isArray(s.liste)) return null;
-  const eintraege = s.liste.filter(istObj);
+  const gruppen = sdGruppen(s.liste.filter(istObj), nur);
+  const eintraege = gruppen.flatMap(([, l]) => l);
+  if (nur && !eintraege.length) return null;
   const klar = eintraege.filter((e) => ["klar_vorne", "klar_hinten"].includes((ok(e.auswertung) || {}).urteil)).length;
   const urteile = new Map();                                       // 1.2.19: Kurzzeile „6 laufen · 4 zu früh, 2 gleichauf“
   for (const e of eintraege) {
@@ -836,14 +863,15 @@ function schattenKarte(sd) {
     mehrTeil("schattendepots", eintraege.length ? [
     h("p", { class: "klein gedimmt" }, "Nur Rechengeld, keine Orders. Die Cloud vergleicht jedes Depot laufend mit seiner Referenz und meldet "
       + "sich per Push, sobald eines klar vorne oder klar hinten liegt."),
-    eintraege.map((e) => {
+    gruppen.map(([titel, l]) => [h("h3", { class: "sd-gruppe" }, titel), l.map((e) => {
       const a = ok(e.auswertung) || {};
       const ref = ok(e.referenz) || {};
       const weitere = liste(e.weitere).filter(istObj).map((w) => F.text(w.name) + " " + F.euro(w.wert_eur)).join(" · ");
       const kennung = F.text(e.kennung, "");
       return h("details", { class: "sd-eintrag", "data-sd": kennung, open: sdOffen.has(kennung) || null,
         ontoggle: (ev) => { if (ev.target.open) sdOffen.add(kennung); else sdOffen.delete(kennung); } },
-        h("summary", null, h("span", { class: "klein gedimmt" }, F.text(e.bot, "")), " ", h("b", null, F.text(e.name)), " ",
+        h("summary", null, SD_NAME.has(kennung) ? null : [h("span", { class: "klein gedimmt" }, F.text(e.bot, "")), " "],
+          h("b", null, SD_NAME.get(kennung) || F.text(e.name)), " ",
           etikett(F.text(a.urteil_text), SD_KLASSE[a.urteil] || ""),
           F.istZahl(a.vorsprung_prozent) ? h("span", { class: "klein" }, " " + F.prozent(a.vorsprung_prozent, 1)) : null),
         h("div", { class: "sd-inhalt klein" },
@@ -853,7 +881,7 @@ function schattenKarte(sd) {
           a.text ? h("p", null, F.text(a.text)) : null,
           h("p", { class: "gedimmt" }, "läuft seit " + sdTag(e.seit) + " · Vergleich seit " + (a.seit ? sdTag(a.seit) : "jetzt")
             + (e.stand ? " · Stand " + F.zeit(e.stand) : ""))));
-    }),
+    })]),
     s.regel ? h("p", { class: "klein gedimmt" }, F.text(s.regel)) : null] : null, "mehr – alle Depots"));
 }
 
