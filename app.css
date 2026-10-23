@@ -97,6 +97,9 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .stopp-knopf { width: 100%; min-height: 58px; font-size: 19px; margin: 2px 0 4px; letter-spacing: .01em; }
 .park-knoepfe { margin: 0 0 14px; }
 .park-knoepfe .anhalten-knopf { width: 100%; min-height: 42px; font-size: 15px; margin-top: 4px; }
+/* 1.4: Trend-Seite über die Karte (kein Reiter), zurück mit „‹ Übersicht“ */
+.seite-link { display: block; margin: 6px 0 0; padding: 4px 0; font-weight: 600; }
+.seite-zurueck { display: inline-block; margin: 0 0 8px; padding: 4px 0; font-weight: 600; }
 /* 1.3.14: „Alles parken“ und „Nur anhalten“ nebeneinander, gleich groß */
 .park-reihe { display: flex; gap: 10px; margin: 2px 0 6px; }
 .park-reihe > .knopf, .park-knoepfe .park-reihe .anhalten-knopf, .park-reihe .stopp-knopf { flex: 1 1 0; width: auto; min-width: 0;

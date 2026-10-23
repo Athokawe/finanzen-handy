@@ -730,6 +730,7 @@ export function uebersicht(Z) {
     const ma = ok(t.markt_ampel);
     out.push(karte(F.text(t.name, "Trend-Bot"), statusEtikett(t.status),
       botKurz(t.modus === "echt" ? t.status : "aus", t.topf_eur, t.ergebnis_eur, t.ergebnis_prozent, t.schatten, "trend-wert"),
+      h("button", { type: "button", class: "knopf-text seite-link", id: "trend-seite", onclick: () => seiteOeffnen("trend") }, "Trend-Seite ›"),
       mehrTeil("trend", [
         zeilen([
           ["Markt-Ampel", ma ? ampel(ma.gruen ? "gruen" : "rot") : "–"],
@@ -756,34 +757,55 @@ export function uebersicht(Z) {
   // 1.2.12: Aktien & ETFs unter dem Krypto-Teil, direkt vor „Letzte Alarme“ – langfristiges Geld, am wenigsten angeschaut (Nutzer 14.10.2026)
   const ak = ok(d.aktien);
   if (ak) {
-    const akKi = ok(ak.ki);
-    out.push(karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
-      h("div", { class: "mittel", id: "aktien-wert" }, F.euro(ak.wert_eur)),
-      F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
-      mehrTeil("aktien", [
-        zeilen([
-          ["Modus", ak.modus === "etf" ? "ETF" : ak.modus === "aktiv" ? "aktiv" : F.text(ak.modus)],
-          ["Status", F.text(ak.status)],
-          F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? ["Reserve", F.euro(ak.reserve_eur)] : null,
-          ["Stand", F.zeit(ak.wert_zeit)],
-          // 1.3.1: letzte Einschätzung der Aktien-KI (nur bei Autopilot „KI“ wirksam – aktiv)
-          akKi ? ["KI-Autopilot", (akKi.aktiv ? "" : "ruht · ") + F.text(AKTIEN_KI_TEXT[akKi.entscheidung], akKi.entscheidung)
-            + (F.istZahl(akKi.zuversicht) ? " · " + akKi.zuversicht + " % sicher" : "") + " (" + F.zeit(akKi.zeit) + ")"] : null,
-          akKi ? ["KI-Ziel", aktienKiZiel(akKi.ziel)] : null,
-        ]),
-        akKi ? erklaert("KI einfach erklärt", akKi.einfach_erklaert) : null,
-        // 1.2.24: Zeile und Knopf „Gewinnschutz“ entfielen mit dem Gewinnschutz Aktien/ETF (Cloud, 17.10.2026); die Absicherung
-        // des Welt-ETF steht in der Lage darunter
-        // 1.3: derselbe Wahlschalter wie beim Coin-Bot (ältere Cloud: die bisherigen Knöpfe)
-        autopilotWahl(d, "autopilot-aktien") || reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein")),
-        // 1.3.9: die Lage im selben „mehr“ statt als eigene eingeklappte Karte darunter (ein Aufklappen je Rubrik)
-        lageListe(ak.lage, "Lage"),
-      ]),
-    ));
+    out.push(aktienKarte(d, ak, false));
   } else out.push(fehlerKarte("Aktien-Autopilot", d.aktien));
 
   out.push(alarmKarte(d));
   return out;
+}
+
+/** Aktien-Karte: Übersicht (offen=false: Details im „mehr“) und Reiter „Aktien“ (1.4, offen=true: alles offen, dazu die Positionen). */
+function aktienKarte(d, ak, offen) {
+  const akKi = ok(ak.ki);
+  const details = [
+    zeilen([
+      ["Modus", ak.modus === "etf" ? "ETF" : ak.modus === "aktiv" ? "aktiv" : F.text(ak.modus)],
+      ["Status", F.text(ak.status)],
+      F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? ["Reserve", F.euro(ak.reserve_eur)] : null,
+      ["Stand", F.zeit(ak.wert_zeit)],
+      // 1.3.1: letzte Einschätzung der Aktien-KI (nur bei Autopilot „KI“ wirksam – aktiv)
+      akKi ? ["KI-Autopilot", (akKi.aktiv ? "" : "ruht · ") + F.text(AKTIEN_KI_TEXT[akKi.entscheidung], akKi.entscheidung)
+        + (F.istZahl(akKi.zuversicht) ? " · " + akKi.zuversicht + " % sicher" : "") + " (" + F.zeit(akKi.zeit) + ")"] : null,
+      akKi ? ["KI-Ziel", aktienKiZiel(akKi.ziel)] : null,
+    ]),
+    akKi ? erklaert("KI einfach erklärt", akKi.einfach_erklaert) : null,
+    // 1.2.24: Zeile und Knopf „Gewinnschutz“ entfielen mit dem Gewinnschutz Aktien/ETF (Cloud, 17.10.2026); die Absicherung
+    // des Welt-ETF steht in der Lage darunter
+    // 1.3: derselbe Wahlschalter wie beim Coin-Bot (ältere Cloud: die bisherigen Knöpfe)
+    autopilotWahl(d, "autopilot-aktien") || reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein")),
+    // 1.3.9: die Lage im selben „mehr“ statt als eigene eingeklappte Karte darunter (ein Aufklappen je Rubrik)
+    lageListe(ak.lage, "Lage"),
+  ];
+  const pos = liste(ak.positionen);
+  return karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
+    h("div", { class: "mittel", id: offen ? "aktien-wert-seite" : "aktien-wert" }, F.euro(ak.wert_eur)),
+    F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
+    offen ? [details, pos.length ? zeilen(pos.map((p) => [F.text(p.name, p.symbol), F.euro(p.wert_eur)])) : leer("Keine Aktien oder ETFs im Depot.")]
+      : mehrTeil("aktien", details));
+}
+
+/** 1.4 (Tom 23.10.2026, Teil 3): eigener Reiter „Aktien“ – die Aktien-Karte offen, darunter die Aktien-Schattendepots */
+export function aktien(Z) {
+  const d = Z.handy;
+  if (!d) return [leer("Daten werden geladen …")];
+  const ak = ok(d.aktien);
+  if (!ak) return [fehlerKarte("Aktien-Autopilot", d.aktien)];
+  return [aktienKarte(d, ak, true)];
+}
+
+/** 1.4 (Teil 3): die Trend-Seite hat keinen Reiter mehr – ein Tipp auf die Trend-Karte öffnet sie, „‹ Übersicht“ führt zurück */
+function seiteOeffnen(r) {
+  document.dispatchEvent(new CustomEvent("fh-reiter", { detail: r }));
 }
 
 /**
@@ -1051,7 +1073,7 @@ export function trend(Z) {
   if (!d) return [leer("Daten werden geladen …")];
   const t = ok(d.trend_bot);
   if (!t) return [fehlerKarte("Trend-Bot", d.trend_bot)];
-  const out = [];
+  const out = [h("button", { type: "button", class: "knopf-text seite-zurueck", id: "trend-zurueck", onclick: () => seiteOeffnen("uebersicht") }, "‹ Übersicht")];
   const uT = unklarKarte(t.unklare_auftraege, "trend");           // 1.2.18 (M2e): ganz oben, solange etwas offen ist
   if (uT) out.push(uT);
   const lageT = lageKarte(t.lage);
