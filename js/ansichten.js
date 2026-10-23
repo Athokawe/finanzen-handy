@@ -1214,26 +1214,42 @@ function einordnungTeil(e) {
     bots ? h("p", { class: "news-bots" }, h("span", { class: "label" }, "Für deine Bots: "), bots) : null);
 }
 
-function gesamtbildKarte(g, lage) {
+function gesamtbildKarte(g, lage, extra) {
   const zeilen_ = liste(lage).filter((x) => istObj(x) && textOder(x.text));
   const gb = istObj(g) ? g : null;
   const text = gb && textOder(gb.text), bots = gb && textOder(gb.bots);
   const teile = gb ? [["bitcoin", "Bitcoin"], ["welt_etf", "Welt-ETF"]]
     .filter(([k]) => istObj(gb[k]) && RICHTUNG[gb[k].richtung])
     .map(([k, name]) => richtungEtikett(gb[k].richtung, name + (STAERKE[gb[k].staerke] ? " · " + STAERKE[gb[k].staerke] : ""))) : [];
-  if (!text && !bots && !teile.length && !zeilen_.length) return null;
+  const dazu = liste(extra).filter(Boolean);
+  if (!text && !bots && !teile.length && !zeilen_.length && !dazu.length) return null;
+  // 1.4 (Tom 23.10.2026, Teil 4): oben die kurze Analyse für Krypto und Aktien, im „mehr“ Wirtschaft und Notenbanken (und der Stand der Bots)
   return h("section", { class: "karte", id: "news-gesamtbild" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Gesamtbild")),
     teile.length ? h("div", { class: "etiketten" }, teile) : null,
     text ? h("p", { class: "gesamt-text" }, text) : null,
     bots ? h("p", { class: "gesamt-bots" }, bots) : null,
     mehrTeil("news-gesamtbild", [
+      dazu,
       zeilen_.length ? h("div", { class: "bot-lage" }, h("span", { class: "label" }, "Stand deiner Bots"),
         h("ul", { class: "liste" }, zeilen_.map((x) => h("li", null, x.text)))) : null,
-      h("p", { class: "klein gedimmt" }, (gb && textOder(gb.hinweis)) || NEWS_HINWEIS)], "mehr – Stand deiner Bots"));
+      h("p", { class: "klein gedimmt" }, (gb && textOder(gb.hinweis)) || NEWS_HINWEIS)],
+      dazu.length ? "mehr – Wirtschaft und Notenbanken" : "mehr – Stand deiner Bots"));
 }
 
-const NEWS_WICHTIG_KURZ = 2;
+/** 1.4 (Teil 4): Karte „Aktien“ der News – neueste Schlagzeile zu deinen Aktien, im „mehr“ die übrigen und die Börsengänge */
+function aktienNewsKarte(rub, bg) {
+  const s = rub.flatMap((r) => r.s);
+  const ki = rub.map((r) => r.ki).find(Boolean);
+  const [kurz, lang] = ki ? textTeilen(F.text(ki.text)) : ["", ""];
+  return h("section", { class: "karte", id: "news-aktien" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "Aktien"), s.length ? h("span", { class: "klein gedimmt" }, s.length + (s.length === 1 ? " Schlagzeile" : " Schlagzeilen")) : null),
+    kurz ? h("p", { class: "rubrik-text" }, etikett("KI", ""), " ", kurz) : null,
+    s.length ? h("div", null, schlagzeile(s[0])) : (kurz ? null : leer("Keine Schlagzeilen zu deinen Aktien.")),
+    mehrTeil("news-aktien", [lang ? h("p", { class: "rubrik-text" }, lang) : null, s.length > 1 ? h("div", null, s.slice(1).map(schlagzeile)) : null, bg],
+      "mehr – Börsengänge"));
+}
+
 /** 1.2.19: ein KI-Text in [erster Satz, Rest] – kurze Texte (bis 160 Zeichen) bleiben ganz (Rest null) */
 function textTeilen(t) {
   const s = String(t || "");
@@ -1336,17 +1352,7 @@ export function news(Z) {
   out.push(h("p", { class: "klein gedimmt" }, "Abgerufen " + F.vor(n.zeit) + " (" + F.zeit(n.zeit) + ", " + (n.anlass === "news_jetzt" ? "von Hand" : "für den Bericht") + "). Neu holen geht höchstens alle 30 Minuten."));
   if (n.fehler) out.push(h("p", { class: "fehlerteil" }, F.text(n.fehler)));
   const z = ok(n.zusammenfassung);
-  out.push(gesamtbildKarte(z && z.gesamtbild, n.bot_lage));
-  if (z) {
-    const wichtig = liste(z.wichtigste);
-    // 1.2.19: je Karte nur das Neueste, der Rest im „mehr“
-    const meldung = (s) => [schlagzeile(s), istObj(s) ? einordnungTeil(s.einordnung) : null];
-    out.push(karte("Das Wichtigste", null,
-      liste(z.rubriken).filter((r) => r.id === "einordnung").map((r) => erklaert(F.text(r.name), r.text)),
-      wichtig.length ? h("div", null, wichtig.slice(0, NEWS_WICHTIG_KURZ).map(meldung)) : null,
-      wichtig.length > NEWS_WICHTIG_KURZ ? mehrTeil("news-wichtig", h("div", null, wichtig.slice(NEWS_WICHTIG_KURZ).map(meldung)),
-        "mehr (" + (wichtig.length - NEWS_WICHTIG_KURZ) + " weitere)") : null));
-  }
+  const meldung = (s) => [schlagzeile(s), istObj(s) ? einordnungTeil(s.einordnung) : null];
   // 1.3.10 (Tom 19.10.2026: „Wirtschaft & Börse und Notenbanken kommen immer zweimal vor“): EINE Karte je Rubrik – oben der KI-Satz
   // (Abzeichen „KI“), darunter die neueste Schlagzeile, der Rest (längerer KI-Text, weitere Schlagzeilen) hinter „mehr“. Zusammengeführt
   // über den Rubrik-Namen (die Kennungen unterscheiden sich: „wirtschaft“ gegen „aktien_wirtschaft“); KI-Rubriken ohne Schlagzeilen hängen an.
@@ -1363,14 +1369,30 @@ export function news(Z) {
       s.length ? h("div", null, schlagzeile(s[0])) : (ki ? null : leer("Keine Schlagzeilen.")),
       mehrTeil("news-" + F.text(id, name), mehr, zusatz));
   };
+  // 1.4 (Tom 23.10.2026, Teil 4): kompakt – Gesamtbild (im „mehr“ Wirtschaft und Notenbanken), Krypto im Detail, Aktien im Detail
+  // (im „mehr“ die Börsengänge). Rubriken sammeln: Schlagzeilen + KI-Text je Rubrik (zusammengeführt wie bisher über den Namen)
+  const rub = [];
   for (const r of liste(n.rubriken)) {
     if (!istObj(r)) continue;
     const ki = kiRubriken.find((k) => schluessel(k) === schluessel(r) || F.text(k.id) === F.text(r.id));
     if (ki) benutzt.add(ki);
-    out.push(rubrikKarte(r.name, r.id, liste(r.schlagzeilen), ki));
+    rub.push({ id: F.text(r.id), name: r.name, s: liste(r.schlagzeilen), ki });
   }
-  for (const k of kiRubriken) if (!benutzt.has(k)) out.push(rubrikKarte(k.name, k.id, [], k));
-  out.push(boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge));     // 1.3.3: nach den Rubriken (seit 1.3.10), vor dem Schlusssatz
+  for (const k of kiRubriken) if (!benutzt.has(k)) rub.push({ id: F.text(k.id), name: k.name, s: [], ki: k });
+  const art = (r) => (/krypto/i.test(r.id) ? "krypto" : /aktie/i.test(r.id) && !/wirtschaft/i.test(r.id) ? "aktien" : "markt");
+  const unterteil = (r) => h("div", { class: "news-unterteil", "data-rubrik": r.id }, h("h3", null, F.text(r.name)),
+    r.ki ? h("p", { class: "rubrik-text" }, etikett("KI", ""), " ", F.text(r.ki.text)) : null,
+    r.s.length ? h("div", null, r.s.map(schlagzeile)) : null);
+  const wichtig = z ? liste(z.wichtigste) : [];
+  const einordnung = z ? liste(z.rubriken).filter((r) => istObj(r) && r.id === "einordnung") : [];
+  const dasWichtigste = wichtig.length || einordnung.length ? h("div", { class: "news-unterteil", "data-rubrik": "wichtig" }, h("h3", null, "Das Wichtigste"),
+    einordnung.map((r) => erklaert(F.text(r.name), r.text)), wichtig.map(meldung)) : null;
+  out.push(gesamtbildKarte(z && z.gesamtbild, n.bot_lage, [dasWichtigste, ...rub.filter((r) => art(r) === "markt").map(unterteil)]));
+  for (const r of rub.filter((x) => art(x) === "krypto")) out.push(rubrikKarte(r.name, r.id, r.s, r.ki));
+  const aktienRub = rub.filter((x) => art(x) === "aktien");
+  const bg = boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge);   // 1.3.3 – seit 1.4 im „mehr“ der Aktien-Karte
+  if (bg) { bg.classList.remove("karte"); bg.classList.add("news-unterteil"); }
+  out.push(aktienNewsKarte(aktienRub, bg));
   out.push(h("p", { class: "klein gedimmt" }, "Schlagzeilen sind fremde Texte; Links öffnen in einem neuen Fenster."));
   return out;
 }
