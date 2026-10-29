@@ -351,13 +351,13 @@
   },
   "lage": [
    "Markt-Ampel grün: Bitcoin liegt +4,0 % über der 50-Tage-Linie.",
-   "Schattendepot: hält SOL (Rang 1) – bleibt bis Rang 5."
+   "Musterdepot: hält SOL (Rang 1) – bleibt bis Rang 5."
   ],
   "ki_vorschlag": {
    "aktion": "einschalten",
    "betrag_eur": 150.0,
    "zuversicht": 62,
-   "begruendung": "Die Markt-Ampel ist seit Tagen grün (+5 % zur 50-Tage-Linie) und das Schattendepot liegt vor „Bitcoin halten“.",
+   "begruendung": "Die Markt-Ampel ist seit Tagen grün (+5 % zur 50-Tage-Linie) und das Musterdepot liegt vor „Bitcoin halten“.",
    "hinweis": null,
    "zeit": "2026-10-11T06:38:34+00:00",
    "erledigt": false,
