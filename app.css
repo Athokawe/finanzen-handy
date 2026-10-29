@@ -97,7 +97,11 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .stopp-knopf { width: 100%; min-height: 58px; font-size: 19px; margin: 2px 0 4px; letter-spacing: .01em; }
 .park-knoepfe { margin: 0 0 14px; }
 .park-knoepfe .anhalten-knopf { width: 100%; min-height: 42px; font-size: 15px; margin-top: 4px; }
-/* 1.4: Schattendepots in Gruppen (Coin-Teil, Coin-Bot, Aktien-Teil) */
+/* 1.4.2: Lexikon unter „Mehr“ */
+.lexikon { margin: 4px 0 0; }
+.lexikon dt { font-weight: 600; margin-top: 10px; }
+.lexikon dd { margin: 2px 0 0; color: var(--gedimmt); line-height: 1.35; }
+/* 1.4: Musterdepots in Gruppen (Coin-Teil, Coin-Bot, Aktien-Teil) */
 .sd-gruppe { margin: 12px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--gedimmt); }
 /* 1.4: News kompakt – Rubriken als Unterteile im „mehr“ */
 .news-unterteil { margin: 10px 0 4px; padding-top: 8px; border-top: 1px solid var(--rand); }

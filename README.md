@@ -4,6 +4,12 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.2
+
+* **„Musterdepot“ statt „Schattendepot“** in der ganzen App.
+* **Zwei neue Musterdepots** (Gruppe Coin-Bot): „Bitcoin halten“ vs. „Swing-Trading (RSI)“ und „Einmalanlage“ vs. „Sparplan“.
+* **Lexikon unter „Mehr“:** die wichtigsten Begriffe (Spread, Limit-Order, Stop-Loss, RSI, 200-Tage-Linie, Musterdepot …) je in einem Satz.
+
 ## Neu in 1.4.1
 
 * **Spielgeld-Ansicht.** Solange echt 0 € liegen, zeigt die Übersicht das Spielgeld: Verlauf und Karte „Spielgeld“ (je Bot sein
