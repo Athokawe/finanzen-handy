@@ -11,26 +11,33 @@ export function istZahl(x) {
   return typeof x === "number" && Number.isFinite(x);
 }
 
+/** 1.4.3: was auf die Stellen gerundet null ergibt (auch −0 und −0,004), ist 0 – sonst zeigte Intl „-€ 0,00“ */
+function ohneMinusNull(x, stellen) {
+  return Math.abs(x) < 0.5 / 10 ** stellen ? 0 : x;
+}
+
 /** „€ 1.234,56“ */
 export function euro(x) {
-  return istZahl(x) ? euroFmt.format(x) : "–";
+  return istZahl(x) ? euroFmt.format(ohneMinusNull(x, 2)) : "–";
 }
 
 /** Euro mit Vorzeichen: „+ € 5,00“ / „− € 3,20“ */
 export function euroPlus(x) {
   if (!istZahl(x)) return "–";
+  x = ohneMinusNull(x, 2);
   if (x === 0) return euroFmt.format(0);
   return (x > 0 ? "+ " : "− ") + euroFmt.format(Math.abs(x));
 }
 
 export function zahl(x, stellen = 2) {
   if (!istZahl(x)) return "–";
-  return new Intl.NumberFormat("de-AT", { minimumFractionDigits: stellen, maximumFractionDigits: stellen }).format(x);
+  return new Intl.NumberFormat("de-AT", { minimumFractionDigits: stellen, maximumFractionDigits: stellen }).format(ohneMinusNull(x, stellen));
 }
 
 /** „+2,50 %“ / „−4,01 %“ (mit echtem Minuszeichen) */
 export function prozent(x, stellen = 2, vorzeichen = true) {
   if (!istZahl(x)) return "–";
+  x = ohneMinusNull(x, stellen);
   const z = zahl(Math.abs(x), stellen);
   const v = x > 0 ? (vorzeichen ? "+" : "") : x < 0 ? "−" : "";
   return v + z + " %";

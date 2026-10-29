@@ -458,7 +458,7 @@ export function botStatistik(Z, bot) {   // export: Handy-Tests (B13)
         const a = serien[0].werte, b = serien[1].werte;
         if (a.length && b.length) {
           const d = a[a.length - 1][1] - b[b.length - 1][1];
-          k.push(["gegen „Bitcoin halten“", F.euroPlus(d), F.vorzeichenKlasse(d)]);
+          k.push(["gegen „Bitcoin halten“ seit Start", F.euroPlus(d), F.vorzeichenKlasse(d)]);   // 1.4.3 (#11): letzte Werte, nicht der Zeitraum
         }
         return k;
       },
@@ -603,7 +603,7 @@ function kiSchnellKarte() {
 function zeigtEcht(status, topf) {
   return status !== "aus" && F.istZahl(topf);
 }
-function botKurz(status, topf, ergEur, ergPz, schatten, id, je) {
+function botKurz(status, topf, ergEur, ergPz, schatten, id, sd) {
   if (zeigtEcht(status, topf)) {
     const erg = F.istZahl(ergEur) || F.istZahl(ergPz)
       ? h("p", { class: "klapp-kurz " + F.vorzeichenKlasse(F.istZahl(ergEur) ? ergEur : ergPz) },
@@ -611,8 +611,10 @@ function botKurz(status, topf, ergEur, ergPz, schatten, id, je) {
       : null;
     return [h("div", { class: "mittel", id }, F.euro(topf)), erg];
   }
-  // 1.4.1 (Spielgeld-Ansicht): mit „je 1.000 €“ der Cloud (schattendepots je_1000) dieselben Zahlen wie in der Musterdepot-Liste
-  const s = je && F.istZahl(je.wert) ? { wert_eur: je.wert, bitcoin_halten_eur: je.referenz } : ok(schatten);
+  // 1.4.1 (Spielgeld-Ansicht): mit „je 1.000 €“ der Cloud (schattendepots je_1000) dieselben Zahlen wie in der Musterdepot-Liste;
+  // 1.4.3 (Gesamtprüfung 29.10.2026, #11): dazu die Basis „je 1.000 € seit 20.10.“ – der Bot-Reiter zeigt dieselbe Zeile
+  if (sd) return h("p", { class: "klapp-kurz", id }, "nur Musterdepot (Rechengeld): " + sdJeText(sd) + " · " + sdJeSeit(sd));
+  const s = ok(schatten);
   const diff = s && F.istZahl(s.wert_eur) && F.istZahl(s.bitcoin_halten_eur) ? s.wert_eur - s.bitcoin_halten_eur : null;
   return h("p", { class: "klapp-kurz", id }, "nur Musterdepot (Rechengeld)" + (s && F.istZahl(s.wert_eur) ? ": " + F.euro(s.wert_eur)
     + (F.istZahl(s.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur) : "") + (diff !== null ? " → " + F.euroPlus(diff) : "") : ""));
@@ -665,25 +667,34 @@ function gesamtVerlaufKarte(Z, spiel) {
 function kryptoGesamtKarte(d, sg) {
   const g = gesamtTeil(d);
   if (!g && !sg) return null;
-  const sgW = (k) => { const t = sg && liste(sg.teile).find((x) => istObj(x) && x.k === k); return t && F.istZahl(t.wert_eur) ? t.wert_eur : null; };
-  const teile = sg ? [["Coin-Bot", sgW("coin")], ["Raster-Bot", sgW("raster")], ["Trend-Bot", sgW("trend")]]
+  const sgT = (k) => (sg ? liste(sg.teile).find((x) => istObj(x) && x.k === k) : null);
+  const sgW = (k) => { const t = sgT(k); return t && F.istZahl(t.wert_eur) ? t.wert_eur : null; };
+  const teile = sg ? [["Coin-Bot", sgW("coin"), "coin"], ["Raster-Bot", sgW("raster"), "raster"], ["Trend-Bot", sgW("trend"), "trend"]]
     : [["Coin-Bot", g.coin_topf_eur], ["Raster-Bot", g.raster_topf_eur], ["Trend-Bot", g.trend_topf_eur]];
   if (!teile.some(([, v]) => F.istZahl(v))) return null;
   const summe = teile.reduce((s, [, v]) => s + (F.istZahl(v) ? v : 0), 0);
   return h("section", { class: "karte", id: "krypto-gesamt" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Coin-Topf gesamt"), sg ? etikett("Spielgeld", "") : null),
     h("div", { class: "gross", id: "krypto-gesamt-wert" }, F.euro(summe)),
-    zeilen(teile.map(([n, v]) => [n, F.istZahl(v) ? F.euro(v) : "–"])));
+    zeilen(teile.map(([n, v, k]) => [n, F.istZahl(v) ? [F.euro(v), sgVeraltet(sgT(k))] : "–"])));
 }
 
-/** 1.4.1 (Tom 23.10.2026): „solange wir nur mit Spielgeld trainieren, das Spielgeld anzeigen“ – je Bot sein Haupt-Musterdepot mit
- *  je 1.000 € ab Vergleichsstart (handy.json spielgeld). Ersetzt die Gesamt-Karte, solange echt 0 € liegen. */
+/** 1.4.1 (Tom 23.10.2026): „solange wir nur mit Spielgeld trainieren, das Spielgeld anzeigen“ – je Bot sein Haupt-Musterdepot
+ *  (handy.json spielgeld). Ersetzt die Gesamt-Karte, solange echt 0 € liegen. 1.4.3: die Cloud rechnet jeden Teil seit dem Start mit
+ *  1.000 € ohne Neustart weiter (verkettet); teile[].veraltet = Quelle in diesem Lauf nicht lesbar, letzter Wert. faktor und
+ *  vergleich_start sind intern und werden nicht gezeigt. */
 function spielgeldModus(d) {
   const sg = ok(d.spielgeld);
   const g = gesamtTeil(d);
-  return sg && F.istZahl(sg.gesamt_eur) && liste(sg.teile).length && g && F.istZahl(g.gesamt_eur) && g.gesamt_eur < 1 ? sg : null;
+  // 1.4.3 (#12): nur wenn echt WIRKLICH 0 € liegen – ist der Coin-Topf unbekannt (unvollständig), bleibt die Gesamt-Karte mit dem Vermerk
+  return sg && F.istZahl(sg.gesamt_eur) && liste(sg.teile).length && g && F.istZahl(g.gesamt_eur) && g.gesamt_eur < 1
+    && g.vollstaendig !== false && F.istZahl(g.coin_topf_eur) ? sg : null;
 }
 const SG_KLASSE = { coin: "coin", raster: "raster", trend: "trend", aktien: "aktien" };
+/** 1.4.3: dezent hinter dem Wert, wenn die Cloud den letzten Wert weiterzeigt (teile[].veraltet === true, wie die LTA) */
+function sgVeraltet(t) {
+  return istObj(t) && t.veraltet === true ? h("span", { class: "klein gedimmt sg-veraltet" }, " · letzter Stand") : null;
+}
 function spielgeldKarte(sg) {
   const teile = liste(sg.teile).filter((t) => istObj(t) && F.istZahl(t.wert_eur));
   const je = F.istZahl(sg.je_eur) ? sg.je_eur : 1000;
@@ -697,15 +708,33 @@ function spielgeldKarte(sg) {
     h("div", { class: "karte-kopf" }, h("h2", null, "Spielgeld"), etikett("Rechengeld", "")),
     h("div", { class: "gross", id: "spielgeld-wert" }, F.euro(sg.gesamt_eur)),
     h("p", { class: "klein " + (diff !== null ? F.vorzeichenKlasse(diff) : "gedimmt") },
-      (diff !== null ? F.euroPlus(diff) + " seit Start (" + F.euro(sg.start_eur) + ")" : "") + " · je Bot " + F.euro(je) + " ab Vergleichsstart"),
+      (diff !== null ? F.euroPlus(diff) + " seit Start (" + F.euro(sg.start_eur) + ")" : "") + " · je Bot gestartet mit " + F.euro(je)
+      // 1.4.3: unvollständig nur hier nennen, wenn kein Teil selbst „letzter Stand“ trägt (der Hinweis steht einmal)
+      + (sg.vollstaendig === false && !teile.some((t) => t.veraltet === true) ? " · unvollständig" : "")),
     balken,
     zeilen(teile.map((t) => [h("span", null, h("span", { class: "punkt " + (SG_KLASSE[t.k] || "euro") }), " " + F.text(t.name)),
-      h("span", { class: F.vorzeichenKlasse(t.wert_eur - je) }, F.euro(t.wert_eur))])),
+      h("span", null, h("span", { class: F.vorzeichenKlasse(t.wert_eur - je) }, F.euro(t.wert_eur)), sgVeraltet(t))])),
     h("p", { class: "klein gedimmt" }, "Echtes Geld: 0 € – die Übersicht zeigt das Spielgeld, bis wieder echtes Geld liegt."));
 }
+/** 1.4.3: Musterdepot-Eintrag der Cloud (schattendepots.liste) mit „je 1.000 € ab Vergleichsstart“ (je_1000) – sonst null */
 function sdJe(d, kennung) {
   const e = liste((ok(d.schattendepots) || {}).liste).find((x) => istObj(x) && x.kennung === kennung);
-  return e && istObj(e.je_1000) ? e.je_1000 : null;
+  return e && istObj(e.je_1000) && F.istZahl(e.je_1000.wert) ? e : null;
+}
+/** 1.4.3 (#11): die Rechenbasis sichtbar – „je 1.000 € seit 20.10.“ (auswertung.seit = Vergleichsstart) */
+function sdJeSeit(e) {
+  const seit = (ok(e.auswertung) || {}).seit;
+  return "je 1.000 € " + (F.datum(seit) ? "seit " + sdTag(seit) : "ab Vergleichsstart");
+}
+/** 1.4.3 (#11): „€ 992,68 gegen „Bitcoin halten“ € 1.004,09 → − € 11,41“ – dieselben Zahlen wie in der Musterdepot-Liste */
+function sdJeText(e) {
+  const j = e.je_1000;
+  const ref = F.text((ok(e.referenz) || {}).name, "Bitcoin halten");
+  return F.euro(j.wert) + (F.istZahl(j.referenz) ? " gegen „" + ref + "“ " + F.euro(j.referenz) + " →\u00a0" + F.euroPlus(j.wert - j.referenz).replace(" ", "\u00a0") : "");   // Vorzeichen bleibt beim Betrag
+}
+/** 1.4.3 (#11): Kopfzeile der Musterdepot-Karten auf den Bot-Reitern – dieselbe Basis wie die Übersicht */
+function sdJeZeile(e, id) {
+  return e ? h("p", { class: "sd-je", id }, h("b", null, "Vergleich " + sdJeSeit(e) + ": "), sdJeText(e)) : null;
 }
 
 export function uebersicht(Z) {
@@ -734,7 +763,7 @@ export function uebersicht(Z) {
     const sgCoin = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === "coin") : null;
     out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
       h("div", { class: "gross", id: "kern-wert" }, F.euro(sgCoin ? sgCoin.wert_eur : k.wert_eur)),
-      h("p", { class: "klapp-kurz" }, sgCoin ? "Spielgeld · " + F.text(sgCoin.name) : F.text(k.topf_name, "Coin-Topf") + " · hält " + pos),
+      h("p", { class: "klapp-kurz" }, sgCoin ? ["Spielgeld · " + F.text(sgCoin.name), sgVeraltet(sgCoin)] : F.text(k.topf_name, "Coin-Topf") + " · hält " + pos),
       wahl,
       wahl ? mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
         + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?") : null,
@@ -744,11 +773,12 @@ export function uebersicht(Z) {
           ["Autopilot", STELLUNG_TEXT[stK]],
           ["Stufe", F.text(k.stufe) + (k.stufe_automatik ? " (Automatik)" : "")],
           ["Bitcoin-Ampel", ampel(k.ampel)],
-          ["Hält", pos],
+          // 1.4.3 (#14): im Spielgeld nur, wenn echt etwas gehalten wird – dann als „echt“ gekennzeichnet
+          !sgCoin ? ["Hält", pos] : k.position || k.geparkt ? ["Hält (echt)", pos] : null,
           ki ? ["KI-Urteil", entscheidungText(ki.entscheidung) + (F.istZahl(ki.zuversicht) ? " · " + ki.zuversicht + " % sicher" : "")] : null,
         ]),
         ki ? erklaert("Einfach erklärt", ki.einfach_erklaert) : null,
-        ok(d.bilanz) && d.bilanz.text ? h("p", { class: "klein gedimmt" }, d.bilanz.text) : null,
+        !sgCoin && ok(d.bilanz) && d.bilanz.text ? h("p", { class: "klein gedimmt" }, d.bilanz.text) : null,   // 1.4.3 (#14): echte Bilanz nicht unter dem Spielgeld
       ]),
     ));
   } else out.push(fehlerKarte("Coin-Topf", d.kern_bot));
@@ -780,7 +810,7 @@ export function uebersicht(Z) {
         ]),
         zeigtEcht(t.modus === "echt" ? t.status : "aus", t.topf_eur) ? schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", "))
           : ok(t.schatten) && liste(t.schatten.positionen).length ? h("p", { class: "klein gedimmt" }, "Musterdepot hält " + liste(t.schatten.positionen).join(", ")) : null,
-        straffZeile(t.schatten_straff),
+        straffZeile(t.schatten_straff, sdJe(d, "trend_straff")),
         kiZeile(t.ki_vorschlag),
         botKnoepfe(t.status, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel)])));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
@@ -830,9 +860,10 @@ function aktienKarte(d, ak, offen, sg) {
   const pos = liste(ak.positionen);
   return karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
     h("div", { class: "mittel", id: offen ? "aktien-wert-seite" : "aktien-wert" }, F.euro(sgAk ? sgAk.wert_eur : ak.wert_eur)),
-    sgAk ? h("p", { class: "klapp-kurz" }, "Spielgeld · " + F.text(sgAk.name)) : null,
+    sgAk ? h("p", { class: "klapp-kurz" }, "Spielgeld · " + F.text(sgAk.name), sgVeraltet(sgAk)) : null,
     F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
-    offen ? [details, pos.length ? zeilen(pos.map((p) => [F.text(p.name, p.symbol), F.euro(p.wert_eur)])) : leer("Keine Aktien oder ETFs im Depot.")]
+    // 1.4.3 (#14): im Spielgeld ist die Liste das ECHTE Depot – so benannt
+    offen ? [details, pos.length ? zeilen(pos.map((p) => [F.text(p.name, p.symbol), F.euro(p.wert_eur)])) : leer(sgAk ? "Echtes Depot leer." : "Keine Aktien oder ETFs im Depot.")]
       : mehrTeil("aktien", details));
 }
 
@@ -1111,7 +1142,7 @@ export function raster(Z) {
 
   // Ohne echtes Geld steht das Musterdepot gleich unter dem Bot, mit echtem Geld nur noch als eine Referenzzeile ganz unten (Nutzer 11.10.2026)
   const rEcht = st !== "aus" || (F.istZahl(r.topf_eur) && r.topf_eur > 0);
-  if (!rEcht) out.push(rasterSchatten(r));
+  if (!rEcht) out.push(rasterSchatten(r, sdJe(d, "raster_schatten")));
   out.push(karte("Statistik", null, botStatistik(Z, "raster")));
   const coins = liste(r.coins);
   out.push(karte("Coins im Raster", null, coins.length ? h("ul", { class: "liste" }, coins.map((c) => h("li", null,
@@ -1125,10 +1156,13 @@ export function raster(Z) {
   return out;
 }
 
-function rasterSchatten(r) {
+/** 1.4.3 (#11): oben der Vergleich „je 1.000 € seit …“ wie auf der Übersicht, darunter die Rechnung seit Start als Detail */
+function rasterSchatten(r, sd) {
   const s = ok(r.schatten);
   return karte("Musterdepot", s ? statusEtikett(s.status) : null,
-    h("p", { class: "klein gedimmt" }, "Rechengeld (kein echtes Geld): zeigt, wie sich der Raster-Bot mit 300 € gegen „Bitcoin halten“ schlagen würde."),
+    h("p", { class: "klein gedimmt" }, "Rechengeld (kein echtes Geld): zeigt, wie sich der Raster-Bot gegen „Bitcoin halten“ schlagen würde."),
+    sdJeZeile(sd, "raster-sd-je"),
+    s && sd ? h("p", { class: "klein gedimmt" }, "Seit Start:") : null,
     s ? zeilen([
       ["Wert", F.euro(s.wert_eur)],
       ["„Bitcoin halten“", F.euro(s.bitcoin_halten_eur)],
@@ -1181,8 +1215,8 @@ export function trend(Z) {
   ));
 
   const tEcht = t.modus === "echt";
-  if (!tEcht) out.push(trendSchatten(t));
-  const stk = straffKarte(t);                       // 1.2.16: zweites Musterdepot „straff“ direkt darunter
+  if (!tEcht) out.push(trendSchatten(t, sdJe(d, "trend_schatten")));
+  const stk = straffKarte(t, sdJe(d, "trend_straff"));                       // 1.2.16: zweites Musterdepot „straff“ direkt darunter
   if (stk) out.push(stk);
   out.push(karte("Statistik", null, botStatistik(Z, "trend")));
   const pos = liste(t.positionen);
@@ -1202,10 +1236,12 @@ export function trend(Z) {
   return out;
 }
 
-function trendSchatten(t) {
+function trendSchatten(t, sd) {
   const s = ok(t.schatten);
   return karte("Musterdepot", null,
     h("p", { class: "klein gedimmt" }, "Rechengeld (kein echtes Geld) mit denselben Regeln wie der Trend-Bot."),
+    sdJeZeile(sd, "trend-sd-je"),                                  // 1.4.3 (#11): dieselbe Basis wie die Übersicht
+    s && sd ? h("p", { class: "klein gedimmt" }, "Seit Start:") : null,
     s ? zeilen([
       ["Wert", F.euro(s.wert_eur)],
       ["„Bitcoin halten“", F.euro(s.bitcoin_halten_eur)],
@@ -1217,17 +1253,17 @@ function trendSchatten(t) {
     ]) : leer("Kein Musterdepot."));
 }
 
-/** 1.2.16: eine Zeile „Neu (straff)“ in der Trend-Karte der Übersicht. */
-function straffZeile(st) {
-  if (!ok(st) || !st.gestartet || !F.istZahl(st.wert_eur)) return null;
-  return h("p", { class: "klein gedimmt" }, "Neues Musterdepot (straff): " + F.euro(st.wert_eur) +
-    (F.istZahl(st.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(st.bitcoin_halten_eur) : "") +
+/** 1.2.16: eine Zeile „Neu (straff)“ in der Trend-Karte der Übersicht. 1.4.3 (#11): mit je_1000 dieselbe Basis wie die Kurzzeile darüber. */
+function straffZeile(st, sd) {
+  if (!ok(st) || !st.gestartet || !(sd || F.istZahl(st.wert_eur))) return null;
+  return h("p", { class: "klein gedimmt", id: "straff-kurz" }, "Neues Musterdepot (straff): " + (sd ? sdJeText(sd) + " · " + sdJeSeit(sd)
+    : F.euro(st.wert_eur) + (F.istZahl(st.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(st.bitcoin_halten_eur) : "")) +
     " · hält " + (liste(st.positionen).map((p) => F.text(p.coin)).join(", ") || "nichts"));
 }
 
 /** 1.2.16: zweites Musterdepot „straff“ (trend_straff.py, 16.10.2026) – schnellere Regel als Test mit Rechengeld:
  *  Vergleich mit dem alten Musterdepot und „Bitcoin halten“, Positionen mit Kaufkurs, letzte Trades. Fehlt der Teil: nichts. */
-function straffKarte(t) {
+function straffKarte(t, sd) {
   const st = ok(t.schatten_straff);
   if (!st) return null;
   if (!st.gestartet) return karte("Musterdepot neu („straff“)", null, h("p", { class: "klein gedimmt" }, "Startet mit dem nächsten Stundenlauf. Regel: " + F.text(st.regel)));
@@ -1237,6 +1273,8 @@ function straffKarte(t) {
   const tr = liste(st.trades_letzte).slice(-5).reverse();
   return karte("Musterdepot neu („straff“)", null,
     h("p", { class: "klein gedimmt" }, "Test der schnelleren Regel mit Rechengeld (kein echtes Geld): " + F.text(st.regel) + "."),
+    sdJeZeile(sd, "straff-sd-je"),                                 // 1.4.3 (#11)
+    sd ? h("p", { class: "klein gedimmt" }, "Seit Start:") : null,
     zeilen([
       ["Wert", F.euro(st.wert_eur)],
       ["„Bitcoin halten“", F.euro(st.bitcoin_halten_eur)],
@@ -1355,7 +1393,7 @@ function bgEtikett(e) {
 
 function bgZeile(e) {
   if (!istObj(e) || !textOder(e.name)) return null;
-  const unter = [e.datum ? F.datum(e.datum) : null, textOder(e.kuerzel), textOder(e.boerse), textOder(e.preis_usd) ? e.preis_usd + " $" : null, bgVolumen(e.volumen_usd)]
+  const unter = [e.datum ? F.tag(e.datum) : null, textOder(e.kuerzel), textOder(e.boerse), textOder(e.preis_usd) ? e.preis_usd + " $" : null, bgVolumen(e.volumen_usd)]
     .filter(Boolean).join(" · ");
   return h("li", null, h("div", { class: "oben" }, h("span", { class: "titel" }, e.name + (e.spac ? " (SPAC)" : "")), bgEtikett(e)),
     unter ? h("div", { class: "unter" }, unter) : null);
@@ -1363,7 +1401,7 @@ function bgZeile(e) {
 
 function bgZugang(e) {
   if (!istObj(e) || !textOder(e.symbol)) return null;
-  const unter = [BG_GRUPPE[e.gruppe] || null, e.symbol, textOder(e.isin), e.seit ? "seit " + F.datum(e.seit) : null].filter(Boolean).join(" · ");
+  const unter = [BG_GRUPPE[e.gruppe] || null, e.symbol, textOder(e.isin), e.seit ? "seit " + F.tag(e.seit) : null].filter(Boolean).join(" · ");
   return h("li", null, h("div", { class: "oben" }, h("span", { class: "titel" }, F.text(e.name, e.symbol)),
     e.kaufbar === false ? etikett("Kauf gesperrt", "gelb") : etikett("neu bei Bitpanda", "gruen")), h("div", { class: "unter" }, unter));
 }

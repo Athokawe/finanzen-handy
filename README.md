@@ -4,6 +4,16 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.3
+
+* **Musterdepots überall gleich gerechnet.** Übersicht, Raster- und Trend-Seite zeigen denselben Vergleich „je 1.000 € seit …“
+  wie die Musterdepot-Liste – mit Datum. Die Rechnung seit Start steht darunter als Detail.
+* **Spielgeld nur, wenn echt wirklich 0 € liegen.** Ist der Coin-Topf gerade nicht lesbar, bleibt das Gesamtvermögen mit dem Vermerk
+  „unvollständig“ stehen. Unter dem Spielgeld stehen keine echten 0-€-Zahlen mehr; der Aktien-Reiter sagt „Echtes Depot leer.“
+* **Spielgeld ohne Neustart.** Jeder Bot ist mit 1.000 € gestartet und wird durchgehend weitergerechnet. Konnte die Cloud einen Teil
+  gerade nicht lesen, steht dahinter „letzter Stand“.
+* **Kleinigkeiten:** Börsengänge mit Datum „30.10.2026“, kein „-€ 0,00“ mehr.
+
 ## Neu in 1.4.2
 
 * **„Musterdepot“ statt „Schattendepot“** in der ganzen App.
