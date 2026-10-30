@@ -823,6 +823,8 @@ export function uebersicht(Z) {
 
   const sk = schattenKarte(d.schattendepots);                       // 1.2.17: alle Musterdepots, automatisch verglichen
   if (sk) out.push(sk);
+  const mk = metaKarte(d.meta_depot);                               // 1.4.4: Meta-Musterdepot meta_v1 (eingefrorene Regeln)
+  if (mk) out.push(mk);
 
   // 1.2.12: Aktien & ETFs unter dem Krypto-Teil, direkt vor „Letzte Alarme“ – langfristiges Geld, am wenigsten angeschaut (Nutzer 14.10.2026)
   const ak = ok(d.aktien);
@@ -960,6 +962,45 @@ function schattenKarte(sd, nur) {
             + (e.stand ? " · Stand " + F.zeit(e.stand) : ""))));
     })]),
     s.regel ? h("p", { class: "klein gedimmt" }, F.text(s.regel)) : null] : null, "mehr – alle Depots"));
+}
+
+/** 1.4.4 (Tom 30.10.2026): Meta-Musterdepot „meta_v1“ – gewichtet Raster, Trend und Schutz je Marktphase; Regeln eingefroren
+ *  (docs/META-DEPOT-REGELN.md im Cloud-Repo). Bis zur Auswertung am 31.01.2027 nur Zahlen, kein Urteil. */
+const META_NAMEN = { raster: "Raster", trend: "Trend", schutz: "Schutz" };
+function metaKarte(md) {
+  if (fehlerVon(md)) return fehlerKarte("Meta-Depot", md);
+  const m = ok(md);
+  if (!m) return null;
+  if (!m.gestartet) return karte("Meta-Depot", etikett("Test", ""), h("p", { class: "klein gedimmt", id: "meta-kurz" }, F.text(m.hinweis)));
+  const v = liste(m.vergleich).filter(istObj);
+  const g = ok(m.gewichte) || {};
+  const k = ok(m.kandidat);
+  const u = ok(m.urteil);
+  return karte("Meta-Depot", u ? etikett(u.erfolg ? "Erfolg" : "gescheitert", u.erfolg ? "sd-klar-vorne" : "sd-klar-hinten") : etikett(F.text(m.phase), ""),
+    h("p", { class: "klapp-kurz", id: "meta-kurz" }, v.map((x) => F.text(x.name) + " " + F.euro(x.wert_eur)).join(" · ")),
+    mehrTeil("meta-depot", [
+      zeilen(v.map((x) => [F.text(x.name), F.prozent(x.rendite_prozent, 1) + " · max. −" + F.zahl(x.max_drawdown_prozent, 1) + " %",
+        F.vorzeichenKlasse(x.rendite_prozent)])),
+      h("p", { class: "klein" }, "Jetzt " + F.text(m.phase) + ": " + ["raster", "trend", "schutz"].map((x) => META_NAMEN[x] + " " + (F.istZahl(g[x]) ? g[x] : "–") + " %").join(" · ")
+        + (k ? (k.wechsel_ab ? " · " + F.text(k.phase) + " bestätigt, Wechsel ab " + F.tag(k.wechsel_ab) : " · " + F.text(k.phase) + " " + k.tage + "/" + k.von + " Tage bestätigt") : "")),
+      h("p", { class: "klein gedimmt" }, m.umschichtungen + (m.umschichtungen === 1 ? " Umschichtung" : " Umschichtungen") + " · Kosten " + F.euro(m.kosten_eur)
+        + " · Zwischenblick " + F.tag(m.zwischenblick) + " · Auswertung " + F.tag(m.auswertung)),
+      u ? h("p", { class: "klein" }, F.text(u.text)) : null,
+      metaScoreboard(ok(m.scoreboard)),
+      h("p", { class: "klein gedimmt" }, "Nur Rechengeld. Gewichtet Raster, Trend und Schutz je Marktphase und muss Bitcoin halten und die feste Drittelung schlagen. Die Regeln sind eingefroren."),
+    ], "mehr"));
+}
+
+/** Scoreboard (Tom 30.10.2026: „nicht nur die grüne Prozentzahl“): Zeit im Cash je Vergleich und Verhalten je Marktphase */
+const META_KURZ = { meta: "Meta", drittel: "Drittel", btc: "Bitcoin" };
+function metaScoreboard(sb) {
+  if (!sb) return null;
+  const z = liste(sb.zeilen).filter(istObj);
+  const ph = liste(sb.je_phase).filter(istObj);
+  return h("div", { class: "klein", id: "meta-scoreboard" },
+    z.length ? h("p", null, "Zeit im Cash: " + z.map((x) => META_KURZ[x.k] + " " + (F.istZahl(x.zeit_im_cash_prozent) ? F.zahl(x.zeit_im_cash_prozent, 0) + " %" : "–")).join(" · ")) : null,
+    ph.map((p) => h("p", null, F.text(p.name) + " (" + p.tage + (p.tage === 1 ? " Tag" : " Tage") + "): "
+      + ["meta", "drittel", "btc"].map((s) => META_KURZ[s] + " " + F.prozent(p[s + "_prozent"], 1)).join(" · "))));
 }
 
 /** „Letzte Alarme“ (1.2.0): je Alarm „✕“, oben „Alle löschen“ – sofort ausgeblendet, Auftrag alarme_gelesen (js/alarme.js) */
