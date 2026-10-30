@@ -534,9 +534,25 @@ export async function ausfuehren(m, vorgaben = {}) {
   aktualisieren();
 }
 
-/** Auftrag wirklich schicken (Bestätigung ist schon geprüft). Wirft ApiFehler mit deutscher Meldung. */
+/** Auftrag wirklich schicken (Bestätigung ist schon geprüft). Wirft ApiFehler mit deutscher Meldung.
+ *  1.4.5 (Tom 30.10.2026, „News aktualisieren“ doppelt): solange derselbe Auftrag noch an GitHub unterwegs ist, geht er kein zweites Mal –
+ *  der Schutz „ein Auftrag läuft schon“ greift erst, wenn GitHub den ersten angenommen hat (ein Doppeltipp lag dazwischen). */
+const imVersand = new Set();
 export async function senden(m, best) {
   if (!passt(m, best)) throw new Error("Bestätigung passt nicht zum erlaubten Muster – nichts geschickt.");
+  if (imVersand.has(m)) {
+    hooks.toast("„" + name(m) + "“ wird gerade geschickt.");
+    return { doppelt: true };
+  }
+  imVersand.add(m);
+  try {
+    return await sendenEinmal(m, best);
+  } finally {
+    imVersand.delete(m);
+  }
+}
+
+async function sendenEinmal(m, best) {
   let w = weg(m, best);
   let r;
   try {
@@ -599,12 +615,29 @@ let auftraege = (() => {
   }
 })();
 let naechsteNr = Date.now();
+/** 1.4.5: alle Läufe, die je einem Auftrag zugeordnet waren (die letzten 100, dauerhaft) – die Liste der Aufträge behält nur 6, und ein
+ *  abgebrochener Lauf eines vergessenen Auftrags durfte sonst im 60-s-Fenster einem neuen gleichen Auftrag zugeordnet werden */
+const ZUGEORDNET_KEY = "fh_auftraege_laeufe";
+const ZUGEORDNET_MAX = 100;
+let zugeordnet = (() => {
+  try {
+    const l = JSON.parse(localStorage.getItem(ZUGEORDNET_KEY) || "[]");
+    return Array.isArray(l) ? l.filter((x) => Number.isFinite(x)) : [];
+  } catch {
+    return [];
+  }
+})();
+function merkeLauf(id) {
+  if (!Number.isFinite(id) || zugeordnet.includes(id)) return;
+  zugeordnet = zugeordnet.concat(id).slice(-ZUGEORDNET_MAX);
+}
 
 function speichern() {
   try {
     const roh = auftraege.map(({ best, ...rest }) => rest);
     if (roh.length) localStorage.setItem(LISTE_KEY, JSON.stringify(roh));
     else localStorage.removeItem(LISTE_KEY);
+    localStorage.setItem(ZUGEORDNET_KEY, JSON.stringify(zugeordnet));
   } catch { /* egal */ }
 }
 
@@ -704,6 +737,9 @@ async function neuSenden(a, grund) {
     a.versuche += 1;
     a.zeit = Date.now();
     a.status = "gesendet";
+    // 1.4.5: der verworfene Lauf gehört weiter zu diesem Auftrag – sonst ordnet pruefen ihn dem neuen Versuch noch einmal zu
+    // (60-s-Fenster) und meldet „2-mal verworfen“, obwohl der neue Lauf gerade erst kommt
+    if (a.runId) a.alteLaeufe = (a.alteLaeufe || []).concat(a.runId);
     a.runId = null;
     speichern();
     hooks.toast("„" + name(a.modus) + "“ " + grund + " – automatisch erneut gesendet (" + (a.versuche - 1) + "/" + a.max + ").");
@@ -732,7 +768,7 @@ export async function pruefen(handy) {
         if (e && e.art === "rechte") actionsOk = false;
       }
     }
-    const vergeben = new Set(auftraege.map((a) => a.runId).filter(Boolean));
+    const vergeben = new Set(auftraege.flatMap((a) => [a.runId].concat(a.alteLaeufe || [])).filter(Boolean).concat(zugeordnet));
     for (const a of offen) {
       const liste = listen[a.weg];
       if (!liste) { handyPruefen(a, handy); continue; }
@@ -741,7 +777,7 @@ export async function pruefen(handy) {
         lauf = liste.filter((x) => x.titel === titelVon(a) && !vergeben.has(x.id) && datum(x.erstellt)
           && datum(x.erstellt).getTime() >= a.zeit - 60000)
           .sort((x, y) => datum(x.erstellt) - datum(y.erstellt))[0] || null;
-        if (lauf) { a.runId = lauf.id; vergeben.add(lauf.id); }
+        if (lauf) { a.runId = lauf.id; vergeben.add(lauf.id); merkeLauf(lauf.id); }
       }
       if (!lauf) {
         if (Date.now() - a.zeit > VERWORFEN_NACH_MS) {
