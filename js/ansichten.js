@@ -982,7 +982,7 @@ function metaKarte(md) {
       zeilen(v.map((x) => [F.text(x.name), F.prozent(x.rendite_prozent, 1) + " · max. −" + F.zahl(x.max_drawdown_prozent, 1) + " %",
         F.vorzeichenKlasse(x.rendite_prozent)])),
       h("p", { class: "klein" }, "Jetzt " + F.text(m.phase) + ": " + ["raster", "trend", "schutz"].map((x) => META_NAMEN[x] + " " + (F.istZahl(g[x]) ? g[x] : "–") + " %").join(" · ")
-        + (k ? " · " + F.text(k.phase) + " " + k.tage + "/" + k.von + " Tage bestätigt" : "")),
+        + (k ? (k.wechsel_ab ? " · " + F.text(k.phase) + " bestätigt, Wechsel ab " + F.tag(k.wechsel_ab) : " · " + F.text(k.phase) + " " + k.tage + "/" + k.von + " Tage bestätigt") : "")),
       h("p", { class: "klein gedimmt" }, m.umschichtungen + (m.umschichtungen === 1 ? " Umschichtung" : " Umschichtungen") + " · Kosten " + F.euro(m.kosten_eur)
         + " · Zwischenblick " + F.tag(m.zwischenblick) + " · Auswertung " + F.tag(m.auswertung)),
       u ? h("p", { class: "klein" }, F.text(u.text)) : null,
