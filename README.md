@@ -4,6 +4,11 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.4
+
+* **Meta-Depot (Test).** Ein neues Musterdepot gewichtet Raster, Trend und Schutz je nach Marktphase und misst sich an der festen
+  Drittelung und an „Bitcoin halten“. Die Regeln sind eingefroren, ausgewertet wird am 31.01.2027 – bis dahin nur Zahlen.
+
 ## Neu in 1.4.3
 
 * **Musterdepots überall gleich gerechnet.** Übersicht, Raster- und Trend-Seite zeigen denselben Vergleich „je 1.000 € seit …“
