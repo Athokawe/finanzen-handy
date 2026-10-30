@@ -4,6 +4,11 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.5
+
+* **Kein Fehlalarm mehr bei Aufträgen.** Ein Doppeltipp schickt einen Auftrag nur einmal, und ein automatisch neu gesendeter Auftrag
+  meldet nicht mehr „nicht angekommen“, wenn er in Wahrheit gerade läuft.
+
 ## Neu in 1.4.4
 
 * **Meta-Depot (Test).** Ein neues Musterdepot gewichtet Raster, Trend und Schutz je nach Marktphase und misst sich an der festen
