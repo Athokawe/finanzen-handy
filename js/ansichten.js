@@ -1504,9 +1504,12 @@ export function news(Z) {
     return out;
   }
   // 1.4.6: anlass „auto“ = stündlicher Cloud-Schritt; der KI-Text ist dann oft älter als die Schlagzeilen (zusammenfassung_zeit)
-  const anlass = { news_jetzt: "von Hand", auto: "automatisch", bericht: "für den Bericht" }[n.anlass] || "aus der Cloud";
+  const anlass = { news_jetzt: "beim Öffnen angefordert", auto: "automatisch", bericht: "für den Bericht" }[n.anlass] || "aus der Cloud";
   const kiZeit = n.zusammenfassung_zeit && n.zusammenfassung_zeit !== n.zeit && ok(n.zusammenfassung) ? " · KI-Text " + F.zeit(n.zusammenfassung_zeit) : "";
-  out.push(h("p", { class: "klein gedimmt" }, "Abgerufen " + F.vor(n.zeit) + " (" + F.zeit(n.zeit) + ", " + anlass + ")" + kiZeit + ". Die Cloud holt stündlich neu; die App lädt beim Öffnen nach."));
+  // 1.4.7: die App hat gerade selbst einen Abruf angefordert (app.js newsAnfordern) und die Datei ist noch die alte
+  const dn = F.datum(n.zeit);
+  const holt = Z.newsAngefordert && Date.now() - Z.newsAngefordert < 6 * 60000 && dn && dn.getTime() < Z.newsAngefordert ? " · frische werden geholt …" : "";
+  out.push(h("p", { class: "klein gedimmt" }, "Abgerufen " + F.vor(n.zeit) + " (" + F.zeit(n.zeit) + ", " + anlass + ")" + kiZeit + holt + ". Die Cloud holt stündlich neu; die App lädt beim Öffnen nach."));
   if (n.fehler) out.push(h("p", { class: "fehlerteil" }, F.text(n.fehler)));
   const z = ok(n.zusammenfassung);
   const meldung = (s) => [schlagzeile(s), istObj(s) ? einordnungTeil(s.einordnung) : null];

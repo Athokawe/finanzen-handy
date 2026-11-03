@@ -4,6 +4,12 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.7
+
+* **Beim Öffnen immer aktuell.** Sind die Nachrichten beim Öffnen älter als 30 Minuten, fordert die App selbst einen frischen Abruf
+  in der Cloud an (höchstens alle 30 Minuten, still, nie während ein anderer Auftrag läuft) und lädt nach zwei bis vier Minuten nach –
+  so lange steht „frische werden geholt …“ unter dem Stand.
+
 ## Neu in 1.4.6
 
 * **Nachrichten ohne Knopf.** Die Cloud holt die Nachrichten jetzt stündlich (auf Deutsch, dazu die Rubrik „Wall Street & Welt“);
