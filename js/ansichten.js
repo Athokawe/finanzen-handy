@@ -650,15 +650,41 @@ function autopilotWahl(d, id) {
 }
 /** 1.3.14 (Tom 23.10.2026, Reihenfolge Teil 1): Verlauf NUR des Gesamtvermögens als eigene Karte über dem Gesamtwert – die Linien
  *  je Teil (1.3.12) bleiben im „mehr“ der Gesamt-Karte. */
-function gesamtVerlaufKarte(Z, spiel) {
+function gesamtVerlaufKarte(Z, spiel, id = "gesamt-verlauf") {
   const hinweis = verlaufHinweis(Z);
   // 1.4.1: solange echt 0 € liegen, zeigt die Karte den Verlauf des Spielgelds (Verlaufspunkte spielgeld_eur, seit 23.10.2026)
-  return h("section", { class: "karte", id: "gesamt-verlauf" }, h("div", { class: "karte-kopf" }, h("h2", null, spiel ? "Verlauf · Spielgeld" : "Verlauf")),
+  // 1.4.8: liegt echtes Geld, steht der Spielgeld-Verlauf als zweite Karte darunter (id spielgeld-verlauf)
+  return h("section", { class: "karte", id }, h("div", { class: "karte-kopf" }, h("h2", null, spiel ? "Verlauf · Spielgeld" : "Verlauf")),
     hinweis || D.statistik({
       schluessel: spiel ? "spielgeld" : "gesamt-nur", punkte: D.punkteLesen(Z.verlauf), einheit: "eur",
       beschreibung: spiel ? "Verlauf des Spielgelds" : "Verlauf des Gesamtvermögens", tippHinweis: true,
       serien: (p) => [spiel ? { name: "Spielgeld", klasse: "l-gesamt", werte: D.reihe(p, "spielgeld_eur") }
         : { name: "Gesamtvermögen", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") }],
+      kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
+    }));
+}
+
+/** 1.4.8: gibt es Spielgeld-Punkte im Verlauf? (zweite Verlauf-Karte, solange echtes Geld liegt) */
+function spielgeldVerlaufDa(Z) {
+  return D.reihe(D.punkteLesen(Z.verlauf), "spielgeld_eur").length >= 2;
+}
+
+/** 1.4.8 (Tom 03.11.2026, „die Vermögens-Grafik, auch vom Musterdepot“): Verlauf des Meta-Depots gegen feste Drittelung und Bitcoin
+ *  halten – handy.json meta_depot.verlauf (Startpunkt je 1.000 €, Tagesschlüsse, Stand des Laufs); null, solange es keine zwei Punkte gibt */
+function metaVerlaufKarte(md) {
+  const m = ok(md);
+  const punkte = m && m.gestartet ? D.punkteLesen({ punkte: liste(m.verlauf) }) : [];
+  if (punkte.length < 2) return null;
+  return h("section", { class: "karte", id: "meta-verlauf" },
+    h("div", { class: "karte-kopf" }, h("h2", null, "Verlauf · Meta-Depot"), etikett("Rechengeld", "")),
+    D.statistik({
+      schluessel: "meta-verlauf", punkte, einheit: "eur", vorgabe: "alle", tippHinweis: false,
+      beschreibung: "Meta-Depot gegen feste Drittelung und Bitcoin halten, je ab 1.000 € Rechengeld",
+      serien: (p) => [
+        { name: "Meta-Depot", klasse: "l-haupt", werte: D.reihe(p, "meta_eur") },
+        { name: "Feste Drittelung", klasse: "l-zweit", werte: D.reihe(p, "drittel_eur") },
+        { name: "Bitcoin halten", klasse: "l-dritt", werte: D.reihe(p, "btc_eur") },
+      ],
       kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
     }));
 }
@@ -743,10 +769,16 @@ export function uebersicht(Z) {
   const out = [];
   // 1.3.14 (Tom 23.10.2026, Reihenfolge Teil 1): KI-Frage · Marktphase · Verlauf · Gesamtvermögen · Parken/Anhalten · Coin-Topf gesamt ·
   // Coin-Bot (mit dem Autopilot-Wahlschalter) · Raster-Bot · Trend-Bot · Musterdepots · Aktien · Wichtige Hinweise
+  // 1.4.8 (Tom 03.11.2026, „beim Öffnen zuoberst die Vermögens-Grafik, auch vom Musterdepot – Echtgeld als Allererstes, sofern im
+  // Spiel“): zuerst die Verlauf-Grafiken – Echtgeld (sofern > 0 €), Spielgeld (solange es Punkte hat), Meta-Depot –, dann KI-Frage,
+  // Marktphase und die Zahlen wie bisher
+  const sg = spielgeldModus(d);                                    // 1.4.1: echt 0 € -> Spielgeld-Ansicht
+  if (!sg) out.push(gesamtVerlaufKarte(Z, false));
+  if (sg || spielgeldVerlaufDa(Z)) out.push(gesamtVerlaufKarte(Z, true, sg ? "gesamt-verlauf" : "spielgeld-verlauf"));
+  const mv = metaVerlaufKarte(d.meta_depot);
+  if (mv) out.push(mv);
   if (A.erlaubt("frage")) out.push(kiSchnellKarte());
   out.push(marktphaseKarte(d.marktphase));
-  const sg = spielgeldModus(d);                                    // 1.4.1: echt 0 € -> Spielgeld-Ansicht
-  out.push(gesamtVerlaufKarte(Z, !!sg));
   out.push(sg ? spielgeldKarte(sg) : gesamtKarte(d, Z));
   const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert (offen; sonst Ergebnis der letzten 24 h)
   if (ak_) out.push(ak_);

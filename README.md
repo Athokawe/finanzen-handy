@@ -4,6 +4,12 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.8
+
+* **Vermögens-Grafiken zuoberst.** Die Übersicht beginnt mit dem Verlauf – echtes Geld als Allererstes, sofern welches liegt, dann das
+  Spielgeld, dann das Meta-Depot gegen feste Drittelung und Bitcoin halten (je ab 1.000 € Rechengeld; die Cloud liefert den Verlauf
+  seit dem Start am 30.10.). Erst danach kommen „An die KI“, Marktphase und die Zahlen.
+
 ## Neu in 1.4.7
 
 * **Beim Öffnen immer aktuell.** Sind die Nachrichten beim Öffnen älter als 30 Minuten, fordert die App selbst einen frischen Abruf
