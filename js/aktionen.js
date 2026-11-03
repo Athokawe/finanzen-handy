@@ -236,7 +236,7 @@ const wannText = (m) => "Sinnvoll, wenn: " + BREMS_WANN[m].wann.join(" · ");
 const SPEZ = {
   einschaetzung: { titel: "Frische KI-Einschätzung", text: "Die Cloud holt eine neue Einschätzung des Coin-Bots und schickt sie dir per Mail. Es wird nicht gehandelt.", ok: "Anfordern" },
   bericht_jetzt: { titel: "Bericht jetzt", text: "Frische Einschätzung und Bericht per Mail – es wird nie gehandelt.", ok: "Anfordern" },
-  news_jetzt: { titel: "News aktualisieren", ohneFrage: true },
+  news_jetzt: { titel: "News aktualisieren", ohneFrage: true },   // 1.4.6: kein Knopf mehr im News-Reiter (Cloud holt stündlich) – nur noch als Befehl („An die KI“)
   start: { titel: "Coin-Bot einschalten", text: "Der Coin-Bot entscheidet und handelt dann wieder selbst (mit Notbremse und Gewinnschutz)." },
   stopp: { titel: "Coin-Bot ausschalten", text: ERKLAERT.stopp + " Der Coin-Topf bleibt, wie er ist." },
   allesstopp: {
