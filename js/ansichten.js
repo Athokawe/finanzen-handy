@@ -529,6 +529,38 @@ function gesamtTeile(g) {
     });
 }
 
+/** 1.4.9 (Tom 03.11.2026, „unter dem Depotvermögen (egal welches) auch das Plus und/oder Minus des eingesetzten Geldes – grün +,
+ *  rot −“): eine Zeile unter dem Wert: „+ € 12,34 (+1,23 %) · eingesetzt € 1.000 seit 03.11.“ (grün/rot über .plus/.minus); null,
+ *  solange Wert oder Einsatz fehlen oder nichts eingesetzt ist (echt: der Zähler läuft, es liegt aber kein Geld). */
+/** 1.4.9: „+ € 5,00“ mit geschützten Leerzeichen (das Vorzeichen bleibt beim Betrag, auch in schmalen Spalten) */
+function plusFest(x) {
+  return F.euroPlus(x).replace(/ /g, "\u00a0");
+}
+function prozentFest(x) {
+  return F.prozent(x).replace(" %", "\u00a0%");
+}
+function einsatzZeile(wert, einsatz, id, zusatz) {
+  if (!F.istZahl(wert) || !F.istZahl(einsatz) || einsatz <= 0) return null;
+  const d = wert - einsatz;
+  return h("p", { class: "einsatz-zeile " + F.vorzeichenKlasse(d), id },
+    h("span", { class: "einsatz-diff" }, plusFest(d) + " (" + prozentFest(d / einsatz * 100) + ")"),
+    " ", h("span", { class: "klein gedimmt einsatz-basis" }, "eingesetzt " + F.euro(einsatz) + (zusatz ? " " + zusatz : "")));
+}
+/** 1.4.9: Kennzahl „Seit Start | + € 147,50 (+3,69 %)“ unter einer Verlauf-Grafik – gegen den Einsatz, unabhängig vom Zeitraum (der
+ *  Einsatz selbst steht auf der Karte darunter) */
+function seitStartKennzahl(wert, einsatz) {
+  if (!F.istZahl(wert) || !F.istZahl(einsatz) || einsatz <= 0) return [];
+  const d = wert - einsatz;
+  return [["Seit Start", plusFest(d) + " (" + prozentFest(d / einsatz * 100) + ")", F.vorzeichenKlasse(d)]];
+}
+/** 1.4.9: Einsatz je Spielgeld-Teil (handy.json spielgeld.je_eur, sonst 1.000 €) und der Teil eines Bots */
+function sgJe(sg) {
+  return sg && F.istZahl(sg.je_eur) ? sg.je_eur : 1000;
+}
+function sgTeil(sg, k) {
+  return sg ? liste(sg.teile).find((x) => istObj(x) && x.k === k) || null : null;
+}
+
 function gesamtKarte(d, Z) {
   const g = gesamtTeil(d);
   if (!g) return fehlerKarte("Gesamtvermögen", d.gesamt);
@@ -541,6 +573,8 @@ function gesamtKarte(d, Z) {
   return h("section", { class: "karte gesamt-karte", id: "gesamt-karte" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Gesamtvermögen"), h("span", { class: "klein gedimmt" }, "Coin-Topf + Bots + Aktien & ETFs")),
     h("div", { class: "gross", id: "gesamt-wert" }, F.euro(g.gesamt_eur)),
+    // 1.4.9: Einsatz echt = Einzahlungen − Auszahlungen bei Bitpanda seit dem Start des Zählers (handy.json gesamt.einsatz_eur)
+    einsatzZeile(g.gesamt_eur, g.einsatz_eur, "gesamt-einsatz", g.einsatz_seit && F.datum(g.einsatz_seit) ? "seit " + F.tag(g.einsatz_seit) : ""),
     h("p", { class: "klein gedimmt", id: "gesamt-stand" }, "Stand " + F.zeit(g.zeit) + gesamtVermerk(g)),
     mehrTeil("gesamt", [balken,
       zeilen(teile.map((t) => [h("span", { "data-teil": t.k }, h("span", { class: "punkt " + t.k }),
@@ -603,7 +637,7 @@ function kiSchnellKarte() {
 function zeigtEcht(status, topf) {
   return status !== "aus" && F.istZahl(topf);
 }
-function botKurz(status, topf, ergEur, ergPz, schatten, id, sd) {
+function botKurz(status, topf, ergEur, ergPz, schatten, id, sd, sgTeilBot, je) {
   if (zeigtEcht(status, topf)) {
     const erg = F.istZahl(ergEur) || F.istZahl(ergPz)
       ? h("p", { class: "klapp-kurz " + F.vorzeichenKlasse(F.istZahl(ergEur) ? ergEur : ergPz) },
@@ -613,11 +647,14 @@ function botKurz(status, topf, ergEur, ergPz, schatten, id, sd) {
   }
   // 1.4.1 (Spielgeld-Ansicht): mit „je 1.000 €“ der Cloud (schattendepots je_1000) dieselben Zahlen wie in der Musterdepot-Liste;
   // 1.4.3 (Gesamtprüfung 29.10.2026, #11): dazu die Basis „je 1.000 € seit 20.10.“ – der Bot-Reiter zeigt dieselbe Zeile
-  if (sd) return h("p", { class: "klapp-kurz", id }, "nur Musterdepot (Rechengeld): " + sdJeText(sd) + " · " + sdJeSeit(sd));
+  // 1.4.9: im Spielgeld der Wert des Teils (verkettet, wie in der Spielgeld-Karte) mit „+ € … · eingesetzt € 1.000“; die Vergleichszeile bleibt
+  const sgW = sgTeilBot && F.istZahl(sgTeilBot.wert_eur) ? sgTeilBot.wert_eur : null;
+  const kopf = sgW !== null ? [h("div", { class: "mittel", id: id + "-zahl" }, F.euro(sgW)), einsatzZeile(sgW, je || 1000, id + "-einsatz")] : [];
+  if (sd) return [kopf, h("p", { class: "klapp-kurz", id }, "nur Musterdepot (Rechengeld): " + sdJeText(sd) + " · " + sdJeSeit(sd))];
   const s = ok(schatten);
   const diff = s && F.istZahl(s.wert_eur) && F.istZahl(s.bitcoin_halten_eur) ? s.wert_eur - s.bitcoin_halten_eur : null;
-  return h("p", { class: "klapp-kurz", id }, "nur Musterdepot (Rechengeld)" + (s && F.istZahl(s.wert_eur) ? ": " + F.euro(s.wert_eur)
-    + (F.istZahl(s.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur) : "") + (diff !== null ? " → " + F.euroPlus(diff) : "") : ""));
+  return [kopf, h("p", { class: "klapp-kurz", id }, "nur Musterdepot (Rechengeld)" + (s && F.istZahl(s.wert_eur) ? ": " + F.euro(s.wert_eur)
+    + (F.istZahl(s.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur) : "") + (diff !== null ? " → " + F.euroPlus(diff) : "") : ""))];
 }
 
 // ------------------------------------------------------------------ Autopilot-Wahlschalter (1.3, Nutzer 18.10.2026)
@@ -652,6 +689,10 @@ function autopilotWahl(d, id) {
  *  je Teil (1.3.12) bleiben im „mehr“ der Gesamt-Karte. */
 function gesamtVerlaufKarte(Z, spiel, id = "gesamt-verlauf") {
   const hinweis = verlaufHinweis(Z);
+  // 1.4.9: „Seit Start · eingesetzt …“ als erste Kennzahl – Spielgeld gegen start_eur, echt gegen gesamt.einsatz_eur (unabhängig vom Zeitraum)
+  const d = Z.handy || {};
+  const sgT = ok(d.spielgeld) || {}, gT = gesamtTeil(d) || {};
+  const seitStart = spiel ? seitStartKennzahl(sgT.gesamt_eur, sgT.start_eur) : seitStartKennzahl(gT.gesamt_eur, gT.einsatz_eur);
   // 1.4.1: solange echt 0 € liegen, zeigt die Karte den Verlauf des Spielgelds (Verlaufspunkte spielgeld_eur, seit 23.10.2026)
   // 1.4.8: liegt echtes Geld, steht der Spielgeld-Verlauf als zweite Karte darunter (id spielgeld-verlauf)
   return h("section", { class: "karte", id }, h("div", { class: "karte-kopf" }, h("h2", null, spiel ? "Verlauf · Spielgeld" : "Verlauf")),
@@ -660,7 +701,7 @@ function gesamtVerlaufKarte(Z, spiel, id = "gesamt-verlauf") {
       beschreibung: spiel ? "Verlauf des Spielgelds" : "Verlauf des Gesamtvermögens", tippHinweis: true,
       serien: (p) => [spiel ? { name: "Spielgeld", klasse: "l-gesamt", werte: D.reihe(p, "spielgeld_eur") }
         : { name: "Gesamtvermögen", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") }],
-      kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
+      kennzahl: (p, serien) => [...seitStart, ...D.euroKennzahlen(serien[0].werte)],
     }));
 }
 
@@ -675,6 +716,8 @@ function metaVerlaufKarte(md) {
   const m = ok(md);
   const punkte = m && m.gestartet ? D.punkteLesen({ punkte: liste(m.verlauf) }) : [];
   if (punkte.length < 2) return null;
+  const seitStart = seitStartKennzahl((liste(m.vergleich).find((x) => istObj(x) && x.k === "meta") || {}).wert_eur,
+    F.istZahl(m.start_eur) && m.start_eur > 0 ? m.start_eur : 1000);   // 1.4.9
   return h("section", { class: "karte", id: "meta-verlauf" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Verlauf · Meta-Depot"), etikett("Rechengeld", "")),
     D.statistik({
@@ -685,7 +728,7 @@ function metaVerlaufKarte(md) {
         { name: "Feste Drittelung", klasse: "l-zweit", werte: D.reihe(p, "drittel_eur") },
         { name: "Bitcoin halten", klasse: "l-dritt", werte: D.reihe(p, "btc_eur") },
       ],
-      kennzahl: (p, serien) => D.euroKennzahlen(serien[0].werte),
+      kennzahl: (p, serien) => [...seitStart, ...D.euroKennzahlen(serien[0].werte)],
     }));
 }
 
@@ -702,6 +745,7 @@ function kryptoGesamtKarte(d, sg) {
   return h("section", { class: "karte", id: "krypto-gesamt" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Coin-Topf gesamt"), sg ? etikett("Spielgeld", "") : null),
     h("div", { class: "gross", id: "krypto-gesamt-wert" }, F.euro(summe)),
+    sg && teile.every(([, v]) => F.istZahl(v)) ? einsatzZeile(summe, teile.length * sgJe(sg), "krypto-gesamt-einsatz") : null,   // 1.4.9: 3 × 1.000 €
     zeilen(teile.map(([n, v, k]) => [n, F.istZahl(v) ? [F.euro(v), sgVeraltet(sgT(k))] : "–"])));
 }
 
@@ -729,17 +773,17 @@ function spielgeldKarte(sg) {
     el.style.width = Math.max(0, Math.min(100, t.anteil_prozent)).toFixed(1) + "%";
     return el;
   }));
-  const diff = F.istZahl(sg.start_eur) ? sg.gesamt_eur - sg.start_eur : null;
+  // 1.4.3: unvollständig nur hier nennen, wenn kein Teil selbst „letzter Stand“ trägt (der Hinweis steht einmal)
+  const basis = "je Bot gestartet mit " + F.euro(je) + (sg.vollstaendig === false && !teile.some((t) => t.veraltet === true) ? " · unvollständig" : "");
   return h("section", { class: "karte gesamt-karte", id: "spielgeld-karte" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Spielgeld"), etikett("Rechengeld", "")),
     h("div", { class: "gross", id: "spielgeld-wert" }, F.euro(sg.gesamt_eur)),
-    h("p", { class: "klein " + (diff !== null ? F.vorzeichenKlasse(diff) : "gedimmt") },
-      (diff !== null ? F.euroPlus(diff) + " seit Start (" + F.euro(sg.start_eur) + ")" : "") + " · je Bot gestartet mit " + F.euro(je)
-      // 1.4.3: unvollständig nur hier nennen, wenn kein Teil selbst „letzter Stand“ trägt (der Hinweis steht einmal)
-      + (sg.vollstaendig === false && !teile.some((t) => t.veraltet === true) ? " · unvollständig" : "")),
+    // 1.4.9: „+ € 147,50 (+3,69 %) · eingesetzt € 4.000 seit Start“ (grün/rot), darunter die Basis je Bot
+    einsatzZeile(sg.gesamt_eur, sg.start_eur, "spielgeld-einsatz", "seit Start · " + basis)
+      || h("p", { class: "klein gedimmt" }, basis),
     balken,
     zeilen(teile.map((t) => [h("span", null, h("span", { class: "punkt " + (SG_KLASSE[t.k] || "euro") }), " " + F.text(t.name)),
-      h("span", null, h("span", { class: F.vorzeichenKlasse(t.wert_eur - je) }, F.euro(t.wert_eur)), sgVeraltet(t))])),
+      h("span", null, h("span", { class: F.vorzeichenKlasse(t.wert_eur - je) }, F.euro(t.wert_eur) + " · " + plusFest(t.wert_eur - je)), sgVeraltet(t))])),   // 1.4.9: je 1.000 € eingesetzt
     h("p", { class: "klein gedimmt" }, "Echtes Geld: 0 € – die Übersicht zeigt das Spielgeld, bis wieder echtes Geld liegt."));
 }
 /** 1.4.3: Musterdepot-Eintrag der Cloud (schattendepots.liste) mit „je 1.000 € ab Vergleichsstart“ (je_1000) – sonst null */
@@ -795,6 +839,7 @@ export function uebersicht(Z) {
     const sgCoin = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === "coin") : null;
     out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
       h("div", { class: "gross", id: "kern-wert" }, F.euro(sgCoin ? sgCoin.wert_eur : k.wert_eur)),
+      sgCoin ? einsatzZeile(sgCoin.wert_eur, sgJe(sg), "kern-einsatz") : null,        // 1.4.9: je 1.000 € eingesetzt
       h("p", { class: "klapp-kurz" }, sgCoin ? ["Spielgeld · " + F.text(sgCoin.name), sgVeraltet(sgCoin)] : F.text(k.topf_name, "Coin-Topf") + " · hält " + pos),
       wahl,
       wahl ? mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
@@ -818,7 +863,7 @@ export function uebersicht(Z) {
   const r = ok(d.raster_bot);
   if (r) {
     out.push(karte(F.text(r.name, "Raster-Bot"), statusEtikett(r.status),
-      botKurz(r.status, r.topf_eur, r.ergebnis_eur, r.ergebnis_prozent, r.schatten, "raster-wert", sdJe(d, "raster_schatten")),
+      botKurz(r.status, r.topf_eur, r.ergebnis_eur, r.ergebnis_prozent, r.schatten, "raster-wert", sdJe(d, "raster_schatten"), sgTeil(sg, "raster"), sgJe(sg)),
       mehrTeil("raster", [
         zeilen([["Topf", F.euro(r.topf_eur)], ergebnisZeile("Ergebnis", r.ergebnis_eur, r.ergebnis_prozent),
           ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
@@ -831,7 +876,7 @@ export function uebersicht(Z) {
   if (t) {
     const ma = ok(t.markt_ampel);
     out.push(karte(F.text(t.name, "Trend-Bot"), statusEtikett(t.status),
-      botKurz(t.modus === "echt" ? t.status : "aus", t.topf_eur, t.ergebnis_eur, t.ergebnis_prozent, t.schatten, "trend-wert", sdJe(d, "trend_schatten")),
+      botKurz(t.modus === "echt" ? t.status : "aus", t.topf_eur, t.ergebnis_eur, t.ergebnis_prozent, t.schatten, "trend-wert", sdJe(d, "trend_schatten"), sgTeil(sg, "trend"), sgJe(sg)),
       h("button", { type: "button", class: "knopf-text seite-link", id: "trend-seite", onclick: () => seiteOeffnen("trend") }, "Trend-Seite ›"),
       mehrTeil("trend", [
         zeilen([
@@ -894,6 +939,7 @@ function aktienKarte(d, ak, offen, sg) {
   const pos = liste(ak.positionen);
   return karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
     h("div", { class: "mittel", id: offen ? "aktien-wert-seite" : "aktien-wert" }, F.euro(sgAk ? sgAk.wert_eur : ak.wert_eur)),
+    sgAk ? einsatzZeile(sgAk.wert_eur, sgJe(sg), offen ? "aktien-einsatz-seite" : "aktien-einsatz") : null,   // 1.4.9: je 1.000 € eingesetzt
     sgAk ? h("p", { class: "klapp-kurz" }, "Spielgeld · " + F.text(sgAk.name), sgVeraltet(sgAk)) : null,
     F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
     // 1.4.3 (#14): im Spielgeld ist die Liste das ECHTE Depot – so benannt
@@ -985,8 +1031,11 @@ function schattenKarte(sd, nur) {
         h("div", { class: "sd-inhalt klein" },
           e.testet ? h("p", null, F.text(e.testet)) : null,
           istObj(e.je_1000) && F.istZahl(e.je_1000.wert)
-            ? h("p", null, h("b", null, F.euro(e.je_1000.wert)), " gegen " + F.text(ref.name, "Referenz") + " " + F.euro(e.je_1000.referenz)
-              + " (je 1.000 € ab Vergleichsstart)" + (e.status ? " · " + F.text(e.status) : ""))
+            // 1.4.9: je 1.000 € eingesetzt – das eigene Plus/Minus (grün/rot) und das der Referenz
+            ? h("p", { class: "sd-je1000" }, h("b", null, F.euro(e.je_1000.wert)), " ", h("span", { class: F.vorzeichenKlasse(e.je_1000.wert - 1000) }, plusFest(e.je_1000.wert - 1000)),
+              " gegen " + F.text(ref.name, "Referenz") + " " + F.euro(e.je_1000.referenz),
+              F.istZahl(e.je_1000.referenz) ? [" ", h("span", { class: F.vorzeichenKlasse(e.je_1000.referenz - 1000) }, plusFest(e.je_1000.referenz - 1000))] : null,
+              " (je 1.000 € ab Vergleichsstart)" + (e.status ? " · " + F.text(e.status) : ""))
             : h("p", null, h("b", null, F.euro(e.wert_eur)), " gegen " + F.text(ref.name, "Referenz") + " " + F.euro(ref.wert_eur)
             + (weitere ? " · " + weitere : "") + (e.status ? " · " + F.text(e.status) : "")),
           a.text ? h("p", null, F.text(a.text)) : null,
@@ -1008,11 +1057,13 @@ function metaKarte(md) {
   const g = ok(m.gewichte) || {};
   const k = ok(m.kandidat);
   const u = ok(m.urteil);
+  const metaStart = F.istZahl(m.start_eur) && m.start_eur > 0 ? m.start_eur : 1000;   // 1.4.9: je 1.000 € eingesetzt (handy.json meta_depot.start_eur)
   return karte("Meta-Depot", u ? etikett(u.erfolg ? "Erfolg" : "gescheitert", u.erfolg ? "sd-klar-vorne" : "sd-klar-hinten") : etikett(F.text(m.phase), ""),
     h("p", { class: "klapp-kurz", id: "meta-kurz" }, v.map((x) => F.text(x.name) + " " + F.euro(x.wert_eur)).join(" · ")),
+    einsatzZeile((v.find((x) => x.k === "meta") || {}).wert_eur, metaStart, "meta-einsatz"),   // 1.4.9: das Meta-Depot gegen seinen Einsatz
     mehrTeil("meta-depot", [
-      zeilen(v.map((x) => [F.text(x.name), F.prozent(x.rendite_prozent, 1) + " · max. −" + F.zahl(x.max_drawdown_prozent, 1) + " %",
-        F.vorzeichenKlasse(x.rendite_prozent)])),
+      zeilen(v.map((x) => [F.text(x.name), (F.istZahl(x.wert_eur) ? plusFest(x.wert_eur - metaStart) + " · " : "") + F.prozent(x.rendite_prozent, 1)
+        + " · max. −" + F.zahl(x.max_drawdown_prozent, 1) + " %", F.vorzeichenKlasse(F.istZahl(x.wert_eur) ? x.wert_eur - metaStart : x.rendite_prozent)])),
       h("p", { class: "klein" }, "Jetzt " + F.text(m.phase) + ": " + ["raster", "trend", "schutz"].map((x) => META_NAMEN[x] + " " + (F.istZahl(g[x]) ? g[x] : "–") + " %").join(" · ")
         + (k ? (k.wechsel_ab ? " · " + F.text(k.phase) + " bestätigt, Wechsel ab " + F.tag(k.wechsel_ab) : " · " + F.text(k.phase) + " " + k.tage + "/" + k.von + " Tage bestätigt") : "")),
       h("p", { class: "klein gedimmt" }, m.umschichtungen + (m.umschichtungen === 1 ? " Umschichtung" : " Umschichtungen") + " · Kosten " + F.euro(m.kosten_eur)

@@ -4,6 +4,14 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.9
+
+* **Plus/Minus des eingesetzten Geldes.** Unter jedem Depotwert steht jetzt, was gegenüber dem eingesetzten Geld herausgekommen ist –
+  grün im Plus, rot im Minus, mit Prozent: Spielgeld (eingesetzt 4.000 €) und jeder Teil, Coin-, Raster-, Trend-Bot und Aktien (je
+  1.000 €), Coin-Topf gesamt, Meta-Depot (1.000 €), jedes Musterdepot (je 1.000 € ab Vergleichsstart, auch die Referenz) und das echte
+  Gesamtvermögen, sobald wieder Geld liegt (Einsatz = Einzahlungen minus Auszahlungen bei Bitpanda; die Cloud zählt sie ab jetzt).
+  Die Verlauf-Grafiken zeigen dazu als erste Kennzahl „Seit Start · eingesetzt …“.
+
 ## Neu in 1.4.8
 
 * **Vermögens-Grafiken zuoberst.** Die Übersicht beginnt mit dem Verlauf – echtes Geld als Allererstes, sofern welches liegt, dann das
