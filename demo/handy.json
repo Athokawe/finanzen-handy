@@ -84,7 +84,13 @@
   "coin_topf_zeit": "2026-10-11T06:20:00+00:00",
   "aktien_zeit": "2026-10-09T19:20:00+00:00",
   "trend_topf_zeit": null,
-  "raster_topf_zeit": "2026-10-11T06:20:55+00:00"
+  "raster_topf_zeit": "2026-10-11T06:20:55+00:00",
+  "einsatz_eur": 1500.0,
+  "einsatz_seit": "2026-09-01T06:00:00Z",
+  "eingezahlt_eur": 1500.0,
+  "ausgezahlt_eur": 0.0,
+  "ergebnis_eur": 52.06,
+  "ergebnis_prozent": 3.47
  },
  "kern_bot": {
   "name": "Coin-Bot",

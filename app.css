@@ -371,6 +371,10 @@ details.sd-eintrag[open] > summary { margin-bottom: 6px; }
 
 /* 1.2.19: „mehr“ zum Aufklappen (Übersicht, Alarme, Nachrichten) */
 .klapp-kurz { margin: 4px 0 0; font-size: 15px; color: var(--gedimmt); }
+/* 1.4.9: „+ € 12,34 (+1,23 %) · eingesetzt € 1.000“ unter jedem Depotwert – grün/rot über .plus/.minus */
+.einsatz-zeile { margin: 0 0 6px; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.einsatz-zeile .einsatz-basis { display: block; font-weight: 400; }
+.gesamt-karte .gross + .einsatz-zeile { margin-top: -6px; }
 details.klapp-mehr { margin-top: 6px; }
 details.klapp-mehr > summary { cursor: pointer; list-style: none; display: inline-block; padding: 10px 0 4px; color: var(--akzent);
   font-size: 15px; font-weight: 600; -webkit-tap-highlight-color: transparent; }
