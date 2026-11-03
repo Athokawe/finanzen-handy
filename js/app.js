@@ -21,14 +21,14 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.4.6";
+export const APP_VERSION = "1.4.7";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
 
 // verlauf: cloud/handy_verlauf.json (Statistik, 1.1.0); fehlerVerlauf: "nichtda" (entsteht erst mit dem nächsten Cloud-Lauf) oder Text
 // boersengaenge: cloud/boersengaenge.json (1.3.3: Börsengänge + Neuzugänge bei Bitpanda, Karte im News-Reiter)
-const Z = { handy: null, news: null, verlauf: null, boersengaenge: null, fehlerHandy: null, fehlerNews: null, fehlerVerlauf: null, fehlerBoersengaenge: null, laedt: false, geladenUm: 0 };
+const Z = { handy: null, news: null, verlauf: null, boersengaenge: null, fehlerHandy: null, fehlerNews: null, fehlerVerlauf: null, fehlerBoersengaenge: null, laedt: false, geladenUm: 0, newsAngefordert: 0 };
 const demo = new URLSearchParams(location.search).get("demo") === "1";
 let reiter = "uebersicht";
 let entsperrt = false;
@@ -381,6 +381,33 @@ async function auffrischen() {
   toast(fertig ? "Frisch gemessen ✓" : "Die Messung dauert länger – der Stand kommt mit dem nächsten Laden.");
 }
 
+// 1.4.7 (Tom 03.11.2026, „ab Öffnen IMMER aktuell“): sind die Nachrichten nach dem Laden älter als NEWS_ANFORDERN_AB_MS, fordert die App
+// selbst einen Abruf an (Modus news_jetzt, ohne JA, nur lesen – was früher der Knopf tat), höchstens alle NEWS_ANFORDERN_ABSTAND_MS (die
+// Cloud drosselt ohnehin 30 min und holt sparsam: nur neue Überschriften übersetzen). Still – kein Auftrag im Band, kein Toast, nur
+// „frische werden geholt …“ im News-Reiter; danach lädt die App nach 2 und 4 Minuten nach. Nie im Demo-Modus, nie solange ein normaler
+// Auftrag läuft (er müsste sonst warten), nur wenn handy.json den Modus erlaubt.
+const NEWS_ANFORDERN_AB_MS = 30 * 60000, NEWS_ANFORDERN_ABSTAND_MS = 30 * 60000;
+
+async function newsAnfordern() {
+  if (demo || !entsperrt || !Z.news || !Z.news.zeit) return;
+  const d = F.datum(Z.news.zeit);
+  if (!d || Date.now() - d.getTime() <= NEWS_ANFORDERN_AB_MS) return;
+  let zuletzt = 0;
+  try { zuletzt = parseInt(localStorage.getItem("fh_news_auto") || "0", 10) || 0; } catch { /* egal */ }
+  if (Date.now() - zuletzt < NEWS_ANFORDERN_ABSTAND_MS) return;
+  if (A.kiAuftragOffen() || !A.erlaubt("news_jetzt")) return;
+  try { localStorage.setItem("fh_news_auto", String(Date.now())); } catch { /* egal */ }
+  try {
+    await gh.auftrag("news_jetzt", "", "ki");
+    Z.newsAngefordert = Date.now();
+    if (entsperrt) zeichnen();
+    setTimeout(() => { if (entsperrt) laden(); }, 2 * 60000);
+    setTimeout(() => { if (entsperrt) laden(); }, 4 * 60000);
+  } catch (e) {
+    console.warn("News nicht angefordert:", e && e.message);   // beim nächsten Öffnen erneut (nach NEWS_ANFORDERN_ABSTAND_MS)
+  }
+}
+
 async function laden() {
   if (Z.laedt || !entsperrt) return;
   Z.laedt = true;
@@ -433,6 +460,7 @@ async function laden() {
   else if (Z.handy && Z.handy.format > 1) meldung("Die Cloud liefert ein neueres Datenformat – bitte die App neu laden (oben ziehen oder schließen und neu öffnen).", "info");
   else meldung("");
   zeichnen();
+  newsAnfordern();                                 // 1.4.7: beim Öffnen immer aktuell – ggf. frischen Abruf anfordern (still)
   if (Z.handy) {
     A.pruefen(Z.handy);
     pushPruefen();
