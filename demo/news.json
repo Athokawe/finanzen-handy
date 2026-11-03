@@ -2,7 +2,7 @@
  "_hinweis": "BEISPIEL-DATEN – alle Werte sind erfunden und gehören zu keinem echten Depot",
  "format": 1,
  "zeit": "2026-10-11T04:30:12+00:00",
- "anlass": "bericht",
+ "anlass": "auto",
  "zusammenfassung": {
   "rubriken": [
    {
@@ -11,8 +11,13 @@
     "text": "Beispiel: Bitcoin seitwärts, kleinere Coins etwas schwächer. (erfunden)"
    },
    {
+    "id": "aktien",
+    "name": "Aktien & Börse",
+    "text": "Beispiel: Börsen ruhig vor dem Wochenende, an der Wall Street uneinheitlich. (erfunden)"
+   },
+   {
     "id": "aktien_wirtschaft",
-    "name": "Wirtschaft & Börse",
+    "name": "Wirtschaft",
     "text": "Beispiel: Börsen ruhig vor dem Wochenende. (erfunden)"
    },
    {
@@ -114,8 +119,33 @@
    ]
   },
   {
+   "id": "aktien",
+   "name": "Aktien & Börse",
+   "schlagzeilen": [
+    {
+     "titel": "Beispiel: Leitindex schließt kaum verändert",
+     "quelle": "Beispiel-Börsenportal",
+     "zeit": "2026-10-10T17:40:00+00:00",
+     "link": "https://example.org/leitindex"
+    }
+   ]
+  },
+  {
+   "id": "aktien_welt",
+   "name": "Wall Street & Welt",
+   "schlagzeilen": [
+    {
+     "titel": "Beispiel: US-Börsen schließen uneinheitlich",
+     "titel_original": "Example: US stocks close mixed",
+     "quelle": "Beispiel-US-Sender",
+     "zeit": "2026-10-10T21:10:00+00:00",
+     "link": "https://example.org/us-stocks"
+    }
+   ]
+  },
+  {
    "id": "wirtschaft",
-   "name": "Wirtschaft & Börse",
+   "name": "Wirtschaft",
    "schlagzeilen": [
     {
      "titel": "Beispiel: Notierungen zum Wochenschluss kaum verändert",
@@ -143,5 +173,6 @@
     }
    ]
   }
- ]
+ ],
+ "zusammenfassung_zeit": "2026-10-11T01:30:12+00:00"
 }

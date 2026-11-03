@@ -21,7 +21,7 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.4.5";
+export const APP_VERSION = "1.4.6";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -403,9 +403,9 @@ async function laden() {
     Z.news = demo ? demoZeiten(b.value, versatz) : b.value;
     Z.fehlerNews = null;
   } else {
-    // news.json entsteht erst mit dem ersten Bericht bzw. „News aktualisieren“ – das ist kein Token-Fehler (handy.json kam ja an)
+    // news.json entsteht mit dem ersten Cloud-Lauf (seit 03.11.2026 stündlich, 1.4.6) – das ist kein Token-Fehler (handy.json kam ja an)
     Z.fehlerNews = (b.reason && b.reason.art === "nichtda" && a.status === "fulfilled")
-      ? "Noch keine News geholt. Tippe auf „News aktualisieren“ – in ein paar Minuten sind sie da (sonst kommen sie mit dem nächsten Bericht)."
+      ? "Noch keine News da – sie kommen mit dem nächsten Cloud-Lauf (stündlich)."
       : (b.reason && b.reason.message ? b.reason.message : "News nicht lesbar.");
   }
   if (bg.status === "fulfilled" && bg.value && typeof bg.value === "object") {

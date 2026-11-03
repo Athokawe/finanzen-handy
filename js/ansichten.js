@@ -1495,14 +1495,18 @@ function boersengaengeKarte(d, fehler) {
 
 export function news(Z) {
   const out = [];
-  out.push(reihe(A.knopf("news_jetzt", "News aktualisieren", "primaer")));
+  // 1.4.6 (Tom 03.11.2026, „kein Refresh-Knopf“): kein Knopf mehr – die Cloud frischt news.json stündlich auf (Finanz-App, ki.yml-Schritt
+  // „Nachrichten“), die App lädt beim Öffnen und bei der Rückkehr (app.js laden). Der Modus news_jetzt bleibt in der Befehlsliste („An die KI“).
   const n = Z.news;
   if (!n) {
     out.push(Z.fehlerNews ? h("p", { class: "fehlerteil" }, Z.fehlerNews) : leer("News werden geladen …"));
     out.push(boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge));
     return out;
   }
-  out.push(h("p", { class: "klein gedimmt" }, "Abgerufen " + F.vor(n.zeit) + " (" + F.zeit(n.zeit) + ", " + (n.anlass === "news_jetzt" ? "von Hand" : "für den Bericht") + "). Neu holen geht höchstens alle 30 Minuten."));
+  // 1.4.6: anlass „auto“ = stündlicher Cloud-Schritt; der KI-Text ist dann oft älter als die Schlagzeilen (zusammenfassung_zeit)
+  const anlass = { news_jetzt: "von Hand", auto: "automatisch", bericht: "für den Bericht" }[n.anlass] || "aus der Cloud";
+  const kiZeit = n.zusammenfassung_zeit && n.zusammenfassung_zeit !== n.zeit && ok(n.zusammenfassung) ? " · KI-Text " + F.zeit(n.zusammenfassung_zeit) : "";
+  out.push(h("p", { class: "klein gedimmt" }, "Abgerufen " + F.vor(n.zeit) + " (" + F.zeit(n.zeit) + ", " + anlass + ")" + kiZeit + ". Die Cloud holt stündlich neu; die App lädt beim Öffnen nach."));
   if (n.fehler) out.push(h("p", { class: "fehlerteil" }, F.text(n.fehler)));
   const z = ok(n.zusammenfassung);
   const meldung = (s) => [schlagzeile(s), istObj(s) ? einordnungTeil(s.einordnung) : null];
