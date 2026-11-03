@@ -375,6 +375,13 @@ details.sd-eintrag[open] > summary { margin-bottom: 6px; }
 .einsatz-zeile { margin: 0 0 6px; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .einsatz-zeile .einsatz-basis { display: block; font-weight: 400; }
 .gesamt-karte .gross + .einsatz-zeile { margin-top: -6px; }
+/* 1.4.10: Kursbewegungen – je Eintrag Name links, Bewegung rechts (grün/rot), darunter Zeit · Kurs · 24 h */
+.bw-eintrag { padding: 9px 0; border-top: 1px solid var(--rand); }
+.bw-liste .bw-eintrag:first-child { border-top: 0; }
+.bw-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.bw-name { font-weight: 600; }
+.bw-wert { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bw-unter { margin-top: 2px; }
 details.klapp-mehr { margin-top: 6px; }
 details.klapp-mehr > summary { cursor: pointer; list-style: none; display: inline-block; padding: 10px 0 4px; color: var(--akzent);
   font-size: 15px; font-weight: 600; -webkit-tap-highlight-color: transparent; }

@@ -59,6 +59,54 @@
   "schluss": "Beschreibung der Lage aus Kursdaten, keine Vorhersage. Gehandelt wird nur nach den Regeln der Bots oder nach deinem JA.",
   "stand": "2026-10-11T06:20:00+00:00"
  },
+ "bewegungen": {
+  "zeit": "2026-10-11T06:20:00+00:00",
+  "schwelle": 5.0,
+  "geprueft": 118,
+  "fehler": null,
+  "liste": [
+   {
+    "zeit": "2026-10-11T06:20:00+00:00",
+    "art": "bewegung",
+    "symbol": "SOL",
+    "name": "Solana",
+    "prozent_24h": 8.2,
+    "preis_eur": 165.3,
+    "stufe": 5.0,
+    "text": "Solana +8,2 % in 24 h · 165,30 €"
+   },
+   {
+    "zeit": "2026-10-11T05:20:00+00:00",
+    "art": "bewegung",
+    "symbol": "ADA",
+    "name": "Cardano",
+    "prozent_24h": -7.1,
+    "preis_eur": 0.241,
+    "stufe": 5.0,
+    "text": "Cardano −7,1 % in 24 h · 0,2410 €"
+   },
+   {
+    "zeit": "2026-10-11T04:20:00+00:00",
+    "art": "bewegung",
+    "symbol": "ETH",
+    "name": "Ethereum",
+    "prozent_24h": -5.6,
+    "preis_eur": 2890.1,
+    "stufe": 5.0,
+    "text": "Ethereum −5,6 % in 24 h · 2.890,10 €"
+   },
+   {
+    "zeit": "2026-10-10T20:20:00+00:00",
+    "art": "bewegung",
+    "symbol": "DOGE",
+    "name": "Dogecoin",
+    "prozent_24h": 12.4,
+    "preis_eur": 0.1823,
+    "stufe": 10.0,
+    "text": "Dogecoin +12,4 % in 24 h · 0,1823 €"
+   }
+  ]
+ },
  "gesamt": {
   "name": "Gesamtvermögen",
   "gesamt_eur": 1552.06,

@@ -529,9 +529,43 @@ function gesamtTeile(g) {
     });
 }
 
-/** 1.4.9 (Tom 03.11.2026, „unter dem Depotvermögen (egal welches) auch das Plus und/oder Minus des eingesetzten Geldes – grün +,
- *  rot −“): eine Zeile unter dem Wert: „+ € 12,34 (+1,23 %) · eingesetzt € 1.000 seit 03.11.“ (grün/rot über .plus/.minus); null,
- *  solange Wert oder Einsatz fehlen oder nichts eingesetzt ist (echt: der Zähler läuft, es liegt aber kein Geld). */
+/** 1.4.10 (Tom 03.11.2026, „Bitpanda-Mitteilungen automatisch in HDA und LTA“ – die Pushes sind nicht auslesbar, deshalb nachgebaut):
+ *  Karte „Kursbewegungen“ – Coins von Bitpanda mit mindestens 5 % Bewegung in 24 h (handy.json bewegungen; die Cloud
+ *  rechnet stündlich aus CoinGecko-Kursen, bewegungen.py). Wie jede Rubrik der Übersicht (1.2.19) zuerst nur eine Kurzzeile mit den
+ *  neuesten drei, alle Einträge und die Erklärung hinter „mehr“; null,
+ *  solange die Cloud das Feld nicht liefert. Nur Anzeige, keine Knöpfe. */
+function kursText(p) {
+  if (!F.istZahl(p)) return "–";
+  return p >= 1 ? F.euro(p) : F.zahl(p, p >= 0.01 ? 4 : 6) + "\u00a0€";
+}
+function bewegungenKarte(roh) {
+  const b = istObj(roh) ? roh : null;
+  if (!b) return null;
+  const eintraege = liste(b.liste).filter(istObj);
+  const schwelle = F.istZahl(b.schwelle) ? b.schwelle : 5;
+  const eintrag = (x) => h("div", { class: "bw-eintrag" },
+    h("div", { class: "bw-kopf" },
+      h("span", { class: "bw-name" }, F.text(x.name, x.symbol),
+        x.symbol && x.name && String(x.symbol).toUpperCase() !== String(x.name).toUpperCase() ? h("span", { class: "klein gedimmt" }, " " + F.text(x.symbol)) : null),
+      h("span", { class: "bw-wert " + F.vorzeichenKlasse(x.prozent_24h) }, F.prozent(x.prozent_24h, 1).replace(" %", "\u00a0%"))),
+    h("div", { class: "klein gedimmt bw-unter" }, F.zeit(x.zeit) + (F.istZahl(x.preis_eur) ? " · " + kursText(x.preis_eur) : "") + " · 24 h"));
+  const block = (l) => h("div", { class: "bw-liste" }, l.map(eintrag));
+  const hinweis = h("p", { class: "klein gedimmt" }, "Wie die Bitpanda-Pushes: Coins von Bitpanda, die sich in 24 Stunden um mindestens "
+    + F.zahl(schwelle, 0) + " % bewegt haben (Kurse von CoinGecko, stündlich). Jede Bewegung wird einmal gemeldet. Nur Anzeige.");
+  const kopf = h("div", { class: "karte-kopf" }, h("h2", null, "Kursbewegungen"), h("span", { class: "klein gedimmt" }, b.zeit ? "Stand " + F.zeit(b.zeit) : ""));
+  if (!eintraege.length) {
+    return h("section", { class: "karte", id: "bewegungen" }, kopf,
+      h("p", { class: b.fehler ? "fehlerteil" : "klein gedimmt", id: "bw-leer" },
+        b.fehler ? "Kursbewegungen nicht lesbar: " + F.text(b.fehler) : "Gerade keine Bewegung über " + F.zahl(schwelle, 0) + " %."),
+      mehrTeil("bewegungen", [hinweis], "was ist das?"));
+  }
+  const kurz = h("p", { class: "klapp-kurz", id: "bw-kurz" },
+    eintraege.slice(0, 3).flatMap((x, i) => [i ? " · " : null,
+      h("span", { class: F.vorzeichenKlasse(x.prozent_24h) }, F.text(x.name, x.symbol) + "\u00a0" + F.prozent(x.prozent_24h, 1).replace(" %", "\u00a0%"))]),
+    eintraege.length > 3 ? " · +" + (eintraege.length - 3) : null);
+  return h("section", { class: "karte", id: "bewegungen" }, kopf, kurz,
+    mehrTeil("bewegungen", [block(eintraege), hinweis], "mehr – alle " + eintraege.length));
+}
 /** 1.4.9: „+ € 5,00“ mit geschützten Leerzeichen (das Vorzeichen bleibt beim Betrag, auch in schmalen Spalten) */
 function plusFest(x) {
   return F.euroPlus(x).replace(/ /g, "\u00a0");
@@ -539,6 +573,9 @@ function plusFest(x) {
 function prozentFest(x) {
   return F.prozent(x).replace(" %", "\u00a0%");
 }
+/** 1.4.9 (Tom 03.11.2026, „unter dem Depotvermögen (egal welches) auch das Plus und/oder Minus des eingesetzten Geldes – grün +,
+ *  rot −“): eine Zeile unter dem Wert: „+ € 12,34 (+1,23 %) · eingesetzt € 1.000 seit 03.11.“ (grün/rot über .plus/.minus); null,
+ *  solange Wert oder Einsatz fehlen oder nichts eingesetzt ist (echt: der Zähler läuft, es liegt aber kein Geld). */
 function einsatzZeile(wert, einsatz, id, zusatz) {
   if (!F.istZahl(wert) || !F.istZahl(einsatz) || einsatz <= 0) return null;
   const d = wert - einsatz;
@@ -823,6 +860,8 @@ export function uebersicht(Z) {
   if (mv) out.push(mv);
   if (A.erlaubt("frage")) out.push(kiSchnellKarte());
   out.push(marktphaseKarte(d.marktphase));
+  const bw = bewegungenKarte(d.bewegungen);                       // 1.4.10: Kursbewegungen „wie die Bitpanda-Pushes“
+  if (bw) out.push(bw);
   out.push(sg ? spielgeldKarte(sg) : gesamtKarte(d, Z));
   const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert (offen; sonst Ergebnis der letzten 24 h)
   if (ak_) out.push(ak_);

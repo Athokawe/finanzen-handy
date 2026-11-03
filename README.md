@@ -4,6 +4,13 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.10
+
+* **Kursbewegungen – wie die Bitpanda-Pushes.** Neue Karte in der Übersicht unter der Marktphase: Coins von Bitpanda, die sich in
+  24 Stunden um mindestens 5 % bewegt haben (grün/rot, mit Kurs) – die Cloud rechnet das stündlich aus
+  öffentlichen Kursen, jede Bewegung wird einmal gemeldet. Zuerst eine Kurzzeile mit den neuesten drei, alle Einträge mit Zeit und Kurs
+  hinter „mehr“. Nur Anzeige.
+
 ## Neu in 1.4.9
 
 * **Plus/Minus des eingesetzten Geldes.** Unter jedem Depotwert steht jetzt, was gegenüber dem eingesetzten Geld herausgekommen ist –
