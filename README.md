@@ -4,6 +4,12 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.11
+
+* **Neue Coins bei Bitpanda.** Die Karte „Kursbewegungen“ meldet jetzt auch neu gelistete Coins – wie der Spotlight-Push „Ab sofort
+  kannst du … kaufen“ – mit dem Etikett „neu bei Bitpanda“ und dem ersten Kurs, in der Kurzzeile als „Kor Protocol neu“. Die Cloud
+  erkennt sie stündlich, sobald sie handelbar sind. Nur Anzeige – die Bots handeln neue Coins nicht.
+
 ## Neu in 1.4.10
 
 * **Kursbewegungen – wie die Bitpanda-Pushes.** Neue Karte in der Übersicht unter der Marktphase: Coins von Bitpanda, die sich in
