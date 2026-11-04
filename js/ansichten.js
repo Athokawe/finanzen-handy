@@ -533,7 +533,9 @@ function gesamtTeile(g) {
  *  Karte „Kursbewegungen“ – Coins von Bitpanda mit mindestens 5 % Bewegung in 24 h (handy.json bewegungen; die Cloud
  *  rechnet stündlich aus CoinGecko-Kursen, bewegungen.py). Wie jede Rubrik der Übersicht (1.2.19) zuerst nur eine Kurzzeile mit den
  *  neuesten drei, alle Einträge und die Erklärung hinter „mehr“; null,
- *  solange die Cloud das Feld nicht liefert. Nur Anzeige, keine Knöpfe. */
+ *  solange die Cloud das Feld nicht liefert. Nur Anzeige, keine Knöpfe.
+ *  1.4.11 (Tom 04.11.2026, Push „Bitpanda Spotlight: Ab sofort kannst du Kor Protocol (KOR) kaufen“): auch neu bei Bitpanda gelistete
+ *  Coins (art „neu“) – Etikett „neu bei Bitpanda“ statt Prozent, in der Kurzzeile „Kor Protocol neu“. */
 function kursText(p) {
   if (!F.istZahl(p)) return "–";
   return p >= 1 ? F.euro(p) : F.zahl(p, p >= 0.01 ? 4 : 6) + "\u00a0€";
@@ -547,11 +549,13 @@ function bewegungenKarte(roh) {
     h("div", { class: "bw-kopf" },
       h("span", { class: "bw-name" }, F.text(x.name, x.symbol),
         x.symbol && x.name && String(x.symbol).toUpperCase() !== String(x.name).toUpperCase() ? h("span", { class: "klein gedimmt" }, " " + F.text(x.symbol)) : null),
-      h("span", { class: "bw-wert " + F.vorzeichenKlasse(x.prozent_24h) }, F.prozent(x.prozent_24h, 1).replace(" %", "\u00a0%"))),
-    h("div", { class: "klein gedimmt bw-unter" }, F.zeit(x.zeit) + (F.istZahl(x.preis_eur) ? " · " + kursText(x.preis_eur) : "") + " · 24 h"));
+      x.art === "neu" ? etikett("neu bei Bitpanda", "bw-wert bw-neu")
+        : h("span", { class: "bw-wert " + F.vorzeichenKlasse(x.prozent_24h) }, F.prozent(x.prozent_24h, 1).replace(" %", "\u00a0%"))),
+    h("div", { class: "klein gedimmt bw-unter" }, F.zeit(x.zeit) + (F.istZahl(x.preis_eur) ? " · " + kursText(x.preis_eur) : "") + (x.art === "neu" ? "" : " · 24 h")));
   const block = (l) => h("div", { class: "bw-liste" }, l.map(eintrag));
   const hinweis = h("p", { class: "klein gedimmt" }, "Wie die Bitpanda-Pushes: Coins von Bitpanda, die sich in 24 Stunden um mindestens "
-    + F.zahl(schwelle, 0) + " % bewegt haben (Kurse von CoinGecko, stündlich). Jede Bewegung wird einmal gemeldet. Nur Anzeige.");
+    + F.zahl(schwelle, 0) + " % bewegt haben (Kurse von CoinGecko, stündlich), und neu bei Bitpanda gelistete Coins, sobald sie handelbar sind. "
+    + "Jede Meldung kommt einmal. Nur Anzeige – die Bots handeln neue Coins nicht.");
   const kopf = h("div", { class: "karte-kopf" }, h("h2", null, "Kursbewegungen"), h("span", { class: "klein gedimmt" }, b.zeit ? "Stand " + F.zeit(b.zeit) : ""));
   if (!eintraege.length) {
     return h("section", { class: "karte", id: "bewegungen" }, kopf,
@@ -561,7 +565,8 @@ function bewegungenKarte(roh) {
   }
   const kurz = h("p", { class: "klapp-kurz", id: "bw-kurz" },
     eintraege.slice(0, 3).flatMap((x, i) => [i ? " · " : null,
-      h("span", { class: F.vorzeichenKlasse(x.prozent_24h) }, F.text(x.name, x.symbol) + "\u00a0" + F.prozent(x.prozent_24h, 1).replace(" %", "\u00a0%"))]),
+      x.art === "neu" ? h("span", { class: "bw-neu-kurz" }, F.text(x.name, x.symbol) + "\u00a0neu")
+        : h("span", { class: F.vorzeichenKlasse(x.prozent_24h) }, F.text(x.name, x.symbol) + "\u00a0" + F.prozent(x.prozent_24h, 1).replace(" %", "\u00a0%"))]),
     eintraege.length > 3 ? " · +" + (eintraege.length - 3) : null);
   return h("section", { class: "karte", id: "bewegungen" }, kopf, kurz,
     mehrTeil("bewegungen", [block(eintraege), hinweis], "mehr – alle " + eintraege.length));
