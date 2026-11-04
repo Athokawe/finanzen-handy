@@ -4,6 +4,12 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.12
+
+* **Musterdepot „Neue Coins“.** Die Cloud kauft mit Rechengeld jeden neu bei Bitpanda gelisteten Coin für 100 € und verkauft ihn nach
+  7 Tagen – gegen dasselbe Geld zur selben Zeit in Bitcoin. Es steht unter „Musterdepots“ in der Gruppe „Coin-Teil“ als „Bitcoin zur
+  selben Zeit“ vs. „Neue Coins“; ein Urteil gibt es wie bei allen Musterdepots frühestens nach 14 Tagen.
+
 ## Neu in 1.4.11
 
 * **Neue Coins bei Bitpanda.** Die Karte „Kursbewegungen“ meldet jetzt auch neu gelistete Coins – wie der Spotlight-Push „Ab sofort

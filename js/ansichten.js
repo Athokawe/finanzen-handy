@@ -1020,7 +1020,9 @@ const sdTag = (iso) => {
 const SD_GRUPPEN = [
   ["Coin-Teil", [["raster_schatten", "„Bitcoin halten“ vs. „Raster“"], ["trend_schatten", "„Bitcoin halten“ vs. „Trend“"],
     ["gewinner_schatten", "„Bitcoin halten“ vs. „Tagesgewinner“"], ["trend_gegen_raster", "„Raster“ vs. „Trend“"],
-    ["gewinner_gegen_raster", "„Raster“ vs. „Tagesgewinner“"], ["gewinner_gegen_trend", "„Trend“ vs. „Tagesgewinner“"]]],
+    ["gewinner_gegen_raster", "„Raster“ vs. „Tagesgewinner“"], ["gewinner_gegen_trend", "„Trend“ vs. „Tagesgewinner“"],
+    // 1.4.12 (Tom 04.11.2026): Musterdepot „Neue Coins“ – jeder neu gelistete Coin 100 € für 7 Tage gegen dasselbe Geld in Bitcoin
+    ["neu_coins_schatten", "„Bitcoin zur selben Zeit“ vs. „Neue Coins“"]]],
   ["Coin-Bot", [["ki_schatten", "„Bitcoin halten“ vs. „KI“"], ["ki_gegen_regeln", "„Regeln“ vs. „KI“"],
     ["coin_leiter", "„Bitcoin halten“ vs. „Regeln“"], ["coin_einfach", "„Regeln“ vs. „Rückkauf einfach“"],
     ["coin_alt_neu", "„Regeln alt“ vs. „Regeln neu“"], ["trend_straff", "„Trend“ vs. „Trend straff“"],
