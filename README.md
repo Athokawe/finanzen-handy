@@ -4,6 +4,14 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.13
+
+* **Ehrliche Rückmeldung beim Kreispfeil ↻.** Lehnt GitHub den Auftrag ab, sagt die App das jetzt samt Grund, statt still nur neu zu
+  laden. Ist nach 90 Sekunden kein Lauf bei GitHub zu sehen, heißt es „↻ ist bei GitHub nicht angekommen – bitte noch einmal
+  drücken“, und der nächste Druck schickt sofort wieder. „Die Messung dauert länger“ kommt nur noch, wenn der Lauf wirklich läuft;
+  endet er rot, steht dort nicht mehr „Frisch gemessen ✓“.
+* **News:** Kommen die Nachrichten vom Mac, steht unter dem Stand „Der Mac holt alle 20 Minuten neu“.
+
 ## Neu in 1.4.12
 
 * **Musterdepot „Neue Coins“.** Die Cloud kauft mit Rechengeld jeden neu bei Bitpanda gelisteten Coin für 100 € und verkauft ihn nach
