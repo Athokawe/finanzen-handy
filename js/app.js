@@ -21,7 +21,7 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.4.12";
+export const APP_VERSION = "1.4.13";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -345,8 +345,13 @@ function demoZeiten(x, versatz) {
 // 1.3.13 (22.10.2026, Tom: „Systemrefresh mit dem Kreispfeil“): ↻ lässt die Cloud frisch bei Bitpanda messen (express.yml, Modus
 // „auffrischen“: Bilanz-Punkt, Aktien-Bestand, handy.json – nur lesen, nie eine Order), zeigt sofort den letzten Stand und lädt nach,
 // sobald der Lauf fertig ist (höchstens ~3 min). Innerhalb von 2 min nach der letzten Messung nur neu laden (kein neuer Lauf).
+// 1.4.13 (Tom 05.11.2026: ein ↻ in der GitHub-Störung vom 04.11. ging verloren – die App lud nur still neu bzw. meldete „dauert länger“,
+// als käme der Stand gleich): lehnt GitHub den Auftrag ab, sagt die App es (mit dem Grund); ist nach AUFFRISCHEN_VERWORFEN_MS noch kein
+// passender Lauf zu sehen, gilt er als nicht angekommen (wie bei den übrigen Aufträgen, aktionen.js VERWORFEN_NACH_MS). „Dauert länger“
+// nur noch für einen Lauf, der wirklich läuft; ein Lauf, der rot endet, heißt nicht mehr „Frisch gemessen ✓“.
 const AUFFRISCHEN_PAUSE_MS = 2 * 60000;
 const AUFFRISCHEN_MAX_MS = 3 * 60000;
+const AUFFRISCHEN_VERWORFEN_MS = A.VERWORFEN_NACH_MS;
 let auffrischenSeit = 0;
 
 async function auffrischen() {
@@ -355,8 +360,9 @@ async function auffrischen() {
   const start = Date.now();
   try {
     await gh.auftrag("auffrischen", "", "express");
-  } catch {
-    laden();                                     // Cloud kennt den Modus noch nicht o. Ä.: wie bisher nur neu laden
+  } catch (e) {
+    laden();                                     // 1.4.13: nie mehr still – Grund nennen, der nächste ↻ schickt gleich wieder
+    toast("↻ nicht angekommen: " + ((e && e.message) || "GitHub hat den Auftrag nicht angenommen – bitte gleich noch einmal drücken."));
     return;
   }
   auffrischenSeit = start;
@@ -366,19 +372,24 @@ async function auffrischen() {
   toast("Misst frisch bei Bitpanda – etwa eine Minute.");
   laden();
   const seit = new Date(start - 60000).toISOString();
-  let fertig = false;
+  let fertig = null, gesehen = false;
   while (!fertig && Date.now() - start < AUFFRISCHEN_MAX_MS && entsperrt) {
     await new Promise((r) => setTimeout(r, 10000));
     try {
-      const l = await gh.laeufe("express");
-      fertig = l.some((x) => x.titel === "Express: auffrischen" && x.erstellt >= seit && x.status === "completed");
+      const eigen = (await gh.laeufe("express")).filter((x) => x.titel === "Express: auffrischen" && x.erstellt >= seit);
+      gesehen = gesehen || eigen.length > 0;
+      fertig = eigen.find((x) => x.status === "completed") || null;
     } catch { /* Netz kurz weg: weiter warten */ }
+    if (!gesehen && Date.now() - start >= AUFFRISCHEN_VERWORFEN_MS) break;   // 1.4.13: bei GitHub nie angekommen
   }
   Z.misst = false;
   $("knopf-aktualisieren").classList.remove("dreht");
+  if (!gesehen) auffrischenSeit = 0;             // 1.4.13: nicht angekommen -> der nächste ↻ schickt sofort wieder (keine 2-min-Pause)
   if (!entsperrt) return;
   await laden();
-  toast(fertig ? "Frisch gemessen ✓" : "Die Messung dauert länger – der Stand kommt mit dem nächsten Laden.");
+  toast(fertig ? (fertig.ergebnis === "success" ? "Frisch gemessen ✓" : "Die Messung ist fehlgeschlagen – bitte später noch einmal ↻ drücken.")
+    : !gesehen ? "↻ ist bei GitHub nicht angekommen – bitte noch einmal drücken."
+    : "Die Messung dauert länger – der Stand kommt mit dem nächsten Laden.");
 }
 
 // 1.4.7 (Tom 03.11.2026, „ab Öffnen IMMER aktuell“): sind die Nachrichten nach dem Laden älter als NEWS_ANFORDERN_AB_MS, fordert die App
