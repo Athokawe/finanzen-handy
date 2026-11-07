@@ -108,7 +108,12 @@
      "titel": "Beispiel-Schlagzeile: Bitcoin hält sich über 70.000 €",
      "quelle": "Beispiel-Quelle",
      "zeit": "2026-10-11T03:10+00:00",
-     "link": "https://example.com/beispiel-1"
+     "link": "https://example.com/beispiel-1",
+     "zusammenfassung": "Bitcoin hielt sich über Nacht knapp unter seinem Wochenhoch. Händler warten laut dem Artikel auf neue Zahlen zur US-Inflation, die am Mittwoch kommen. Die Zuflüsse in die US-Bitcoin-ETFs (börsengehandelte Fonds) waren in der Woche positiv. Kurzfristig spricht das eher für einen ruhigen Kurs ohne große Sprünge.",
+     "stimmung": {
+      "objekt": "bitcoin",
+      "richtung": "neutral"
+     }
     },
     {
      "titel": "Beispiel: <b>Kein HTML</b> – wird als Text gezeigt",
@@ -126,7 +131,13 @@
      "titel": "Beispiel: Leitindex schließt kaum verändert",
      "quelle": "Beispiel-Börsenportal",
      "zeit": "2026-10-10T17:40:00+00:00",
-     "link": "https://example.org/leitindex"
+     "link": "https://example.org/leitindex",
+     "zusammenfassung": "Die europäischen Börsen schlossen die Woche leicht im Minus. Belastet haben vor allem Technologiewerte, während Versorger zulegten. Der Artikel nennt Sorgen um die Zinsen als Hauptgrund. Für den Welt-ETF heißt das eher eine kleine Delle als eine Wende.",
+     "zf_kurz": true,
+     "stimmung": {
+      "objekt": "welt_etf",
+      "richtung": "belastend"
+     }
     }
    ]
   },
@@ -139,7 +150,8 @@
      "titel_original": "Example: US stocks close mixed",
      "quelle": "Beispiel-US-Sender",
      "zeit": "2026-10-10T21:10:00+00:00",
-     "link": "https://example.org/us-stocks"
+     "link": "https://example.org/us-stocks",
+     "zf_grund": "Kein frei lesbarer Text (Bezahlschranke oder Seite gesperrt)."
     }
    ]
   },
@@ -189,8 +201,302 @@
    "offen": false,
    "prozent": -0.4,
    "text": "Börse geschlossen · Freitag −0,4 %",
-   "tag": "2026-10-10"
+   "tag": "2026-10-10",
+   "verlauf": [
+    [
+     "2026-10-09T15:00:00+00:00",
+     141.2
+    ],
+    [
+     "2026-10-10T07:00:00+00:00",
+     141.2
+    ],
+    [
+     "2026-10-10T08:00:00+00:00",
+     141.19
+    ],
+    [
+     "2026-10-10T09:00:00+00:00",
+     141.08
+    ],
+    [
+     "2026-10-10T10:00:00+00:00",
+     141.07
+    ],
+    [
+     "2026-10-10T11:00:00+00:00",
+     140.96
+    ],
+    [
+     "2026-10-10T12:00:00+00:00",
+     140.95
+    ],
+    [
+     "2026-10-10T13:00:00+00:00",
+     140.84
+    ],
+    [
+     "2026-10-10T14:00:00+00:00",
+     140.83
+    ],
+    [
+     "2026-10-10T15:00:00+00:00",
+     140.72
+    ]
+   ]
   },
-  "verlauf": []
+  "verlauf": [
+   [
+    "2026-10-10T17:30:00+00:00",
+    2137700000000
+   ],
+   [
+    "2026-10-10T17:50:00+00:00",
+    2134695218462
+   ],
+   [
+    "2026-10-10T18:10:00+00:00",
+    2131690436923
+   ],
+   [
+    "2026-10-10T18:30:00+00:00",
+    2128685655385
+   ],
+   [
+    "2026-10-10T18:50:00+00:00",
+    2125680873846
+   ],
+   [
+    "2026-10-10T19:10:00+00:00",
+    2132676092308
+   ],
+   [
+    "2026-10-10T19:30:00+00:00",
+    2129671310769
+   ],
+   [
+    "2026-10-10T19:50:00+00:00",
+    2126666529231
+   ],
+   [
+    "2026-10-10T20:10:00+00:00",
+    2123661747692
+   ],
+   [
+    "2026-10-10T20:30:00+00:00",
+    2120656966154
+   ],
+   [
+    "2026-10-10T20:50:00+00:00",
+    2127652184615
+   ],
+   [
+    "2026-10-10T21:10:00+00:00",
+    2124647403077
+   ],
+   [
+    "2026-10-10T21:30:00+00:00",
+    2121642621538
+   ],
+   [
+    "2026-10-10T21:50:00+00:00",
+    2118637840000
+   ],
+   [
+    "2026-10-10T22:10:00+00:00",
+    2115633058462
+   ],
+   [
+    "2026-10-10T22:30:00+00:00",
+    2122628276923
+   ],
+   [
+    "2026-10-10T22:50:00+00:00",
+    2119623495385
+   ],
+   [
+    "2026-10-10T23:10:00+00:00",
+    2116618713846
+   ],
+   [
+    "2026-10-10T23:30:00+00:00",
+    2113613932308
+   ],
+   [
+    "2026-10-10T23:50:00+00:00",
+    2110609150769
+   ],
+   [
+    "2026-10-11T00:10:00+00:00",
+    2117604369231
+   ],
+   [
+    "2026-10-11T00:30:00+00:00",
+    2114599587692
+   ],
+   [
+    "2026-10-11T00:50:00+00:00",
+    2111594806154
+   ],
+   [
+    "2026-10-11T01:10:00+00:00",
+    2108590024615
+   ],
+   [
+    "2026-10-11T01:30:00+00:00",
+    2105585243077
+   ],
+   [
+    "2026-10-11T01:50:00+00:00",
+    2112580461538
+   ],
+   [
+    "2026-10-11T02:10:00+00:00",
+    2109575680000
+   ],
+   [
+    "2026-10-11T02:30:00+00:00",
+    2106570898462
+   ],
+   [
+    "2026-10-11T02:50:00+00:00",
+    2103566116923
+   ],
+   [
+    "2026-10-11T03:10:00+00:00",
+    2100561335385
+   ],
+   [
+    "2026-10-11T03:30:00+00:00",
+    2107556553846
+   ],
+   [
+    "2026-10-11T03:50:00+00:00",
+    2104551772308
+   ],
+   [
+    "2026-10-11T04:10:00+00:00",
+    2101546990769
+   ],
+   [
+    "2026-10-11T04:30:00+00:00",
+    2098542209231
+   ],
+   [
+    "2026-10-11T04:50:00+00:00",
+    2095537427692
+   ],
+   [
+    "2026-10-11T05:10:00+00:00",
+    2102532646154
+   ],
+   [
+    "2026-10-11T05:30:00+00:00",
+    2099527864615
+   ],
+   [
+    "2026-10-11T05:50:00+00:00",
+    2096523083077
+   ],
+   [
+    "2026-10-11T06:10:00+00:00",
+    2093518301538
+   ],
+   [
+    "2026-10-11T06:30:00+00:00",
+    2090513520000
+   ]
+  ]
+ },
+ "stimmung": {
+  "stand": "2026-10-11T06:30:00+00:00",
+  "tage": [
+   {
+    "tag": "2026-10-08",
+    "bitcoin": {
+     "stuetzend": 4,
+     "neutral": 3,
+     "belastend": 2
+    },
+    "welt_etf": {
+     "stuetzend": 2,
+     "neutral": 2,
+     "belastend": 1
+    },
+    "btc_eur": 104200.0,
+    "etf_eur": 140.1
+   },
+   {
+    "tag": "2026-10-09",
+    "bitcoin": {
+     "stuetzend": 2,
+     "neutral": 4,
+     "belastend": 5
+    },
+    "welt_etf": {
+     "stuetzend": 1,
+     "neutral": 3,
+     "belastend": 3
+    },
+    "btc_eur": 102900.0,
+    "etf_eur": 141.2
+   },
+   {
+    "tag": "2026-10-10",
+    "bitcoin": {
+     "stuetzend": 1,
+     "neutral": 2,
+     "belastend": 6
+    },
+    "welt_etf": {
+     "stuetzend": 1,
+     "neutral": 2,
+     "belastend": 4
+    },
+    "btc_eur": 100800.0,
+    "etf_eur": 140.64
+   },
+   {
+    "tag": "2026-10-11",
+    "bitcoin": {
+     "stuetzend": 3,
+     "neutral": 1,
+     "belastend": 2
+    },
+    "welt_etf": {
+     "stuetzend": 0,
+     "neutral": 1,
+     "belastend": 0
+    },
+    "btc_eur": 101500.0,
+    "etf_eur": 140.64
+   }
+  ]
+ },
+ "aktueller_stand": {
+  "stand": "2026-10-11T06:30:00+00:00",
+  "fp": "demo",
+  "rubriken": {
+   "coin": {
+    "text": "Der Safe-Bot hält gerade Bitcoin und liegt knapp vor „Bitcoin halten“. Die Bitcoin-Ampel steht auf grün. Fällt der Kurs stark, parkt die Notbremse in Euro.",
+    "zeit": "2026-10-11T06:30:00+00:00"
+   },
+   "raster": {
+    "text": "Der Raster-Bot handelt in festen Preisstufen und liegt vor „Bitcoin halten“. Solange der Kurs seitwärts pendelt, verdient er an jeder Stufe ein wenig.",
+    "zeit": "2026-10-11T06:30:00+00:00"
+   },
+   "trend": {
+    "text": "Der Trend-Bot wartet in Euro, weil die Markt-Ampel rot ist. Erst bei grüner Ampel kauft er wieder die stärksten Coins.",
+    "zeit": "2026-10-11T06:30:00+00:00"
+   },
+   "aktien": {
+    "text": "Die Aktien halten den Welt-ETF und liegen gleichauf mit dem Vergleich. Schließt der ETF einen Monat unter seinem 12-Monats-Schnitt, verkauft die Regel die Hälfte.",
+    "zeit": "2026-10-11T06:30:00+00:00"
+   },
+   "meta": {
+    "text": "Das Meta-Depot verteilt das Geld je nach Marktphase auf Raster, Trend und Schutz. Es liegt knapp vor der festen Drittelung. Die Regeln sind bis zur Auswertung eingefroren.",
+    "zeit": "2026-10-11T06:30:00+00:00"
+   }
+  }
  }
 }
