@@ -294,3 +294,23 @@ export function stimmungBalken(z, beschreibung) {
   }
   return svg;
 }
+
+/**
+ * 1.4.19 (Tom 07.11.2026, Sammelliste 5: „Fear & Greed … so sieht es bei Bitpanda aus“): Halbkreis-Tacho für Angst & Gier (0–100) –
+ * fünf Farbbereiche von rot (extreme Angst) bis grün (extreme Gier), ein Punkt beim Wert, die Zahl in der Mitte. Nur SVG-Attribute.
+ */
+export function angstGierTacho(wert, beschreibung) {
+  if (!F.istZahl(wert)) return null;
+  const v = Math.max(0, Math.min(100, wert));
+  const cx = 50, cy = 50, r = 38;
+  const punkt = (p) => { const a = Math.PI * (1 - p / 100); return [cx + r * Math.cos(a), cy - r * Math.sin(a)]; };
+  const svg = s("svg", { viewBox: "0 0 100 58", class: "ag-tacho", role: "img", "aria-label": beschreibung || "Angst und Gier " + v });
+  [[0, 25], [25, 45], [45, 55], [55, 75], [75, 100]].forEach(([a, b], i) => {
+    const [x1, y1] = punkt(a + (a ? 1.2 : 0)), [x2, y2] = punkt(b - (b < 100 ? 1.2 : 0));
+    svg.appendChild(s("path", { d: "M" + x1.toFixed(2) + " " + y1.toFixed(2) + " A" + r + " " + r + " 0 0 1 " + x2.toFixed(2) + " " + y2.toFixed(2), class: "ag-bogen ag-" + (i + 1) }));
+  });
+  const [mx, my] = punkt(v);
+  svg.appendChild(s("circle", { cx: mx.toFixed(2), cy: my.toFixed(2), r: 5.5, class: "ag-punkt ag-" + (v < 25 ? 1 : v < 45 ? 2 : v <= 55 ? 3 : v <= 75 ? 4 : 5) }));
+  svg.appendChild(s("text", { x: cx, y: cy + 4, class: "ag-zahl", "text-anchor": "middle" }, String(Math.round(v))));
+  return svg;
+}

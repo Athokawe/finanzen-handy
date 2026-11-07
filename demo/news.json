@@ -446,7 +446,15 @@
     "auf_max": 6,
     "ab_max": 41
    }
-  ]
+  ],
+  "angst_gier": {
+   "wert": 31,
+   "text": "Angst",
+   "tag": "2026-10-11",
+   "gestern": 28,
+   "woche": 44,
+   "stand": "2026-10-11T06:30:00+00:00"
+  }
  },
  "stimmung": {
   "stand": "2026-10-11T06:30:00+00:00",

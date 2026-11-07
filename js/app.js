@@ -21,7 +21,7 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.4.18";
+export const APP_VERSION = "1.4.19";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -442,8 +442,16 @@ async function laden() {
     // Fable-Gesamtprüfung 07.11.2026: die Stimmung zählt nach Wiener Kalendertag – in der Demo wandert ihr Tag mit
     if (demo && Z.news && Z.news.stimmung && Array.isArray(Z.news.stimmung.tage)) {
       const wien = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Vienna", year: "numeric", month: "2-digit", day: "2-digit" });
+      // 1.4.19: um ganze Kalendertage verschieben – der Tag der Demo-Datei wird zu heute (vorher: um die Zeitspanne, abends = morgen)
+      const tagMs = (x) => Date.parse(x + "T12:00:00Z");
+      const basis = wien.format(new Date(Date.parse(b.value.zeit || "") || Date.now() - versatz));
+      const heute = wien.format(new Date());
+      const tage = Math.round((tagMs(heute) - tagMs(basis)) / 86400000);
       Z.news.stimmung = Object.assign({}, Z.news.stimmung, { tage: Z.news.stimmung.tage.map((t) => (t && /^\d{4}-\d\d-\d\d$/.test(t.tag)
-        ? Object.assign({}, t, { tag: wien.format(new Date(Date.parse(t.tag + "T12:00:00Z") + versatz)) }) : t)) });
+        ? Object.assign({}, t, { tag: wien.format(new Date(tagMs(t.tag) + tage * 86400000)) }) : t)) });
+      const ag = Z.news.markt_12h && Z.news.markt_12h.angst_gier;          // 1.4.19: auch der Tag von Angst & Gier
+      if (ag && /^\d{4}-\d\d-\d\d$/.test(ag.tag)) Z.news.markt_12h = Object.assign({}, Z.news.markt_12h,
+        { angst_gier: Object.assign({}, ag, { tag: wien.format(new Date(tagMs(ag.tag) + tage * 86400000)) }) });
     }
     Z.fehlerNews = null;
   } else {
