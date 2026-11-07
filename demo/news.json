@@ -406,6 +406,46 @@
     "2026-10-11T06:30:00+00:00",
     2090513520000
    ]
+  ],
+  "breite": {
+   "auf": 4,
+   "ab": 37,
+   "von": 243,
+   "stand": "2026-10-11T06:30:00+00:00",
+   "top_auf": [
+    {
+     "symbol": "BSPL",
+     "name": "Beispielcoin",
+     "prozent": 14.2
+    },
+    {
+     "symbol": "ZED",
+     "name": "Zed Netzwerk",
+     "prozent": 6.1
+    }
+   ],
+   "top_ab": [
+    {
+     "symbol": "FALL",
+     "name": "Fallcoin",
+     "prozent": -18.4
+    },
+    {
+     "symbol": "RUN",
+     "name": "Runter Protokoll",
+     "prozent": -9.7
+    }
+   ]
+  },
+  "breite_tage": [
+   {
+    "tag": "2026-10-11",
+    "auf": 4,
+    "ab": 37,
+    "von": 243,
+    "auf_max": 6,
+    "ab_max": 41
+   }
   ]
  },
  "stimmung": {
@@ -495,6 +535,10 @@
    },
    "meta": {
     "text": "Das Meta-Depot verteilt das Geld je nach Marktphase auf Raster, Trend und Schutz. Es liegt knapp vor der festen Drittelung. Die Regeln sind bis zur Auswertung eingefroren.",
+    "zeit": "2026-10-11T06:30:00+00:00"
+   },
+   "coin_topf": {
+    "text": "Der Raster-Bot liegt unter den drei Krypto-Bots vorne, weil er im Seitwärtsmarkt an jeder Stufe verdient. Der Safe-Bot hält knapp mit „Bitcoin halten“ mit, der Trend-Bot liegt hinten, weil er bei roter Ampel in Euro wartet.",
     "zeit": "2026-10-11T06:30:00+00:00"
    }
   }

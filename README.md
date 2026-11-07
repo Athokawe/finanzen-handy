@@ -4,6 +4,13 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Safe-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.17
+
+* **Marktbreite.** In der Marktphase eine dritte Zeile: wie viele der großen Coins in 24 h um mindestens 5 % gestiegen (▲) bzw.
+  gefallen (▼) sind; im „mehr“ die auffälligsten Coins. Die Marktphase steht jetzt hinter dem Verlauf.
+* **Coin-Topf gesamt** hat ein „mehr“: Der Mac vergleicht dort unter „Aktueller Stand“ Safe-Bot, Raster-Bot und Trend-Bot.
+* **Statistik zuerst.** In allen Rubriken der Übersicht steht unter „mehr“ die Verlaufsstatistik an erster Stelle.
+
 ## Neu in 1.4.16
 
 * **Stimmung kompakt.** Im Gesamtbild der News je Bitcoin und Welt-ETF eine Zeile mit waagrechtem Balken – grün stützend, grau
