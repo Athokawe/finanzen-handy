@@ -4,7 +4,7 @@
 // 1.2.4: Direkt-Umschichten zwischen Trend- und Raster-Bot (Modus bot_umschichten) – ein Modus, zwei Knöpfe; die Richtung kommt
 // fest aus dem Knopf (Vorgabe „von“), nie aus einem Formularfeld.
 // 1.2.0: „An die KI“ (Modus frage, js/kifrage.js) ersetzt den Hinweis-Dialog; Alarme löschen (Modus alarme_gelesen, js/alarme.js).
-// 1.1.0: Brems-Befehle (handy.json: express true – „Alles parken“, „Nur anhalten“, Coin-Bot aus, Stufe → sicher, Raster/Trend
+// 1.1.0: Brems-Befehle (handy.json: express true – „Alles parken“, „Nur anhalten“, Safe-Bot aus, Stufe → sicher, Raster/Trend
 // pausieren) gehen an express.yml (eigene Warteschlange, sofort), alles andere an ki.yml. Jeder Auftrag wird über die Actions-API
 // anhand des Lauf-Titels verfolgt („Express: <modus>“ bzw. „Hand: <modus>“): gesendet → angekommen → läuft → erledigt ✓ /
 // fehlgeschlagen ✗. Verwirft GitHub einen Auftrag (nach ~90 s kein passender Lauf oder Lauf „abgebrochen“), schickt die App ihn
@@ -234,19 +234,19 @@ export const BREMS_WANN = {
 const wannText = (m) => "Sinnvoll, wenn: " + BREMS_WANN[m].wann.join(" · ");
 
 const SPEZ = {
-  einschaetzung: { titel: "Frische KI-Einschätzung", text: "Die Cloud holt eine neue Einschätzung des Coin-Bots und schickt sie dir per Mail. Es wird nicht gehandelt.", ok: "Anfordern" },
+  einschaetzung: { titel: "Frische KI-Einschätzung", text: "Die Cloud holt eine neue Einschätzung des Safe-Bots und schickt sie dir per Mail. Es wird nicht gehandelt.", ok: "Anfordern" },
   bericht_jetzt: { titel: "Bericht jetzt", text: "Frische Einschätzung und Bericht per Mail – es wird nie gehandelt.", ok: "Anfordern" },
   news_jetzt: { titel: "News aktualisieren", ohneFrage: true },   // 1.4.6: kein Knopf mehr im News-Reiter (Cloud holt stündlich) – nur noch als Befehl („An die KI“)
-  start: { titel: "Coin-Bot einschalten", text: "Der Coin-Bot entscheidet und handelt dann wieder selbst (mit Notbremse und Gewinnschutz)." },
-  stopp: { titel: "Coin-Bot ausschalten", text: ERKLAERT.stopp + " Der Coin-Topf bleibt, wie er ist." },
+  start: { titel: "Safe-Bot einschalten", text: "Der Safe-Bot entscheidet und handelt dann wieder selbst (mit Notbremse und Gewinnschutz)." },
+  stopp: { titel: "Safe-Bot ausschalten", text: ERKLAERT.stopp + " Der Coin-Topf bleibt, wie er ist." },
   allesstopp: {
     titel: "Alles parken", gefahr: true, ok: "Alles parken",
-    text: [ERKLAERT.allesstopp + " Der Coin-Topf wird über Fusion in EURCV verkauft (wie bei der Notbremse), Raster- und Trend-Bot verkaufen ihre Coins in EURCV (das EURCV bleibt in ihrem Topf) und werden pausiert; Coin-Bot und Regelwerk gehen aus. Scheitert ein Verkauf, ist trotzdem alles aus – die Mail sagt es je Bot.",
+    text: [ERKLAERT.allesstopp + " Der Coin-Topf wird über Fusion in EURCV verkauft (wie bei der Notbremse), Raster- und Trend-Bot verkaufen ihre Coins in EURCV (das EURCV bleibt in ihrem Topf) und werden pausiert; Safe-Bot und Regelwerk gehen aus. Scheitert ein Verkauf, ist trotzdem alles aus – die Mail sagt es je Bot.",
       wannText("allesstopp"), BREMS_WANN.allesstopp.dazu],
   },
   anhalten: {
     titel: "Nur anhalten", gefahr: true, ok: "Anhalten",
-    text: [ERKLAERT.anhalten + " Coin-Bot und Regelwerk gehen aus, Raster- und Trend-Bot werden pausiert (offene Orders storniert, Bestände bleiben liegen). Aktien bleiben.",
+    text: [ERKLAERT.anhalten + " Safe-Bot und Regelwerk gehen aus, Raster- und Trend-Bot werden pausiert (offene Orders storniert, Bestände bleiben liegen). Aktien bleiben.",
       wannText("anhalten"), BREMS_WANN.anhalten.dazu],
   },
   regelwerk_ein: { titel: "Regelwerk einschalten", text: "Das Regelwerk ohne KI wird eingeschaltet." },
@@ -255,7 +255,7 @@ const SPEZ = {
     titel: "Autopilot: KI", ok: "Auf KI stellen",
     // 1.3.1: der Aktien-Teil der KI ist da (Finanz-App 1.3, Teil 2)
     // 1.3.2: die KI verwaltet den ganzen Aktien-Teil, auch in der Rotation (Toms Antworten 18.10.2026)
-    text: ["Der KI-Autopilot handelt dann mit echtem Geld, innerhalb der Leitplanken: beim Coin-Bot Coin-Wahl und Parken, bei den "
+    text: ["Der KI-Autopilot handelt dann mit echtem Geld, innerhalb der Leitplanken: beim Safe-Bot Coin-Wahl und Parken, bei den "
       + "Aktien (auch im Modus „Rotation“) alles – Reserve, Welt-ETF, Geldmarkt-ETF und Einzelaktien, auch deine eigenen. Kaufen darf "
       + "er Einzelaktien nur aus den Top 15 der Welt, vor jedem Kauf oder Verkauf einer Einzelaktie prüft eine zweite KI. Was du "
       + "per Knopf kaufst, bleibt 5 Tage unangetastet (nur die Absturz-Regel darf verkaufen).",
@@ -279,7 +279,7 @@ const SPEZ = {
   euro_ein: { titel: "Euro-Automatik einschalten", text: "Euro-Guthaben bei Bitpanda wird dann automatisch eingesetzt." },
   euro_aus: { titel: "Euro-Automatik ausschalten", text: "Euro-Guthaben bleibt liegen, bis du selbst entscheidest." },
   einstellung: {
-    titel: "Stufe des Coin-Bots",
+    titel: "Stufe des Safe-Bots",
     text: "Die Stufe bestimmt die Grenzen von Notbremse und Gewinnschutz. „sicher“ ohne Automatik geht als Bremse sofort über den Express-Weg, alles andere über die normale Warteschlange.",
     felder: [
       { name: "stufe", art: "wahl", label: "Stufe", optionen: [["sicher", "sicher"], ["normal", "normal"]] },
@@ -287,7 +287,7 @@ const SPEZ = {
     ],
     bauen: (w) => "JA;stufe=" + w.stufe + ";auto=" + (w.auto ? "1" : "0"),
   },
-  gewinnschutz_ein: { titel: "Gewinnschutz Krypto einschalten", text: "Fällt der Kurs um die Grenze der Stufe unter den Höchststand, parkt der Coin-Bot." },
+  gewinnschutz_ein: { titel: "Gewinnschutz Krypto einschalten", text: "Fällt der Kurs um die Grenze der Stufe unter den Höchststand, parkt der Safe-Bot." },
   gewinnschutz_aus: { titel: "Gewinnschutz Krypto ausschalten", text: "Ohne Gewinnschutz wird bei fallenden Kursen nicht mehr automatisch geparkt (die Notbremse bleibt)." },
   aktien_start: { titel: "Aktien-Autopilot einschalten" },
   aktien_stopp: { titel: "Aktien-Autopilot ausschalten" },
@@ -662,7 +662,7 @@ export function bitteWarten(kiOffen) {
     titel: "Bitte kurz warten",
     inhalt: [
       "Es läuft noch ein Auftrag: „" + name(kiOffen.modus) + "“ (geschickt " + vor(new Date(kiOffen.zeit).toISOString()) + ").",
-      "Die Cloud arbeitet normale Aufträge nacheinander ab – ein neuer könnte den wartenden verdrängen. Sobald er fertig ist, kannst du den nächsten schicken. Brems-Befehle („Alles parken“, „Nur anhalten“, Coin-Bot aus, Pausieren) gehen immer.",
+      "Die Cloud arbeitet normale Aufträge nacheinander ab – ein neuer könnte den wartenden verdrängen. Sobald er fertig ist, kannst du den nächsten schicken. Brems-Befehle („Alles parken“, „Nur anhalten“, Safe-Bot aus, Pausieren) gehen immer.",
     ],
     okText: "Verstanden", nurOk: true,
   });

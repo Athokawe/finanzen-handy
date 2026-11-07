@@ -38,7 +38,7 @@
      "richtung": "stuetzend",
      "staerke": "schwach",
      "zeitraum": "kurzfristig",
-     "bots": "Stützend: der Coin-Bot bleibt investiert, der Trend-Bot behält seine Coins (Beispiel, erfunden)."
+     "bots": "Stützend: der Safe-Bot bleibt investiert, der Trend-Bot behält seine Coins (Beispiel, erfunden)."
     }
    },
    {
@@ -52,7 +52,7 @@
      "richtung": "belastend",
      "staerke": "mittel",
      "zeitraum": "kurzfristig",
-     "bots": "Belastend, aber Bitcoin müsste noch 5,1 % fallen, bevor die Notbremse des Coin-Bots parkt – er bleibt investiert (Beispiel, erfunden)."
+     "bots": "Belastend, aber Bitcoin müsste noch 5,1 % fallen, bevor die Notbremse des Safe-Bots parkt – er bleibt investiert (Beispiel, erfunden)."
     }
    },
    {
@@ -86,8 +86,8 @@
  },
  "bot_lage": [
   {
-   "bot": "Coin-Bot",
-   "text": "Coin-Bot (Stufe normal): hält Bitcoin; Notbremse erst nach weiteren 5,1 % (Grenze −7 % an einem Tag). (Beispiel, erfunden)"
+   "bot": "Safe-Bot",
+   "text": "Safe-Bot (Stufe normal): hält Bitcoin; Notbremse erst nach weiteren 5,1 % (Grenze −7 % an einem Tag). (Beispiel, erfunden)"
   },
   {
    "bot": "Trend-Bot",
@@ -174,5 +174,23 @@
    ]
   }
  ],
- "zusammenfassung_zeit": "2026-10-11T01:30:12+00:00"
+ "zusammenfassung_zeit": "2026-10-11T01:30:12+00:00",
+ "markt_12h": {
+  "stand": "2026-10-11T06:30:00+00:00",
+  "coins": {
+   "prozent": -1.84,
+   "seit": "2026-10-10T18:30:00+00:00",
+   "volle_12h": true,
+   "marktwert_eur": 2090480055155
+  },
+  "aktien": {
+   "name": "Welt-ETF",
+   "symbol": "VWCE.DE",
+   "offen": false,
+   "prozent": -0.4,
+   "text": "Börse geschlossen · Freitag −0,4 %",
+   "tag": "2026-10-10"
+  },
+  "verlauf": []
+ }
 }

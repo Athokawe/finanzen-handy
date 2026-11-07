@@ -117,7 +117,7 @@ function befehlZeigen(id, b) {
   const fehlerZeile = stand && stand !== "geschickt" ? h("div", { class: "unter fehler" }, stand) : null;
   if (stand === "geschickt") return kachel(h("div", { class: "ki-befehl-kopf" }, "✓ " + titel + " geschickt"));
   if (b.sofort) return kachel(zeile(A.knopf(b.modus, "Jetzt ausführen", "primaer", befehlVorgaben(b))), fehlerZeile);
-  // 1.3.8 (Tom 19.10.2026): Schaltbefehle ohne JA-Muster (Autopilot „Aus“, Nur anhalten, Coin-Bot aus, Aktien aus, Euro-Automatik aus,
+  // 1.3.8 (Tom 19.10.2026): Schaltbefehle ohne JA-Muster (Autopilot „Aus“, Nur anhalten, Safe-Bot aus, Aktien aus, Euro-Automatik aus,
   // Gewinnschutz ein …) gehen nie von selbst, aber mit EINEM Tipp (kein Dialog, kein JA) – die Cloud liefert sie mit sofort=false
   const e = A.eintrag(b.modus);
   if (e && !e.ja_noetig) {

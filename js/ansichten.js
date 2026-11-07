@@ -237,7 +237,33 @@ function mpZeit(x, vor, nach) {
 function mpBot(titel, farbe, text) {
   return h("li", null, h("span", { class: "punkt " + (MP_FARBEN.includes(farbe) ? farbe : "grau") }), h("span", { class: "titel" }, titel + ": "), text);
 }
-function marktphaseKarte(roh) {
+/** 1.4.14 (Tom 07.11.2026): Kursbewegung der letzten 12 h – Kryptomarkt (alle großen Coins) und Welt-ETF – aus news.json „markt_12h“
+ *  (der Mac rechnet alle 20 min mit den News, Finanz-App markt12.py); null ohne Feld (ältere Daten) */
+function mp12Teil(roh) {
+  const m = ok(roh);
+  if (!m) return null;
+  const c = ok(m.coins), a = ok(m.aktien);
+  const wert = (x) => (F.istZahl(x) ? h("span", { class: "mp12-wert " + F.vorzeichenKlasse(x) }, prozentFest(x)) : h("span", { class: "mp12-wert gedimmt" }, "–"));
+  const cUnter = !c ? "nicht lesbar" : c.volle_12h ? "letzte 12 h" : c.seit ? "seit " + F.zeit(c.seit) + " – 12 h noch nicht voll" : "Messung läuft an";
+  const aUnter = !a ? "nicht lesbar" : a.offen ? "letzte 12 h" : String(a.text || "Börse geschlossen").replace(/\s[+−±][\d.,]+\s%$/, "");
+  const sd = F.datum(m.stand);
+  const alt = sd && Date.now() - sd.getTime() > 90 * 60000;
+  return h("div", { class: "mp12", id: "mp-12h" },
+    h("div", { class: "mp12-zelle", id: "mp12-coins" }, h("span", { class: "mp12-l" }, "Kryptomarkt"), wert(c && c.prozent), h("span", { class: "mp12-unter" }, cUnter)),
+    h("div", { class: "mp12-zelle", id: "mp12-aktien" }, h("span", { class: "mp12-l" }, a && a.name ? F.text(a.name) : "Welt-ETF"), wert(a && a.prozent), h("span", { class: "mp12-unter" }, aUnter)),
+    alt ? h("p", { class: "klein gedimmt mp12-alt" }, "Stand " + F.zeit(m.stand)) : null);
+}
+/** 1.4.14 (Tom 07.11.2026: „‚Neu bei Bitpanda‘ in die Marktphase, mit dem Vermerk, dass es neue Coins sind“): bis zu drei neu
+ *  gelistete Coins der letzten 7 Tage aus handy.json bewegungen (art „neu“) – ersetzt die frühere Karte „Kursbewegungen“ */
+function neueCoinsTeil(roh) {
+  const b = istObj(roh) ? roh : null;
+  if (!b) return [];
+  const neu = liste(b.liste).filter((x) => istObj(x) && x.art === "neu" && F.datum(x.zeit) && Date.now() - F.datum(x.zeit).getTime() <= 7 * 86400000).slice(0, 3);
+  return neu.map((x) => h("p", { class: "mp-neu klein" }, etikett("neuer Coin", "bw-neu"), " ",
+    h("span", null, "Bei Bitpanda: " + F.text(x.name, x.symbol) + (x.symbol && x.name ? " (" + F.text(x.symbol) + ")" : "")
+      + (F.istZahl(x.preis_eur) ? " · " + kursText(x.preis_eur) : "") + " · " + F.zeit(x.zeit))));
+}
+function marktphaseKarte(roh, m12, bw) {
   const m = istObj(roh) ? roh : null;
   const farbe = m && MP_FARBEN.includes(m.farbe) ? m.farbe : "grau";
   const phase = m ? F.text(m.phase_text || m.phase, "nicht prüfbar") : "nicht prüfbar";
@@ -258,6 +284,8 @@ function marktphaseKarte(roh) {
     h("div", { class: "karte-kopf" }, h("h2", null, "Marktphase"), stand ? h("span", { class: "klein gedimmt" }, stand) : null),
     h("div", { class: "mp-phase " + farbe, id: "mp-phase" }, phase),
     kurz ? h("p", { class: "klein mp-kurz", id: "mp-kurz" }, kurz) : grund ? h("p", { class: "klein mp-grund" }, grund) : null,
+    mp12Teil(m12),
+    ...neueCoinsTeil(bw),
     // Warnung bleibt sichtbar (nicht hinter „mehr“): sie ist der einzige Satz der Karte, der zum Handeln rät
     m && m.trend_bot_investiert === true && typeof m.hinweis === "string" && m.hinweis ? h("p", { class: "mp-hinweis" }, m.hinweis) : null,
     mehrTeil("marktphase", [
@@ -278,8 +306,8 @@ function marktphaseKarte(roh) {
         ? mpBot("200-Tage-Ampel", z.farbe, (z.farbe === "gruen" ? "grün" : z.farbe) + (z.text ? " – " + F.text(z.text) : ""))
         : mpBot("200-Tage-Ampel", "grau", "nicht prüfbar" + (fehlerVon(b.ampel_200) ? " (" + fehlerVon(b.ampel_200) + ")" : "")),
       k && MP_FARBEN.includes(k.farbe)
-        ? mpBot("KI-Ampel Coin-Bot", k.farbe, (k.farbe === "gruen" ? "grün" : k.farbe) + mpZeit(k, " (Einschätzung ", ")"))
-        : mpBot("KI-Ampel Coin-Bot", "grau", "nicht prüfbar" + (fehlerVon(b.ki_ampel) ? " (" + fehlerVon(b.ki_ampel) + ")" : ""))),
+        ? mpBot("KI-Ampel Safe-Bot", k.farbe, (k.farbe === "gruen" ? "grün" : k.farbe) + mpZeit(k, " (Einschätzung ", ")"))
+        : mpBot("KI-Ampel Safe-Bot", "grau", "nicht prüfbar" + (fehlerVon(b.ki_ampel) ? " (" + fehlerVon(b.ki_ampel) + ")" : ""))),
       h("p", { class: "klein gedimmt mp-schluss" }, m && typeof m.schluss === "string" && m.schluss ? m.schluss : MP_SCHLUSS)]));
 }
 
@@ -368,7 +396,7 @@ function schattenHinweis(s, name) {
   if (!ok(s)) return null;
   const diff = F.istZahl(s.wert_eur) && F.istZahl(s.bitcoin_halten_eur) ? s.wert_eur - s.bitcoin_halten_eur : null;
   return h("p", { class: "hinweis-schatten" },
-    "Musterdepot (Rechengeld): " + F.euro(s.wert_eur) + " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur)
+    "Musterdepot (Mustergeld): " + F.euro(s.wert_eur) + " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur)
     + (diff !== null ? " → " + F.euroPlus(diff) : "") + (name ? " · " + name : ""));
 }
 
@@ -446,7 +474,7 @@ export function botStatistik(Z, bot) {   // export: Handy-Tests (B13)
   const feld = bot + (echt ? "_echt" : "_schatten");
   return h("div", null,
     h("p", { class: "klein gedimmt" }, echt ? "Echter Topf gegen „Bitcoin halten“ mit demselben Startbetrag."
-      : "Musterdepot (Rechengeld) gegen „Bitcoin halten“ mit demselben Startbetrag."),
+      : "Musterdepot (Mustergeld) gegen „Bitcoin halten“ mit demselben Startbetrag."),
     D.statistik({
       schluessel: bot, punkte, einheit: "eur", beschreibung: (echt ? "Echter Topf" : "Musterdepot") + " gegen Bitcoin halten", tippHinweis: true,
       serien: (p) => [
@@ -462,6 +490,63 @@ export function botStatistik(Z, bot) {   // export: Handy-Tests (B13)
         }
         return k;
       },
+    }));
+}
+
+// ------------------------------------------------------------------ 1.4.14: Vergleich je Rubrik (Mustergeld)
+// Tom 07.11.2026: „bei jeder Rubrik unter ‚mehr‘ eine Verlaufsstatistik wie ‚Raster-Bot vs. Coins halten‘“, „in den Bot-Reitern an
+// erster Stelle die Statistik“ und im „Verlauf · Mustergeld“ je Rubrik eine Linie (Coins und Aktien in eigenen Farben), in Prozent.
+// Alles in Prozent seit Beginn des Zeitraums, aus handy_verlauf.json: der Mustergeld-Teil (spielgeld_<k>_eur) gegen seinen Vergleich –
+// Bitcoin halten aus bitcoin_kurs_eur, Welt-ETF halten aus spielgeld_aktien_halten_eur (seit 07.11.2026 im Verlauf). Beginnt der
+// Vergleich später als der Teil, setzt er am Wert des Teils zu diesem Zeitpunkt an (gleicher Startpunkt, keine Treppe).
+const RUBRIKEN = {
+  coin: { name: "Safe-Bot", klasse: "l-coin", feld: "spielgeld_coin_eur", vgl: "Bitcoin halten", vglFeld: "bitcoin_kurs_eur" },
+  raster: { name: "Raster-Bot", klasse: "l-raster", feld: "spielgeld_raster_eur", vgl: "Bitcoin halten", vglFeld: "bitcoin_kurs_eur" },
+  trend: { name: "Trend-Bot", klasse: "l-trend", feld: "spielgeld_trend_eur", vgl: "Bitcoin halten", vglFeld: "bitcoin_kurs_eur" },
+  aktien: { name: "Aktien", klasse: "l-aktien", feld: "spielgeld_aktien_eur", vgl: "Welt-ETF halten", vglFeld: "spielgeld_aktien_halten_eur" },
+};
+/** [Teil, Vergleich] einer Rubrik für die Punkte p (Prozent seit dem ersten Punkt des Teils im Zeitraum) */
+function rubrikPaar(p, k) {
+  const r = RUBRIKEN[k];
+  const pk = p.filter((x) => F.istZahl(x[r.feld]));
+  const haupt = D.prozentSeitStart(D.reihe(pk, r.feld));
+  const vRoh = D.reihe(pk, r.vglFeld).filter(([, v]) => v > 0);
+  let vgl = [];
+  if (haupt.length >= 2 && vRoh.length >= 2) {
+    const anker = haupt.find(([t]) => t.getTime() === vRoh[0][0].getTime());
+    const a = anker ? anker[1] : 0;
+    vgl = vRoh.map(([t, v]) => [t, ((1 + a / 100) * (v / vRoh[0][1]) - 1) * 100]);
+  }
+  return [{ name: r.name, klasse: r.klasse, werte: haupt, rubrik: k }, { name: r.vgl, klasse: "l-halten", werte: vgl }];
+}
+function ppText(x) {
+  return (x > 0 ? "+" : "") + F.zahl(x, 2).replace(/^-/, "−") + " Prozentpunkte";
+}
+/** Kennzahlen einer Rubrik: seit Start (Mustergeld je 1.000 €), gegen den Vergleich im Zeitraum, Veränderung/Höchst/Tiefst in Euro */
+function rubrikKennzahl(Z, p, k, serien) {
+  const r = RUBRIKEN[k];
+  const sg = ok((Z.handy || {}).spielgeld);
+  const teil = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === k) : null;
+  const a = serien[0] ? serien[0].werte : [], b = serien[1] ? serien[1].werte : [];
+  const ae = a.length ? a[a.length - 1][1] : null, be = b.length ? b[b.length - 1][1] : null;
+  return [
+    ...(teil ? seitStartKennzahl(teil.wert_eur, sgJe(sg)) : []),
+    F.istZahl(ae) && F.istZahl(be) ? ["gegen „" + r.vgl + "“ im Zeitraum", ppText(ae - be), F.vorzeichenKlasse(ae - be)] : null,
+    ...D.euroKennzahlen(D.reihe(p.filter((x) => F.istZahl(x[r.feld])), r.feld)),
+  ];
+}
+/** Diagramm „<Rubrik> gegen <Vergleich>“ (Mustergeld) – für „mehr“ in der Übersicht und oben im Bot-Reiter */
+function rubrikStatistik(Z, k, wo) {
+  const hinweis = verlaufHinweis(Z);
+  if (hinweis) return hinweis;
+  const r = RUBRIKEN[k];
+  return h("div", { class: "rubrik-statistik", "data-rubrik": k },
+    h("p", { class: "klein gedimmt" }, r.name + " gegen „" + r.vgl + "“ in Prozent seit Beginn des Zeitraums."),
+    D.statistik({
+      schluessel: "rubrik-" + k + "-" + wo, punkte: D.punkteLesen(Z.verlauf), einheit: "prozent", tippHinweis: false,
+      beschreibung: r.name + " gegen " + r.vgl + " in Prozent seit Beginn des Zeitraums",
+      serien: (p) => rubrikPaar(p, k),
+      kennzahl: (p, serien) => rubrikKennzahl(Z, p, k, serien),
     }));
 }
 
@@ -529,47 +614,10 @@ function gesamtTeile(g) {
     });
 }
 
-/** 1.4.10 (Tom 03.11.2026, „Bitpanda-Mitteilungen automatisch in HDA und LTA“ – die Pushes sind nicht auslesbar, deshalb nachgebaut):
- *  Karte „Kursbewegungen“ – Coins von Bitpanda mit mindestens 5 % Bewegung in 24 h (handy.json bewegungen; die Cloud
- *  rechnet stündlich aus CoinGecko-Kursen, bewegungen.py). Wie jede Rubrik der Übersicht (1.2.19) zuerst nur eine Kurzzeile mit den
- *  neuesten drei, alle Einträge und die Erklärung hinter „mehr“; null,
- *  solange die Cloud das Feld nicht liefert. Nur Anzeige, keine Knöpfe.
- *  1.4.11 (Tom 04.11.2026, Push „Bitpanda Spotlight: Ab sofort kannst du Kor Protocol (KOR) kaufen“): auch neu bei Bitpanda gelistete
- *  Coins (art „neu“) – Etikett „neu bei Bitpanda“ statt Prozent, in der Kurzzeile „Kor Protocol neu“. */
+/** Kurs eines Coins: ab 1 € in Euro, darunter mit vier bzw. sechs Stellen (neue Coins in der Marktphase, 1.4.14) */
 function kursText(p) {
   if (!F.istZahl(p)) return "–";
   return p >= 1 ? F.euro(p) : F.zahl(p, p >= 0.01 ? 4 : 6) + "\u00a0€";
-}
-function bewegungenKarte(roh) {
-  const b = istObj(roh) ? roh : null;
-  if (!b) return null;
-  const eintraege = liste(b.liste).filter(istObj);
-  const schwelle = F.istZahl(b.schwelle) ? b.schwelle : 5;
-  const eintrag = (x) => h("div", { class: "bw-eintrag" },
-    h("div", { class: "bw-kopf" },
-      h("span", { class: "bw-name" }, F.text(x.name, x.symbol),
-        x.symbol && x.name && String(x.symbol).toUpperCase() !== String(x.name).toUpperCase() ? h("span", { class: "klein gedimmt" }, " " + F.text(x.symbol)) : null),
-      x.art === "neu" ? etikett("neu bei Bitpanda", "bw-wert bw-neu")
-        : h("span", { class: "bw-wert " + F.vorzeichenKlasse(x.prozent_24h) }, F.prozent(x.prozent_24h, 1).replace(" %", "\u00a0%"))),
-    h("div", { class: "klein gedimmt bw-unter" }, F.zeit(x.zeit) + (F.istZahl(x.preis_eur) ? " · " + kursText(x.preis_eur) : "") + (x.art === "neu" ? "" : " · 24 h")));
-  const block = (l) => h("div", { class: "bw-liste" }, l.map(eintrag));
-  const hinweis = h("p", { class: "klein gedimmt" }, "Wie die Bitpanda-Pushes: Coins von Bitpanda, die sich in 24 Stunden um mindestens "
-    + F.zahl(schwelle, 0) + " % bewegt haben (Kurse von CoinGecko, stündlich), und neu bei Bitpanda gelistete Coins, sobald sie handelbar sind. "
-    + "Jede Meldung kommt einmal. Nur Anzeige – die Bots handeln neue Coins nicht.");
-  const kopf = h("div", { class: "karte-kopf" }, h("h2", null, "Kursbewegungen"), h("span", { class: "klein gedimmt" }, b.zeit ? "Stand " + F.zeit(b.zeit) : ""));
-  if (!eintraege.length) {
-    return h("section", { class: "karte", id: "bewegungen" }, kopf,
-      h("p", { class: b.fehler ? "fehlerteil" : "klein gedimmt", id: "bw-leer" },
-        b.fehler ? "Kursbewegungen nicht lesbar: " + F.text(b.fehler) : "Gerade keine Bewegung über " + F.zahl(schwelle, 0) + " %."),
-      mehrTeil("bewegungen", [hinweis], "was ist das?"));
-  }
-  const kurz = h("p", { class: "klapp-kurz", id: "bw-kurz" },
-    eintraege.slice(0, 3).flatMap((x, i) => [i ? " · " : null,
-      x.art === "neu" ? h("span", { class: "bw-neu-kurz" }, F.text(x.name, x.symbol) + "\u00a0neu")
-        : h("span", { class: F.vorzeichenKlasse(x.prozent_24h) }, F.text(x.name, x.symbol) + "\u00a0" + F.prozent(x.prozent_24h, 1).replace(" %", "\u00a0%"))]),
-    eintraege.length > 3 ? " · +" + (eintraege.length - 3) : null);
-  return h("section", { class: "karte", id: "bewegungen" }, kopf, kurz,
-    mehrTeil("bewegungen", [block(eintraege), hinweis], "mehr – alle " + eintraege.length));
 }
 /** 1.4.9: „+ € 5,00“ mit geschützten Leerzeichen (das Vorzeichen bleibt beim Betrag, auch in schmalen Spalten) */
 function plusFest(x) {
@@ -595,7 +643,7 @@ function seitStartKennzahl(wert, einsatz) {
   const d = wert - einsatz;
   return [["Seit Start", plusFest(d) + " (" + prozentFest(d / einsatz * 100) + ")", F.vorzeichenKlasse(d)]];
 }
-/** 1.4.9: Einsatz je Spielgeld-Teil (handy.json spielgeld.je_eur, sonst 1.000 €) und der Teil eines Bots */
+/** 1.4.9: Einsatz je Mustergeld-Teil (handy.json spielgeld.je_eur, sonst 1.000 €) und der Teil eines Bots */
 function sgJe(sg) {
   return sg && F.istZahl(sg.je_eur) ? sg.je_eur : 1000;
 }
@@ -675,7 +723,7 @@ function kiSchnellKarte() {
 }
 
 /** 1.2.19: Kurzzeile einer Bot-Karte der Übersicht – läuft der echte Topf: sein Stand (+ Ergebnis), sonst das Musterdepot.
- *  1.3.9: zeigt die Kurzzeile das Musterdepot, steht es im „mehr“ nicht noch einmal (zeigtEcht) – „Rechengeld“ je Karte einmal. */
+ *  1.3.9: zeigt die Kurzzeile das Musterdepot, steht es im „mehr“ nicht noch einmal (zeigtEcht) – „Mustergeld“ je Karte einmal. */
 function zeigtEcht(status, topf) {
   return status !== "aus" && F.istZahl(topf);
 }
@@ -687,15 +735,15 @@ function botKurz(status, topf, ergEur, ergPz, schatten, id, sd, sgTeilBot, je) {
       : null;
     return [h("div", { class: "mittel", id }, F.euro(topf)), erg];
   }
-  // 1.4.1 (Spielgeld-Ansicht): mit „je 1.000 €“ der Cloud (schattendepots je_1000) dieselben Zahlen wie in der Musterdepot-Liste;
+  // 1.4.1 (Mustergeld-Ansicht): mit „je 1.000 €“ der Cloud (schattendepots je_1000) dieselben Zahlen wie in der Musterdepot-Liste;
   // 1.4.3 (Gesamtprüfung 29.10.2026, #11): dazu die Basis „je 1.000 € seit 20.10.“ – der Bot-Reiter zeigt dieselbe Zeile
-  // 1.4.9: im Spielgeld der Wert des Teils (verkettet, wie in der Spielgeld-Karte) mit „+ € … · eingesetzt € 1.000“; die Vergleichszeile bleibt
+  // 1.4.9: im Mustergeld der Wert des Teils (verkettet, wie in der Mustergeld-Karte) mit „+ € … · eingesetzt € 1.000“; die Vergleichszeile bleibt
   const sgW = sgTeilBot && F.istZahl(sgTeilBot.wert_eur) ? sgTeilBot.wert_eur : null;
   const kopf = sgW !== null ? [h("div", { class: "mittel", id: id + "-zahl" }, F.euro(sgW)), einsatzZeile(sgW, je || 1000, id + "-einsatz")] : [];
-  if (sd) return [kopf, h("p", { class: "klapp-kurz", id }, "nur Musterdepot (Rechengeld): " + sdJeText(sd) + " · " + sdJeSeit(sd))];
+  if (sd) return [kopf, h("p", { class: "klapp-kurz", id }, "nur Musterdepot (Mustergeld): " + sdJeText(sd) + " · " + sdJeSeit(sd))];
   const s = ok(schatten);
   const diff = s && F.istZahl(s.wert_eur) && F.istZahl(s.bitcoin_halten_eur) ? s.wert_eur - s.bitcoin_halten_eur : null;
-  return [kopf, h("p", { class: "klapp-kurz", id }, "nur Musterdepot (Rechengeld)" + (s && F.istZahl(s.wert_eur) ? ": " + F.euro(s.wert_eur)
+  return [kopf, h("p", { class: "klapp-kurz", id }, "nur Musterdepot (Mustergeld)" + (s && F.istZahl(s.wert_eur) ? ": " + F.euro(s.wert_eur)
     + (F.istZahl(s.bitcoin_halten_eur) ? " gegen „Bitcoin halten“ " + F.euro(s.bitcoin_halten_eur) : "") + (diff !== null ? " → " + F.euroPlus(diff) : "") : ""))];
 }
 
@@ -731,23 +779,37 @@ function autopilotWahl(d, id) {
  *  je Teil (1.3.12) bleiben im „mehr“ der Gesamt-Karte. */
 function gesamtVerlaufKarte(Z, spiel, id = "gesamt-verlauf") {
   const hinweis = verlaufHinweis(Z);
-  // 1.4.9: „Seit Start · eingesetzt …“ als erste Kennzahl – Spielgeld gegen start_eur, echt gegen gesamt.einsatz_eur (unabhängig vom Zeitraum)
+  // 1.4.9: „Seit Start · eingesetzt …“ als erste Kennzahl – Mustergeld gegen start_eur, echt gegen gesamt.einsatz_eur (unabhängig vom Zeitraum)
   const d = Z.handy || {};
   const sgT = ok(d.spielgeld) || {}, gT = gesamtTeil(d) || {};
   const seitStart = spiel ? seitStartKennzahl(sgT.gesamt_eur, sgT.start_eur) : seitStartKennzahl(gT.gesamt_eur, gT.einsatz_eur);
-  // 1.4.1: solange echt 0 € liegen, zeigt die Karte den Verlauf des Spielgelds (Verlaufspunkte spielgeld_eur, seit 23.10.2026)
-  // 1.4.8: liegt echtes Geld, steht der Spielgeld-Verlauf als zweite Karte darunter (id spielgeld-verlauf)
-  return h("section", { class: "karte", id }, h("div", { class: "karte-kopf" }, h("h2", null, spiel ? "Verlauf · Spielgeld" : "Verlauf")),
+  // 1.4.1: solange echt 0 € liegen, zeigt die Karte den Verlauf des Mustergelds (Verlaufspunkte spielgeld_eur, seit 23.10.2026)
+  // 1.4.8: liegt echtes Geld, steht der Mustergeld-Verlauf als zweite Karte darunter (id spielgeld-verlauf)
+  if (spiel) {
+    // 1.4.14 (Tom 07.11.2026): je Rubrik eine Linie, in Prozent seit Beginn des Zeitraums; Tipp in der Legende zeigt nur diese Rubrik
+    // samt Vergleich (Kennzahlen dann für sie), noch ein Tipp oder „Alle“ wieder alles. Kennzahlen ohne Auswahl wie bisher in Euro.
+    return h("section", { class: "karte", id }, h("div", { class: "karte-kopf" }, h("h2", null, "Verlauf · Mustergeld")),
+      hinweis || D.statistik({
+        schluessel: "spielgeld", punkte: D.punkteLesen(Z.verlauf), einheit: "prozent", fokus: true,
+        beschreibung: "Mustergeld gesamt und je Rubrik in Prozent seit Beginn des Zeitraums", tippHinweis: true,
+        serien: (p) => [
+          { name: "Mustergeld", klasse: "l-gesamt", werte: D.prozentSeitStart(D.reihe(p, "spielgeld_eur")) },
+          ...Object.keys(RUBRIKEN).map((k) => { const [t, v] = rubrikPaar(p, k); return Object.assign(t, { vergleich: v }); }),
+        ],
+        kennzahl: (p, serien, fokus) => (fokus && fokus.rubrik ? rubrikKennzahl(Z, p, fokus.rubrik, serien)
+          : [...seitStart, ...D.euroKennzahlen(D.reihe(p, "spielgeld_eur"))]),
+      }));
+  }
+  return h("section", { class: "karte", id }, h("div", { class: "karte-kopf" }, h("h2", null, "Verlauf")),
     hinweis || D.statistik({
-      schluessel: spiel ? "spielgeld" : "gesamt-nur", punkte: D.punkteLesen(Z.verlauf), einheit: "eur",
-      beschreibung: spiel ? "Verlauf des Spielgelds" : "Verlauf des Gesamtvermögens", tippHinweis: true,
-      serien: (p) => [spiel ? { name: "Spielgeld", klasse: "l-gesamt", werte: D.reihe(p, "spielgeld_eur") }
-        : { name: "Gesamtvermögen", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") }],
+      schluessel: "gesamt-nur", punkte: D.punkteLesen(Z.verlauf), einheit: "eur",
+      beschreibung: "Verlauf des Gesamtvermögens", tippHinweis: true,
+      serien: (p) => [{ name: "Gesamtvermögen", klasse: "l-gesamt", werte: D.reihe(p, "gesamt_eur") }],
       kennzahl: (p, serien) => [...seitStart, ...D.euroKennzahlen(serien[0].werte)],
     }));
 }
 
-/** 1.4.8: gibt es Spielgeld-Punkte im Verlauf? (zweite Verlauf-Karte, solange echtes Geld liegt) */
+/** 1.4.8: gibt es Mustergeld-Punkte im Verlauf? (zweite Verlauf-Karte, solange echtes Geld liegt) */
 function spielgeldVerlaufDa(Z) {
   return D.reihe(D.punkteLesen(Z.verlauf), "spielgeld_eur").length >= 2;
 }
@@ -761,10 +823,10 @@ function metaVerlaufKarte(md) {
   const seitStart = seitStartKennzahl((liste(m.vergleich).find((x) => istObj(x) && x.k === "meta") || {}).wert_eur,
     F.istZahl(m.start_eur) && m.start_eur > 0 ? m.start_eur : 1000);   // 1.4.9
   return h("section", { class: "karte", id: "meta-verlauf" },
-    h("div", { class: "karte-kopf" }, h("h2", null, "Verlauf · Meta-Depot"), etikett("Rechengeld", "")),
+    h("div", { class: "karte-kopf" }, h("h2", null, "Verlauf · Meta-Depot"), etikett("Mustergeld", "")),
     D.statistik({
       schluessel: "meta-verlauf", punkte, einheit: "eur", vorgabe: "alle", tippHinweis: false,
-      beschreibung: "Meta-Depot gegen feste Drittelung und Bitcoin halten, je ab 1.000 € Rechengeld",
+      beschreibung: "Meta-Depot gegen feste Drittelung und Bitcoin halten, je ab 1.000 € Mustergeld",
       serien: (p) => [
         { name: "Meta-Depot", klasse: "l-haupt", werte: D.reihe(p, "meta_eur") },
         { name: "Feste Drittelung", klasse: "l-zweit", werte: D.reihe(p, "drittel_eur") },
@@ -774,24 +836,24 @@ function metaVerlaufKarte(md) {
     }));
 }
 
-/** 1.3.14: „Coin-Topf gesamt“ – alle Krypto-Töpfe zusammengefasst (Coin-Bot + Raster-Bot + Trend-Bot, Werte aus dem Gesamtvermögen) */
+/** 1.3.14: „Coin-Topf gesamt“ – alle Krypto-Töpfe zusammengefasst (Safe-Bot + Raster-Bot + Trend-Bot, Werte aus dem Gesamtvermögen) */
 function kryptoGesamtKarte(d, sg) {
   const g = gesamtTeil(d);
   if (!g && !sg) return null;
   const sgT = (k) => (sg ? liste(sg.teile).find((x) => istObj(x) && x.k === k) : null);
   const sgW = (k) => { const t = sgT(k); return t && F.istZahl(t.wert_eur) ? t.wert_eur : null; };
-  const teile = sg ? [["Coin-Bot", sgW("coin"), "coin"], ["Raster-Bot", sgW("raster"), "raster"], ["Trend-Bot", sgW("trend"), "trend"]]
-    : [["Coin-Bot", g.coin_topf_eur], ["Raster-Bot", g.raster_topf_eur], ["Trend-Bot", g.trend_topf_eur]];
+  const teile = sg ? [["Safe-Bot", sgW("coin"), "coin"], ["Raster-Bot", sgW("raster"), "raster"], ["Trend-Bot", sgW("trend"), "trend"]]
+    : [["Safe-Bot", g.coin_topf_eur], ["Raster-Bot", g.raster_topf_eur], ["Trend-Bot", g.trend_topf_eur]];
   if (!teile.some(([, v]) => F.istZahl(v))) return null;
   const summe = teile.reduce((s, [, v]) => s + (F.istZahl(v) ? v : 0), 0);
   return h("section", { class: "karte", id: "krypto-gesamt" },
-    h("div", { class: "karte-kopf" }, h("h2", null, "Coin-Topf gesamt"), sg ? etikett("Spielgeld", "") : null),
+    h("div", { class: "karte-kopf" }, h("h2", null, "Coin-Topf gesamt"), sg ? etikett("Mustergeld", "") : null),
     h("div", { class: "gross", id: "krypto-gesamt-wert" }, F.euro(summe)),
     sg && teile.every(([, v]) => F.istZahl(v)) ? einsatzZeile(summe, teile.length * sgJe(sg), "krypto-gesamt-einsatz") : null,   // 1.4.9: 3 × 1.000 €
     zeilen(teile.map(([n, v, k]) => [n, F.istZahl(v) ? [F.euro(v), sgVeraltet(sgT(k))] : "–"])));
 }
 
-/** 1.4.1 (Tom 23.10.2026): „solange wir nur mit Spielgeld trainieren, das Spielgeld anzeigen“ – je Bot sein Haupt-Musterdepot
+/** 1.4.1 (Tom 23.10.2026): „solange wir nur mit Mustergeld trainieren, das Mustergeld anzeigen“ – je Bot sein Haupt-Musterdepot
  *  (handy.json spielgeld). Ersetzt die Gesamt-Karte, solange echt 0 € liegen. 1.4.3: die Cloud rechnet jeden Teil seit dem Start mit
  *  1.000 € ohne Neustart weiter (verkettet); teile[].veraltet = Quelle in diesem Lauf nicht lesbar, letzter Wert. faktor und
  *  vergleich_start sind intern und werden nicht gezeigt. */
@@ -818,7 +880,7 @@ function spielgeldKarte(sg) {
   // 1.4.3: unvollständig nur hier nennen, wenn kein Teil selbst „letzter Stand“ trägt (der Hinweis steht einmal)
   const basis = "je Bot gestartet mit " + F.euro(je) + (sg.vollstaendig === false && !teile.some((t) => t.veraltet === true) ? " · unvollständig" : "");
   return h("section", { class: "karte gesamt-karte", id: "spielgeld-karte" },
-    h("div", { class: "karte-kopf" }, h("h2", null, "Spielgeld"), etikett("Rechengeld", "")),
+    h("div", { class: "karte-kopf" }, h("h2", null, "Mustergeld")),   // 07.11.2026: Überschrift sagt es schon – kein zweites Schild
     h("div", { class: "gross", id: "spielgeld-wert" }, F.euro(sg.gesamt_eur)),
     // 1.4.9: „+ € 147,50 (+3,69 %) · eingesetzt € 4.000 seit Start“ (grün/rot), darunter die Basis je Bot
     einsatzZeile(sg.gesamt_eur, sg.start_eur, "spielgeld-einsatz", "seit Start · " + basis)
@@ -826,7 +888,7 @@ function spielgeldKarte(sg) {
     balken,
     zeilen(teile.map((t) => [h("span", null, h("span", { class: "punkt " + (SG_KLASSE[t.k] || "euro") }), " " + F.text(t.name)),
       h("span", null, h("span", { class: F.vorzeichenKlasse(t.wert_eur - je) }, F.euro(t.wert_eur) + " · " + plusFest(t.wert_eur - je)), sgVeraltet(t))])),   // 1.4.9: je 1.000 € eingesetzt
-    h("p", { class: "klein gedimmt" }, "Echtes Geld: 0 € – die Übersicht zeigt das Spielgeld, bis wieder echtes Geld liegt."));
+    h("p", { class: "klein gedimmt" }, "Echtes Geld: 0 € – die Übersicht zeigt das Mustergeld, bis wieder echtes Geld liegt."));
 }
 /** 1.4.3: Musterdepot-Eintrag der Cloud (schattendepots.liste) mit „je 1.000 € ab Vergleichsstart“ (je_1000) – sonst null */
 function sdJe(d, kennung) {
@@ -854,19 +916,19 @@ export function uebersicht(Z) {
   if (!d) return [Z.fehlerHandy ? h("p", { class: "leer" }, "Noch keine Daten.") : leer("Daten werden geladen …")];
   const out = [];
   // 1.3.14 (Tom 23.10.2026, Reihenfolge Teil 1): KI-Frage · Marktphase · Verlauf · Gesamtvermögen · Parken/Anhalten · Coin-Topf gesamt ·
-  // Coin-Bot (mit dem Autopilot-Wahlschalter) · Raster-Bot · Trend-Bot · Musterdepots · Aktien · Wichtige Hinweise
+  // Safe-Bot (mit dem Autopilot-Wahlschalter) · Raster-Bot · Trend-Bot · Musterdepots · Aktien · Wichtige Hinweise
   // 1.4.8 (Tom 03.11.2026, „beim Öffnen zuoberst die Vermögens-Grafik, auch vom Musterdepot – Echtgeld als Allererstes, sofern im
-  // Spiel“): zuerst die Verlauf-Grafiken – Echtgeld (sofern > 0 €), Spielgeld (solange es Punkte hat), Meta-Depot –, dann KI-Frage,
+  // Spiel“): zuerst die Verlauf-Grafiken – Echtgeld (sofern > 0 €), Mustergeld (solange es Punkte hat), Meta-Depot –, dann KI-Frage,
   // Marktphase und die Zahlen wie bisher
-  const sg = spielgeldModus(d);                                    // 1.4.1: echt 0 € -> Spielgeld-Ansicht
+  // 1.4.14 (Tom 07.11.2026): ganz oben die Marktphase (mit Kursbewegung 12 h und neuen Coins), die Karte „Kursbewegungen“ entfällt,
+  // dann die Verlauf-Grafiken – der Rest bleibt in seiner Reihenfolge
+  const sg = spielgeldModus(d);                                    // 1.4.1: echt 0 € -> Mustergeld-Ansicht
+  out.push(marktphaseKarte(d.marktphase, Z.news && Z.news.markt_12h, d.bewegungen));
   if (!sg) out.push(gesamtVerlaufKarte(Z, false));
   if (sg || spielgeldVerlaufDa(Z)) out.push(gesamtVerlaufKarte(Z, true, sg ? "gesamt-verlauf" : "spielgeld-verlauf"));
   const mv = metaVerlaufKarte(d.meta_depot);
   if (mv) out.push(mv);
   if (A.erlaubt("frage")) out.push(kiSchnellKarte());
-  out.push(marktphaseKarte(d.marktphase));
-  const bw = bewegungenKarte(d.bewegungen);                       // 1.4.10: Kursbewegungen „wie die Bitpanda-Pushes“
-  if (bw) out.push(bw);
   out.push(sg ? spielgeldKarte(sg) : gesamtKarte(d, Z));
   const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert (offen; sonst Ergebnis der letzten 24 h)
   if (ak_) out.push(ak_);
@@ -878,15 +940,15 @@ export function uebersicht(Z) {
   if (k) {
     const ki = ok(k.ki);
     const pos = k.geparkt ? "geparkt in EURCV" : k.position ? F.text(k.position) : "–";
-    const stK = autopilotStellung(d).stellung;                     // 1.3: der Coin-Bot läuft mit KI ODER Regeln
-    const wahl = autopilotWahl(d, "autopilot-uebersicht");         // 1.3.14: der Wahlschalter steht in der Coin-Bot-Karte
+    const stK = autopilotStellung(d).stellung;                     // 1.3: der Safe-Bot läuft mit KI ODER Regeln
+    const wahl = autopilotWahl(d, "autopilot-uebersicht");         // 1.3.14: der Wahlschalter steht in der Safe-Bot-Karte
     const sgCoin = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === "coin") : null;
-    out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
+    out.push(karte(F.text(k.name, "Safe-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
       h("div", { class: "gross", id: "kern-wert" }, F.euro(sgCoin ? sgCoin.wert_eur : k.wert_eur)),
       sgCoin ? einsatzZeile(sgCoin.wert_eur, sgJe(sg), "kern-einsatz") : null,        // 1.4.9: je 1.000 € eingesetzt
-      h("p", { class: "klapp-kurz" }, sgCoin ? ["Spielgeld · " + F.text(sgCoin.name), sgVeraltet(sgCoin)] : F.text(k.topf_name, "Coin-Topf") + " · hält " + pos),
+      h("p", { class: "klapp-kurz" }, sgCoin ? ["Mustergeld · " + F.text(sgCoin.name), sgVeraltet(sgCoin)] : F.text(k.topf_name, "Coin-Topf") + " · hält " + pos),
       wahl,
-      wahl ? mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Coin-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
+      wahl ? mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Safe-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
         + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?") : null,
       mehrTeil("kern", [
         h("p", { class: "klein gedimmt" }, "Stand " + F.zeit(k.wert_zeit) + (F.istZahl(k.bitcoin_kurs_eur) ? " · Bitcoin " + F.euro(k.bitcoin_kurs_eur) : "")),
@@ -894,12 +956,13 @@ export function uebersicht(Z) {
           ["Autopilot", STELLUNG_TEXT[stK]],
           ["Stufe", F.text(k.stufe) + (k.stufe_automatik ? " (Automatik)" : "")],
           ["Bitcoin-Ampel", ampel(k.ampel)],
-          // 1.4.3 (#14): im Spielgeld nur, wenn echt etwas gehalten wird – dann als „echt“ gekennzeichnet
+          // 1.4.3 (#14): im Mustergeld nur, wenn echt etwas gehalten wird – dann als „echt“ gekennzeichnet
           !sgCoin ? ["Hält", pos] : k.position || k.geparkt ? ["Hält (echt)", pos] : null,
           ki ? ["KI-Urteil", entscheidungText(ki.entscheidung) + (F.istZahl(ki.zuversicht) ? " · " + ki.zuversicht + " % sicher" : "")] : null,
         ]),
         ki ? erklaert("Einfach erklärt", ki.einfach_erklaert) : null,
-        !sgCoin && ok(d.bilanz) && d.bilanz.text ? h("p", { class: "klein gedimmt" }, d.bilanz.text) : null,   // 1.4.3 (#14): echte Bilanz nicht unter dem Spielgeld
+        !sgCoin && ok(d.bilanz) && d.bilanz.text ? h("p", { class: "klein gedimmt" }, d.bilanz.text) : null,   // 1.4.3 (#14): echte Bilanz nicht unter dem Mustergeld
+        sgCoin ? rubrikStatistik(Z, "coin", "uebersicht") : null,              // 1.4.14: Safe-Bot gegen Bitcoin halten
       ]),
     ));
   } else out.push(fehlerKarte("Coin-Topf", d.kern_bot));
@@ -913,6 +976,7 @@ export function uebersicht(Z) {
           ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
         zeigtEcht(r.status, r.topf_eur) ? schattenHinweis(r.schatten) : null,
         kiZeile(r.ki_vorschlag),
+        sg ? rubrikStatistik(Z, "raster", "uebersicht") : null,   // 1.4.14: Raster-Bot gegen Bitcoin halten
         botKnoepfe(r.status, "surfen_ein", "surfen_pause", "surfen_aus", d.bot_deckel)])));
   } else out.push(fehlerKarte("Raster-Bot", d.raster_bot));
 
@@ -933,6 +997,7 @@ export function uebersicht(Z) {
           : ok(t.schatten) && liste(t.schatten.positionen).length ? h("p", { class: "klein gedimmt" }, "Musterdepot hält " + liste(t.schatten.positionen).join(", ")) : null,
         straffZeile(t.schatten_straff, sdJe(d, "trend_straff")),
         kiZeile(t.ki_vorschlag),
+        sg ? rubrikStatistik(Z, "trend", "uebersicht") : null,    // 1.4.14: Trend-Bot gegen Bitcoin halten
         botKnoepfe(t.status, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel)])));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
 
@@ -950,7 +1015,7 @@ export function uebersicht(Z) {
   // 1.2.12: Aktien & ETFs unter dem Krypto-Teil, direkt vor „Letzte Alarme“ – langfristiges Geld, am wenigsten angeschaut (Nutzer 14.10.2026)
   const ak = ok(d.aktien);
   if (ak) {
-    out.push(aktienKarte(d, ak, false, sg));
+    out.push(aktienKarte(d, ak, false, sg, Z));
   } else out.push(fehlerKarte("Aktien-Autopilot", d.aktien));
 
   out.push(alarmKarte(d));
@@ -958,8 +1023,8 @@ export function uebersicht(Z) {
 }
 
 /** Aktien-Karte: Übersicht (offen=false: Details im „mehr“) und Reiter „Aktien“ (1.4, offen=true: alles offen, dazu die Positionen). */
-function aktienKarte(d, ak, offen, sg) {
-  const sgAk = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === "aktien") : null;   // 1.4.1: Spielgeld statt 0 €
+function aktienKarte(d, ak, offen, sg, Z) {
+  const sgAk = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === "aktien") : null;   // 1.4.1: Mustergeld statt 0 €
   const akKi = ok(ak.ki);
   const details = [
     zeilen([
@@ -975,18 +1040,19 @@ function aktienKarte(d, ak, offen, sg) {
     akKi ? erklaert("KI einfach erklärt", akKi.einfach_erklaert) : null,
     // 1.2.24: Zeile und Knopf „Gewinnschutz“ entfielen mit dem Gewinnschutz Aktien/ETF (Cloud, 17.10.2026); die Absicherung
     // des Welt-ETF steht in der Lage darunter
-    // 1.3: derselbe Wahlschalter wie beim Coin-Bot (ältere Cloud: die bisherigen Knöpfe)
+    // 1.3: derselbe Wahlschalter wie beim Safe-Bot (ältere Cloud: die bisherigen Knöpfe)
     autopilotWahl(d, "autopilot-aktien") || reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein")),
     // 1.3.9: die Lage im selben „mehr“ statt als eigene eingeklappte Karte darunter (ein Aufklappen je Rubrik)
     lageListe(ak.lage, "Lage"),
+    sgAk && Z && !offen ? rubrikStatistik(Z, "aktien", "uebersicht") : null,       // 1.4.14: Aktien gegen Welt-ETF halten
   ];
   const pos = liste(ak.positionen);
   return karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
     h("div", { class: "mittel", id: offen ? "aktien-wert-seite" : "aktien-wert" }, F.euro(sgAk ? sgAk.wert_eur : ak.wert_eur)),
     sgAk ? einsatzZeile(sgAk.wert_eur, sgJe(sg), offen ? "aktien-einsatz-seite" : "aktien-einsatz") : null,   // 1.4.9: je 1.000 € eingesetzt
-    sgAk ? h("p", { class: "klapp-kurz" }, "Spielgeld · " + F.text(sgAk.name), sgVeraltet(sgAk)) : null,
+    sgAk ? h("p", { class: "klapp-kurz" }, "Mustergeld · " + F.text(sgAk.name), sgVeraltet(sgAk)) : null,
     F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
-    // 1.4.3 (#14): im Spielgeld ist die Liste das ECHTE Depot – so benannt
+    // 1.4.3 (#14): im Mustergeld ist die Liste das ECHTE Depot – so benannt
     offen ? [details, pos.length ? zeilen(pos.map((p) => [F.text(p.name, p.symbol), F.euro(p.wert_eur)])) : leer(sgAk ? "Echtes Depot leer." : "Keine Aktien oder ETFs im Depot.")]
       : mehrTeil("aktien", details));
 }
@@ -997,7 +1063,10 @@ export function aktien(Z) {
   if (!d) return [leer("Daten werden geladen …")];
   const ak = ok(d.aktien);
   if (!ak) return [fehlerKarte("Aktien-Autopilot", d.aktien)];
-  return [aktienKarte(d, ak, true, spielgeldModus(d)), schattenKarte(d.schattendepots, "Aktien-Teil")];
+  const sg = spielgeldModus(d);
+  // 1.4.14 (Tom 07.11.2026): in den Bot-Reitern zuerst die Statistik
+  return [sg ? karte("Statistik", null, rubrikStatistik(Z, "aktien", "reiter")) : null, aktienKarte(d, ak, true, sg, Z),
+    schattenKarte(d.schattendepots, "Aktien-Teil")].filter(Boolean);
 }
 
 /** 1.4 (Teil 3): die Trend-Seite hat keinen Reiter mehr – ein Tipp auf die Trend-Karte öffnet sie, „‹ Übersicht“ führt zurück */
@@ -1007,7 +1076,7 @@ function seiteOeffnen(r) {
 
 /**
  * 1.2.17: Karte „Musterdepots“ (handy.json schattendepots, Cloud: schattendepots.py) – jedes laufende Musterdepot (nur
- * Rechengeld) als aufklappbarer Punkt; das Urteil der automatischen Auswertung steht schon in der Kopfzeile. Fehlt der Teil: nichts.
+ * Mustergeld) als aufklappbarer Punkt; das Urteil der automatischen Auswertung steht schon in der Kopfzeile. Fehlt der Teil: nichts.
  */
 const SD_KLASSE = { klar_vorne: "sd-klar-vorne", klar_hinten: "sd-klar-hinten", vorne: "sd-vorne", hinten: "sd-hinten" };
 const sdOffen = new Set();                                         // aufgeklappte Depots überleben das Neuzeichnen
@@ -1023,7 +1092,7 @@ const SD_GRUPPEN = [
     ["gewinner_gegen_raster", "„Raster“ vs. „Tagesgewinner“"], ["gewinner_gegen_trend", "„Trend“ vs. „Tagesgewinner“"],
     // 1.4.12 (Tom 04.11.2026): Musterdepot „Neue Coins“ – jeder neu gelistete Coin 100 € für 7 Tage gegen dasselbe Geld in Bitcoin
     ["neu_coins_schatten", "„Bitcoin zur selben Zeit“ vs. „Neue Coins“"]]],
-  ["Coin-Bot", [["ki_schatten", "„Bitcoin halten“ vs. „KI“"], ["ki_gegen_regeln", "„Regeln“ vs. „KI“"],
+  ["Safe-Bot", [["ki_schatten", "„Bitcoin halten“ vs. „KI“"], ["ki_gegen_regeln", "„Regeln“ vs. „KI“"],
     ["coin_leiter", "„Bitcoin halten“ vs. „Regeln“"], ["coin_einfach", "„Regeln“ vs. „Rückkauf einfach“"],
     ["coin_alt_neu", "„Regeln alt“ vs. „Regeln neu“"], ["trend_straff", "„Trend“ vs. „Trend straff“"],
     ["swing_schatten", "„Bitcoin halten“ vs. „Swing-Trading (RSI)“"], ["sparplan_schatten", "„Einmalanlage“ vs. „Sparplan“"]]],
@@ -1061,7 +1130,7 @@ function schattenKarte(sd, nur) {
       ? eintraege.length + (eintraege.length === 1 ? " läuft" : " laufen") + " · " + [...urteile].map(([u, n]) => n + " " + u).join(", ")
       : "Gerade läuft kein Musterdepot."),
     mehrTeil("schattendepots", eintraege.length ? [
-    h("p", { class: "klein gedimmt" }, "Nur Rechengeld, keine Orders. Die Cloud vergleicht jedes Depot laufend mit seiner Referenz und meldet "
+    h("p", { class: "klein gedimmt" }, "Nur Mustergeld, keine Orders. Die Cloud vergleicht jedes Depot laufend mit seiner Referenz und meldet "
       + "sich per Push, sobald eines klar vorne oder klar hinten liegt."),
     gruppen.map(([titel, l]) => [h("h3", { class: "sd-gruppe" }, titel), l.map((e) => {
       const a = ok(e.auswertung) || {};
@@ -1116,7 +1185,7 @@ function metaKarte(md) {
         + " · Zwischenblick " + F.tag(m.zwischenblick) + " · Auswertung " + F.tag(m.auswertung)),
       u ? h("p", { class: "klein" }, F.text(u.text)) : null,
       metaScoreboard(ok(m.scoreboard)),
-      h("p", { class: "klein gedimmt" }, "Nur Rechengeld. Gewichtet Raster, Trend und Schutz je Marktphase und muss Bitcoin halten und die feste Drittelung schlagen. Die Regeln sind eingefroren."),
+      h("p", { class: "klein gedimmt" }, "Nur Mustergeld. Gewichtet Raster, Trend und Schutz je Marktphase und muss Bitcoin halten und die feste Drittelung schlagen. Die Regeln sind eingefroren."),
     ], "mehr"));
 }
 
@@ -1166,17 +1235,17 @@ function kiKarte(text, d) {
     K.hinweisListe(d));
 }
 
-// ------------------------------------------------------------------ Coin-Bot (Reiter „kern“ – interner Name bleibt)
+// ------------------------------------------------------------------ Safe-Bot (Reiter „kern“ – interner Name bleibt)
 
 export function kern(Z) {
   const d = Z.handy;
   if (!d) return [leer("Daten werden geladen …")];
   const k = ok(d.kern_bot);
-  if (!k) return [fehlerKarte("Coin-Bot", d.kern_bot)];
+  if (!k) return [fehlerKarte("Safe-Bot", d.kern_bot)];
   const out = [];
   const lageK = lageKarte(k.lage);
   if (lageK) out.push(lageK);
-  out.push(karte(F.text(k.name, "Coin-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
+  out.push(karte(F.text(k.name, "Safe-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
     h("div", { class: "mittel" }, F.euro(k.wert_eur)),
     h("p", { class: "klein gedimmt" }, F.text(k.topf_name, "Coin-Topf") + " · Stand " + F.zeit(k.wert_zeit)),
     zeilen([
@@ -1187,8 +1256,8 @@ export function kern(Z) {
       ["Regelwerk ohne KI", anAus(k.regelwerk_an)],
       ["Euro-Automatik", anAus(k.euro_automatik)],
     ]),
-    // 1.3: Wahlschalter „KI · Regeln · Aus“ statt „Coin-Bot ein/aus“ (ältere Cloud ohne die Befehle: die bisherigen Knöpfe)
-    autopilotWahl(d, "autopilot-kern") || reihe(k.an ? A.knopf("stopp", "Coin-Bot aus", "gefahr-rand") : A.knopf("start", "Coin-Bot ein", "primaer")),
+    // 1.3: Wahlschalter „KI · Regeln · Aus“ statt „Safe-Bot ein/aus“ (ältere Cloud ohne die Befehle: die bisherigen Knöpfe)
+    autopilotWahl(d, "autopilot-kern") || reihe(k.an ? A.knopf("stopp", "Safe-Bot aus", "gefahr-rand") : A.knopf("start", "Safe-Bot ein", "primaer")),
     reihe(A.knopf("einstellung", "Stufe ändern", "", { stufe: k.stufe, auto: !!k.stufe_automatik })),
     k.stufe !== "sicher" || k.stufe_automatik
       ? reihe(A.knopf("einstellung", "Bremsen: Stufe → sicher", "gefahr-rand stufe-sicher", { stufe: "sicher", auto: false })) : null,
@@ -1199,7 +1268,7 @@ export function kern(Z) {
   const nb = ok(k.notbremse);
   if (nb) {
     out.push(karte("Notbremse", null,
-      h("p", { class: "klein gedimmt" }, "Grenzen der Stufe „" + F.text(k.stufe) + "“: fällt der Coin-Topf so stark, parkt der Coin-Bot in EURCV."),
+      h("p", { class: "klein gedimmt" }, "Grenzen der Stufe „" + F.text(k.stufe) + "“: fällt der Coin-Topf so stark, parkt der Safe-Bot in EURCV."),
       zeilen([
         ["an einem Tag", F.prozent(nb.tag_prozent, 0)],
         ["in einer Woche", F.prozent(nb.woche_prozent, 0)],
@@ -1254,13 +1323,15 @@ export function kern(Z) {
     h("p", { class: "klein gedimmt" }, "Steuerneutraler Tausch Krypto gegen Krypto direkt bei Bitpanda (Anmeldung dort nötig)."),
     reihe(bitpandaKnopf("Tauschen bei Bitpanda", BITPANDA_SWAP_URL, "primaer"), bitpandaKnopf("Zu Bitpanda")), bitpandaHinweis()));
 
-  out.push(karte("Statistik", null, h("p", { class: "klein gedimmt" }, "Coin-Topf gegen „Bitcoin halten“ in Prozent seit Beginn des Zeitraums – Ein- und Auszahlungen herausgerechnet."), ...coinStatistik(Z)));
+  // 1.4.14 (Tom 07.11.2026): die Statistik steht im Reiter an erster Stelle – im Mustergeld der Safe-Bot gegen Bitcoin halten
+  out.unshift(spielgeldModus(d) ? karte("Statistik", null, rubrikStatistik(Z, "coin", "reiter"))
+    : karte("Statistik", null, h("p", { class: "klein gedimmt" }, "Coin-Topf gegen „Bitcoin halten“ in Prozent seit Beginn des Zeitraums – Ein- und Auszahlungen herausgerechnet."), ...coinStatistik(Z)));
 
   const b = ok(d.bilanz);
   if (b) {
-    out.push(karte(F.text(b.name, "Coin-Bot gegen „Bitcoin halten“ seit Start"), null,
+    out.push(karte(F.text(b.name, "Safe-Bot gegen „Bitcoin halten“ seit Start"), null,
       zeilen([
-        ["Coin-Bot", F.euro(b.kern_bot_eur)],
+        ["Safe-Bot", F.euro(b.kern_bot_eur)],
         ["Bitcoin halten", F.euro(b.halten_eur)],
         ["seit Start", F.prozent(b.seit_start_prozent), F.vorzeichenKlasse(b.seit_start_prozent)],
         ["letzte 30 Tage", F.istZahl(b.letzte_30_tage_pp) ? F.zahl(b.letzte_30_tage_pp, 2).replace(/^-/, "−") + " Prozentpunkte" : "–", F.vorzeichenKlasse(b.letzte_30_tage_pp)],
@@ -1313,7 +1384,7 @@ export function raster(Z) {
   // Ohne echtes Geld steht das Musterdepot gleich unter dem Bot, mit echtem Geld nur noch als eine Referenzzeile ganz unten (Nutzer 11.10.2026)
   const rEcht = st !== "aus" || (F.istZahl(r.topf_eur) && r.topf_eur > 0);
   if (!rEcht) out.push(rasterSchatten(r, sdJe(d, "raster_schatten")));
-  out.push(karte("Statistik", null, botStatistik(Z, "raster")));
+  out.splice(uR ? 1 : 0, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "raster", "reiter") : botStatistik(Z, "raster")));   // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
   const coins = liste(r.coins);
   out.push(karte("Coins im Raster", null, coins.length ? h("ul", { class: "liste" }, coins.map((c) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(c.coin)), h("span", { class: "zahl" }, F.euro(c.wert_eur)), coinLink(c.coin)),
@@ -1330,7 +1401,7 @@ export function raster(Z) {
 function rasterSchatten(r, sd) {
   const s = ok(r.schatten);
   return karte("Musterdepot", s ? statusEtikett(s.status) : null,
-    h("p", { class: "klein gedimmt" }, "Rechengeld (kein echtes Geld): zeigt, wie sich der Raster-Bot gegen „Bitcoin halten“ schlagen würde."),
+    h("p", { class: "klein gedimmt" }, "Mustergeld (kein echtes Geld): zeigt, wie sich der Raster-Bot gegen „Bitcoin halten“ schlagen würde."),
     sdJeZeile(sd, "raster-sd-je"),
     s && sd ? h("p", { class: "klein gedimmt" }, "Seit Start:") : null,
     s ? zeilen([
@@ -1365,7 +1436,7 @@ export function trend(Z) {
     ma ? zeilen([["Abstand zur 50-Tage-Linie", F.prozent(ma.abstand_prozent), F.vorzeichenKlasse(ma.abstand_prozent)], ["Tag", F.text(ma.tag)]]) : null));
 
   out.push(karte(F.text(t.name, "Trend-Bot"), statusEtikett(st),
-    t.modus === "echt" ? h("div", { class: "mittel" }, F.euro(t.topf_eur)) : h("p", null, "Läuft gerade nur im Musterdepot (Rechengeld)."),
+    t.modus === "echt" ? h("div", { class: "mittel" }, F.euro(t.topf_eur)) : h("p", null, "Läuft gerade nur im Musterdepot (Mustergeld)."),
     zeilen([
       ["Modus", t.modus === "echt" ? "echtes Geld" : "Schatten"],
       t.modus === "echt" ? ["Einsatz", F.euro(t.einsatz_eur)] : null,
@@ -1388,7 +1459,7 @@ export function trend(Z) {
   if (!tEcht) out.push(trendSchatten(t, sdJe(d, "trend_schatten")));
   const stk = straffKarte(t, sdJe(d, "trend_straff"));                       // 1.2.16: zweites Musterdepot „straff“ direkt darunter
   if (stk) out.push(stk);
-  out.push(karte("Statistik", null, botStatistik(Z, "trend")));
+  out.splice(uT ? 1 : 0, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "trend", "reiter") : botStatistik(Z, "trend")));    // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
   const pos = liste(t.positionen);
   out.push(karte("Positionen", null, pos.length ? h("ul", { class: "liste" }, pos.map((p) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(p.coin)), h("span", { class: "zahl" }, F.euro(p.einstand_eur)), coinLink(p.coin)),
@@ -1409,7 +1480,7 @@ export function trend(Z) {
 function trendSchatten(t, sd) {
   const s = ok(t.schatten);
   return karte("Musterdepot", null,
-    h("p", { class: "klein gedimmt" }, "Rechengeld (kein echtes Geld) mit denselben Regeln wie der Trend-Bot."),
+    h("p", { class: "klein gedimmt" }, "Mustergeld (kein echtes Geld) mit denselben Regeln wie der Trend-Bot."),
     sdJeZeile(sd, "trend-sd-je"),                                  // 1.4.3 (#11): dieselbe Basis wie die Übersicht
     s && sd ? h("p", { class: "klein gedimmt" }, "Seit Start:") : null,
     s ? zeilen([
@@ -1431,7 +1502,7 @@ function straffZeile(st, sd) {
     " · hält " + (liste(st.positionen).map((p) => F.text(p.coin)).join(", ") || "nichts"));
 }
 
-/** 1.2.16: zweites Musterdepot „straff“ (trend_straff.py, 16.10.2026) – schnellere Regel als Test mit Rechengeld:
+/** 1.2.16: zweites Musterdepot „straff“ (trend_straff.py, 16.10.2026) – schnellere Regel als Test mit Mustergeld:
  *  Vergleich mit dem alten Musterdepot und „Bitcoin halten“, Positionen mit Kaufkurs, letzte Trades. Fehlt der Teil: nichts. */
 function straffKarte(t, sd) {
   const st = ok(t.schatten_straff);
@@ -1442,7 +1513,7 @@ function straffKarte(t, sd) {
   const pos = liste(st.positionen);
   const tr = liste(st.trades_letzte).slice(-5).reverse();
   return karte("Musterdepot neu („straff“)", null,
-    h("p", { class: "klein gedimmt" }, "Test der schnelleren Regel mit Rechengeld (kein echtes Geld): " + F.text(st.regel) + "."),
+    h("p", { class: "klein gedimmt" }, "Test der schnelleren Regel mit Mustergeld (kein echtes Geld): " + F.text(st.regel) + "."),
     sdJeZeile(sd, "straff-sd-je"),                                 // 1.4.3 (#11)
     sd ? h("p", { class: "klein gedimmt" }, "Seit Start:") : null,
     zeilen([
@@ -1750,21 +1821,21 @@ const LEXIKON = [
   ["200-Tage-Linie", "Durchschnitt der Schlusskurse der letzten 200 Tage – liegt der Kurs darüber, gilt der Trend als aufwärts (bei der 50-Tage-Linie ebenso, nur kurzfristiger)."],
   ["Bärenmarkt / Bullenmarkt", "Bär = der Markt fällt länger (Kurs unter den Durchschnittslinien), Bulle = er steigt länger (Kurs darüber)."],
   ["Bitcoin halten", "Einmal kaufen und liegen lassen – der Maßstab, an dem sich jeder Bot und jedes Musterdepot messen muss."],
-  ["Coin-Bot", "Hält den Coin-Topf in Bitcoin oder einem anderen Coin und parkt ihn bei Gefahr in EURCV – mit KI oder nach festen Regeln."],
   ["Einmalanlage / Sparplan", "Alles auf einmal anlegen oder in gleichen Raten verteilt – der Sparplan glättet den Einstiegskurs, die Einmalanlage ist früher voll investiert."],
   ["ETF / Welt-ETF", "Ein Fonds, der einen ganzen Index nachbildet; der Welt-ETF hält Tausende Firmen aus aller Welt auf einmal."],
   ["EURCV / Stablecoin", "Ein Coin, der immer etwa einen Euro wert ist – der „Parkplatz“ der Bots, wenn sie nicht investiert sind."],
   ["Faber 12", "Absicherung des Welt-ETF: liegt der Monatsschluss unter dem Schnitt der letzten 12 Monate, wird die Hälfte in Euro geparkt."],
   ["Gebühr / Spread", "Die Gebühr kassiert die Börse je Order, der Spread ist der Abstand zwischen Kauf- und Verkaufskurs – beides kostet bei jedem Wechsel."],
-  ["Gewinnschutz", "Fällt der Kurs um einen festen Anteil unter seinen Höchststand seit dem Kauf, parkt der Coin-Bot und sichert so einen Teil des Gewinns."],
+  ["Gewinnschutz", "Fällt der Kurs um einen festen Anteil unter seinen Höchststand seit dem Kauf, parkt der Safe-Bot und sichert so einen Teil des Gewinns."],
   ["Hebel / Margin", "Handel mit geliehenem Geld – Gewinne und Verluste vervielfachen sich; die App nutzt das bewusst nie."],
   ["Kerzenchart / Doji", "Jede Kerze zeigt Eröffnung, Schluss, Hoch und Tief eines Zeitraums; ein Doji (fast gleicher Eröffnungs- und Schlusskurs) deutet Unentschlossenheit an."],
   ["KESt", "Kapitalertragsteuer in Österreich, 27,5 % auf Kursgewinne – bei Verlust fällt keine an."],
   ["Limit-Order / Market-Order", "Limit = nur zu einem festgelegten Preis oder besser (wird vielleicht nie ausgeführt), Market = sofort zum gerade besten Preis."],
-  ["Musterdepot", "Ein Depot nur mit Rechengeld: es handelt nach festen Regeln, ohne echtes Geld, und zeigt, ob eine Idee etwas taugt."],
-  ["Notbremse", "Fällt der gehaltene Coin innerhalb kurzer Zeit zu stark, parkt der Coin-Bot sofort in EURCV."],
+  ["Musterdepot", "Ein Depot nur mit Mustergeld: es handelt nach festen Regeln, ohne echtes Geld, und zeigt, ob eine Idee etwas taugt."],
+  ["Notbremse", "Fällt der gehaltene Coin innerhalb kurzer Zeit zu stark, parkt der Safe-Bot sofort in EURCV."],
   ["Raster-Bot", "Kauft in festen Preisstufen nach unten und verkauft jede Stufe mit kleinem Gewinn wieder – lebt von Schwankungen."],
   ["RSI", "Relative-Stärke-Index von 0 bis 100: unter 30 gilt ein Kurs als überverkauft, über 70 als überkauft."],
+  ["Safe-Bot", "Hält den Coin-Topf in Bitcoin oder einem anderen Coin und parkt ihn bei Gefahr in EURCV – mit KI oder nach festen Regeln."],
   ["Stop-Loss", "Ein automatischer Verkauf, sobald der Kurs eine Grenze unterschreitet – begrenzt Verluste, kann bei Kursstürzen aber tiefer ausgeführt werden."],
   ["Swing-Trading / Daytrading", "Swing hält Tage bis Wochen und nutzt Schwankungen im Trend, Daytrading kauft und verkauft am selben Tag – für Anfänger und bei Gebühren selten lohnend."],
   ["Trend-Bot", "Kauft die Coins mit dem stärksten Lauf der letzten zwei Wochen, solange die Markt-Ampel grün ist, und steigt bei Schwäche aus."],
@@ -1819,7 +1890,7 @@ export function mehr(Z, ctx) {
     }
     if (P.erlaubnis() === "denied") pk.push(h("p", { class: "klein gedimmt" }, "Mitteilungen sind abgelehnt – erlauben in den iPhone-Einstellungen → Mitteilungen → Finanzen."));
   }
-  pk.push(h("p", { class: "klein gedimmt" }, "Du bekommst eine Mitteilung, wenn der Coin-Bot parkt oder zurückkauft, die Stufe wechselt, ein Bot geschaltet wird oder handelt, ein Verlustdeckel greift, die KI deine Frage beantwortet hat (ohne den Text), und einmal täglich ein Lebenszeichen. In der Cloud angemeldet: " + abos.length + " Gerät(e)."));
+  pk.push(h("p", { class: "klein gedimmt" }, "Du bekommst eine Mitteilung, wenn der Safe-Bot parkt oder zurückkauft, die Stufe wechselt, ein Bot geschaltet wird oder handelt, ein Verlustdeckel greift, die KI deine Frage beantwortet hat (ohne den Text), und einmal täglich ein Lebenszeichen. In der Cloud angemeldet: " + abos.length + " Gerät(e)."));
   out.push(karte("Benachrichtigungen", null, ...pk));
 
   out.push(kiKarte("Fragen an die KI und Hinweise für den Bot – auch über den Knopf 💬 unten rechts. Die KI löst nie selbst eine Order aus.", d));

@@ -8,6 +8,7 @@ import * as F from "./format.js";
 const NS = "http://www.w3.org/2000/svg";
 const ZEITRAEUME = [["7", "7 T"], ["30", "30 T"], ["90", "90 T"], ["365", "1 J"], ["alle", "Alles"]];
 const ZEITRAUM = {};                      // gewählter Zeitraum je Diagramm (nur im Arbeitsspeicher)
+const FOKUS = {};                         // 1.4.14: in der Legende gewählte Linie je Diagramm (nur im Arbeitsspeicher)
 const W = 340, H = 180, L = 52, R = 10, O = 12, U = 24;
 
 function s(tag, attrs, ...kinder) {
@@ -202,6 +203,9 @@ export function svgDiagramm(serien, einheit, info, beschreibung) {
  *   kennzahl(p, serien) -> [[label, text, klasse?]] (Zeile unter dem Diagramm),
  *   beschreibung  Text für Screenreader,
  *   tippHinweis   1.3.9 (V31): nur die erste Statistik je Reiter sagt „Antippen zeigt Datum und Wert.“ – und nur, bis einmal angetippt wurde.
+ *   fokus     1.4.14 (Tom 07.11.2026: „wenn ich auf eine Linie in der Legende tippe, fallen alle anderen Linien weg“): Legende als Knöpfe;
+ *             Tipp zeigt nur diese Linie und ihren Vergleich (serie.vergleich = {name, klasse, werte}), noch ein Tipp oder „Alle“ zeigt
+ *             wieder alle. kennzahl(p, serien, fokusSerie) bekommt dann die gezeigten Linien und die gewählte Serie.
  */
 let schonAngetippt = false;
 const TIPP = "Antippen zeigt Datum und Wert.";
@@ -214,7 +218,10 @@ export function statistik(opt) {
       h("button", { type: "button", class: "zr" + (k === zr ? " aktiv" : ""), "data-zeitraum": k, "aria-pressed": k === zr ? "true" : "false",
         onclick: () => { ZEITRAUM[opt.schluessel] = k; zeichne(); } }, t))));
     const p = imZeitraum(opt.punkte, zr);
-    const serien = opt.serien(p).filter((r) => r && r.werte);
+    const alleSerien = opt.serien(p).filter((r) => r && r.werte);
+    const fName = opt.fokus ? FOKUS[opt.schluessel] : null;
+    const fokusSerie = fName ? alleSerien.find((r) => r.name === fName && r.werte.length >= 2) || null : null;
+    const serien = fokusSerie ? [fokusSerie, fokusSerie.vergleich].filter((r) => r && r.werte && r.werte.length) : alleSerien;
     const haupt = serien[0];
     if (!haupt || haupt.werte.length < 2) {
       huelle.appendChild(h("p", { class: "leer statistik-leer" },
@@ -225,9 +232,26 @@ export function statistik(opt) {
     const info = h("div", { class: "diagramm-info", "aria-live": "polite" }, opt.tippHinweis && !schonAngetippt ? TIPP : "");
     huelle.appendChild(info);
     huelle.appendChild(svgDiagramm(serien.filter((r) => r.werte.length), opt.einheit, info, opt.beschreibung));
-    huelle.appendChild(h("div", { class: "legende" }, serien.filter((r) => r.werte.length).map((r) =>
-      h("span", { class: "legende-eintrag" }, h("span", { class: "legende-strich " + r.klasse }), r.name))));
-    const kz = opt.kennzahl ? opt.kennzahl(p, serien) : null;
+    if (opt.fokus) {
+      // 1.4.14: jede Linie ein Knopf; gewählt = gedrückt, ihr Vergleich steht als (nicht antippbarer) Eintrag dahinter
+      const wahl = (name) => { if (name) FOKUS[opt.schluessel] = name; else delete FOKUS[opt.schluessel]; zeichne(); };
+      const eintraege = [];
+      for (const r of alleSerien.filter((x) => x.werte.length)) {
+        const an = fokusSerie === r;
+        eintraege.push(h("button", { type: "button", class: "legende-eintrag legende-knopf" + (an ? " aktiv" : fokusSerie ? " gedimmt-l" : ""),
+          "data-linie": r.name, "aria-pressed": an ? "true" : "false", onclick: () => wahl(an ? null : r.name) },
+          h("span", { class: "legende-strich " + r.klasse }), r.name));
+        if (an && r.vergleich && r.vergleich.werte && r.vergleich.werte.length) {
+          eintraege.push(h("span", { class: "legende-eintrag legende-vgl" }, h("span", { class: "legende-strich " + r.vergleich.klasse }), r.vergleich.name));
+        }
+      }
+      if (fokusSerie) eintraege.push(h("button", { type: "button", class: "legende-alle", "data-linie": "", onclick: () => wahl(null) }, "Alle"));
+      huelle.appendChild(h("div", { class: "legende legende-fokus" }, eintraege));
+    } else {
+      huelle.appendChild(h("div", { class: "legende" }, serien.filter((r) => r.werte.length).map((r) =>
+        h("span", { class: "legende-eintrag" }, h("span", { class: "legende-strich " + r.klasse }), r.name))));
+    }
+    const kz = opt.kennzahl ? opt.kennzahl(p, serien, fokusSerie) : null;
     if (kz && kz.length) {
       huelle.appendChild(h("div", { class: "kennzahlen" }, kz.filter(Boolean).map(([l, t, k]) =>
         h("div", { class: "kennzahl" }, h("span", { class: "kz-l" }, l), h("span", { class: "kz-r " + (k || "") }, t)))));

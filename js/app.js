@@ -2,7 +2,7 @@
 // 1.2.8: optional „Mit Face ID entsperren“ (js/faceid.js: Passkey mit PRF, zweiter Umschlag) – die PIN bleibt Rückfall.
 // 1.2.9: Face ID startet beim Sperrbildschirm einmal von selbst (lässt iOS das ohne Tipp nicht zu: still der Knopf).
 // Daten liegen nur im Arbeitsspeicher (Z), der Token nur verschlüsselt in localStorage und entschlüsselt in github.js.
-// 1.3 (18.10.2026): Autopilot-Wahlschalter „KI · Regeln · Aus“ (Übersicht, Coin-Bot, Aktien) – je Stellung ein Auftrag.
+// 1.3 (18.10.2026): Autopilot-Wahlschalter „KI · Regeln · Aus“ (Übersicht, Safe-Bot, Aktien) – je Stellung ein Auftrag.
 // 1.2.24 (17.10.2026): Aktien-Karte ohne Zeile und Knopf „Gewinnschutz“ (der Gewinnschutz Aktien/ETF entfiel in der Cloud).
 // 1.2.23 (17.10.2026): Inhalt wie 1.2.21 – Raster- und Trend-Bot bleiben (1.2.22 hatte sie irrtümlich entfernt).
 // 1.2.21 (Prüfung 16.10.2026): läuft nur als oberstes Fenster (nie in einem fremden iframe); neue PINs 6–8 Ziffern, „PIN ändern“ in
@@ -21,7 +21,7 @@ import * as AL from "./alarme.js";
 import * as AB from "./ausblenden.js";
 import * as FI from "./faceid.js";
 
-export const APP_VERSION = "1.4.13";
+export const APP_VERSION = "1.4.14";
 const SPERRE_NACH_MS = 5 * 60000;
 const ALT_AB_MIN = 90;            // ab so alten Daten wird der Stand gelb
 const DEMO_BEZUG = Date.parse("2026-10-11T06:38:34Z"); // Bezugszeit der Beispiel-Dateien in demo/
@@ -43,8 +43,8 @@ let faceIdAutoVersucht = false; // pro Sperre höchstens EIN automatischer Versu
 let faceIdEndeUm = 0;         // wann die letzte Face-ID-Anfrage endete
 let verstecktBeiFaceId = false; // Seite wurde während/gleich nach einer Face-ID-Anfrage verdeckt (das iOS-Blatt selbst)
 
-// 1.4 (Tom 23.10.2026, Teil 3): Reiter Übersicht · Coin-Bot · Raster-Bot · Aktien · News; die Trend-Seite öffnet die Trend-Karte
-const TITEL = { uebersicht: "Übersicht", kern: "Coin-Bot", raster: "Raster-Bot", trend: "Trend-Bot", aktien: "Aktien", news: "News", mehr: "Einstellungen" };
+// 1.4 (Tom 23.10.2026, Teil 3): Reiter Übersicht · Safe-Bot · Raster-Bot · Aktien · News; die Trend-Seite öffnet die Trend-Karte
+const TITEL = { uebersicht: "Übersicht", kern: "Safe-Bot", raster: "Raster-Bot", trend: "Trend-Bot", aktien: "Aktien", news: "News", mehr: "Einstellungen" };
 const ANSICHT = { uebersicht: V.uebersicht, kern: V.kern, raster: V.raster, trend: V.trend, aktien: V.aktien, news: V.news };
 
 // ------------------------------------------------------------------ kleine Helfer
