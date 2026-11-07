@@ -4,6 +4,19 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.14
+
+* **Neue Namen.** „Mustergeld“ statt „Spielgeld“ und „Rechengeld“ – überall dasselbe Wort für erfundenes Geld ohne Orders. Der
+  Coin-Bot heißt jetzt **Safe-Bot** (auch der Reiter unten).
+* **Übersicht neu geordnet.** Ganz oben die Marktphase mit der Kursbewegung der letzten 12 Stunden – Kryptomarkt (alle großen Coins)
+  und Welt-ETF; ist die Börse zu, steht dort z. B. „Börse geschlossen · Freitag −0,4 %“. Neu bei Bitpanda gelistete Coins stehen als
+  eigene Zeile mit dem Schild „neuer Coin“ darunter; die Karte „Kursbewegungen“ entfällt. Danach „Verlauf · Mustergeld“, der Rest wie bisher.
+* **Verlauf · Mustergeld je Rubrik.** Eine Linie je Rubrik (Safe-Bot, Raster-Bot, Trend-Bot in Coin-Farben, Aktien blau) neben der
+  Summe, in Prozent seit Beginn des Zeitraums. Tipp auf einen Eintrag der Legende: nur diese Rubrik samt ihrem Vergleich („Bitcoin
+  halten“ bzw. „Welt-ETF halten“), die Zahlen darunter gelten dann für sie; noch ein Tipp oder „Alle“ zeigt wieder alles.
+* **Vergleich je Rubrik.** Unter „mehr“ bei Safe-Bot, Raster-Bot, Trend-Bot und Aktien steht die eigene Verlaufsgrafik gegen den
+  Vergleich, in den Reitern Safe-Bot, Raster-Bot, Trend-Seite und Aktien steht die Statistik jetzt an erster Stelle.
+
 ## Neu in 1.4.13
 
 * **Ehrliche Rückmeldung beim Kreispfeil ↻.** Lehnt GitHub den Auftrag ab, sagt die App das jetzt samt Grund, statt still nur neu zu

@@ -151,7 +151,7 @@
   "ergebnis_prozent": 3.47
  },
  "kern_bot": {
-  "name": "Coin-Bot",
+  "name": "Safe-Bot",
   "an": true,
   "regelwerk_an": true,
   "euro_frei_eur": 12.5,
@@ -201,7 +201,7 @@
    "wuerde_ausloesen": false
   },
   "lage": [
-   "Coin-Bot EIN: die KI steuert (Stufe „normal“), die Notbremse läuft in jedem Lauf mit.",
+   "Safe-Bot EIN: die KI steuert (Stufe „normal“), die Notbremse läuft in jedem Lauf mit.",
    "Notbremse: am nächsten ist die Grenze −6 % in 7 Tagen – Bitcoin müsste noch 3,1 % fallen.",
    "Gewinnschutz: parkt BTC unter 61.000 € (14 % unter dem Höchststand); noch 5,2 % Luft."
   ]
@@ -521,14 +521,14 @@
   "sparmodus": false
  },
  "bilanz": {
-  "text": "Beispiel: Coin-Bot 1.234,56 € vs. Halten 1.220,00 € → +1,19 % seit Start",
+  "text": "Beispiel: Safe-Bot 1.234,56 € vs. Halten 1.220,00 € → +1,19 % seit Start",
   "kern_bot_eur": 1234.56,
   "halten_eur": 1220.0,
   "seit_start_prozent": 1.19,
   "letzte_30_tage_pp": 0.42,
   "tage_seit_start": 15.8,
   "zeit": "2026-10-11T06:20:00+00:00",
-  "name": "Coin-Bot gegen „Bitcoin halten“ seit Start"
+  "name": "Safe-Bot gegen „Bitcoin halten“ seit Start"
  },
  "modi": [
   {
@@ -536,7 +536,7 @@
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "frische KI-Einschätzung des Coin-Bots, nur Mail",
+   "text": "frische KI-Einschätzung des Safe-Bots, nur Mail",
    "express": false,
    "express_bestaetigung": null
   },
@@ -608,7 +608,7 @@
    "bestaetigung": "",
    "ja_noetig": false,
    "beispiel": "",
-   "text": "Nur anhalten: Coin-Bot, Regelwerk aus; Raster- und Trend-Bot pausiert – nichts wird verkauft",
+   "text": "Nur anhalten: Safe-Bot, Regelwerk aus; Raster- und Trend-Bot pausiert – nichts wird verkauft",
    "express": true,
    "express_bestaetigung": ""
   },
@@ -653,7 +653,7 @@
    "bestaetigung": "JA(;(stufe=(sicher|normal)|auto=[01]|streuung=(aus|kern_satellit|korb)|kern=\\d{2}|ab=\\d{3,6}|korb=[2-8]))+",
    "ja_noetig": true,
    "beispiel": "JA;stufe=normal;auto=1",
-   "text": "Stufe des Coin-Bots (sicher/normal), Automatik, Streuung",
+   "text": "Stufe des Safe-Bots (sicher/normal), Automatik, Streuung",
    "express": true,
    "express_bestaetigung": "JA;stufe=sicher(;auto=0)?"
   },
@@ -823,7 +823,7 @@
    "modus": "frage",
    "bestaetigung": "[^\\x00-\\x1f\\x7f]{1,500}",
    "ja_noetig": false,
-   "beispiel": "Warum hat der Coin-Bot heute geparkt?",
+   "beispiel": "Warum hat der Safe-Bot heute geparkt?",
    "text": "Frage an die KI (ohne JA, nur erklären – nie Handel; höchstens 10 Fragen je 24 h)",
    "express": false,
    "express_bestaetigung": null,
@@ -889,7 +889,7 @@
  "schattendepots": {
   "liste": [
    {
-    "bot": "Coin-Bot",
+    "bot": "Safe-Bot",
     "name": "Rückkauf einfach",
     "testet": "Gleiche Notbremse wie heute, aber Rückkauf schon, wenn Bitcoin über der 100- und der 200-Tage-Linie liegt (statt erst bei bestätigtem Aufwärtstrend).",
     "seit": "2026-09-06T06:20+00:00",
@@ -921,7 +921,7 @@
    {
     "bot": "Trend-Bot",
     "name": "„straff“: raus 5 % unter dem Kaufkurs",
-    "testet": "Stündlich: nur Coins mit 24 h UND 3 Tagen im Plus, Verkauf 5 % unter dem Kaufkurs – gegen die heutigen Trend-Regeln (Rechengeld).",
+    "testet": "Stündlich: nur Coins mit 24 h UND 3 Tagen im Plus, Verkauf 5 % unter dem Kaufkurs – gegen die heutigen Trend-Regeln (Mustergeld).",
     "seit": "2026-09-06T05:20+00:00",
     "wert_eur": 318.2,
     "referenz": {
@@ -950,8 +950,8 @@
    },
    {
     "bot": "Raster-Bot",
-    "name": "Raster nach den aktuellen Regeln (Rechengeld)",
-    "testet": "Der Raster-Bot mit 300 € Rechengeld nach seiner wirksamen Kaufregel („Einbruch“) – gegen einfaches Halten von Bitcoin.",
+    "name": "Raster nach den aktuellen Regeln (Mustergeld)",
+    "testet": "Der Raster-Bot mit 300 € Mustergeld nach seiner wirksamen Kaufregel („Einbruch“) – gegen einfaches Halten von Bitcoin.",
     "seit": "2026-09-01T03:00+00:00",
     "wert_eur": 302.6,
     "referenz": {
@@ -974,9 +974,9 @@
     "kennung": "raster_schatten"
    },
    {
-    "bot": "Coin-Bot",
-    "name": "Heutige Regeln (Rechengeld)",
-    "testet": "Die Regeln, nach denen der echte Coin-Bot parkt (Notbremse und Gewinnschutz der aktuellen Stufe, Rückkauf bei bestätigtem Aufwärtstrend) – gegen einfaches Halten.",
+    "bot": "Safe-Bot",
+    "name": "Heutige Regeln (Mustergeld)",
+    "testet": "Die Regeln, nach denen der echte Safe-Bot parkt (Notbremse und Gewinnschutz der aktuellen Stufe, Rückkauf bei bestätigtem Aufwärtstrend) – gegen einfaches Halten.",
     "seit": "2026-09-01T04:20+00:00",
     "wert_eur": 284.1,
     "referenz": {
@@ -1012,12 +1012,12 @@
     "gueltig_bis": "2026-10-12T06:20:00+00:00",
     "bereich": "krypto",
     "aktion": "wechsel",
-    "titel": "Coin-Bot: BTC -> SOL",
+    "titel": "Safe-Bot: BTC -> SOL",
     "text": "Beispiel: Solana ist in 30 Tagen 12 % stärker als Bitcoin gelaufen und liegt über der 50-Tage-Linie; die Kostenschwelle von 1,2 % ist nach meiner Erwartung von 2,5 % gedeckt. (erfunden)",
     "leitplanke": "erwartete Bewegung 1,0 % liegt nicht über der Kostenschwelle 1,2 % (hin und zurück)",
     "zuversicht": 72,
     "status": "offen",
-    "zusammenfassung": "Krypto: BTC -> SOL (über den Handelsweg des Coin-Bots, Tageslimit gilt)"
+    "zusammenfassung": "Krypto: BTC -> SOL (über den Handelsweg des Safe-Bots, Tageslimit gilt)"
    }
   ],
   "erledigt": [
