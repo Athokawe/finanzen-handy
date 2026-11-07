@@ -277,39 +277,21 @@ export function euroKennzahlen(werte, label) {
 }
 
 /**
- * 1.4.15 (Tom 07.11.2026, Gesamtbild der News: „Stimmung über 7 Tage“): je Tag ein Balken – stützende Meldungen nach oben (grün),
- * belastende nach unten (rot) –, darüber die Kurslinie (Bitcoin bzw. Welt-ETF, frei skaliert, Prozent seit dem ersten Tag am Ende).
- * tage: news.json stimmung.tage [{tag, bitcoin: {stuetzend, neutral, belastend}, welt_etf: {…}, btc_eur, etf_eur}], objekt
- * "bitcoin" | "welt_etf". Nur SVG-Attribute und Klassen (CSP). null ohne Tage.
+ * 1.4.16 (Tom 07.11.2026: „Stimmung der Meldung einen waagrechten Anzeigebalken bitte und alles kompakter“ – „nur heute aktuell
+ * zeigen“): ein schmaler waagrechter Balken – grün stützend, grau neutral, rot belastend – nach Anteil der heutigen Meldungen.
+ * z = {stuetzend, neutral, belastend}. Ohne Meldung ein leerer grauer Balken. Nur SVG-Attribute und Klassen (CSP).
  */
-export function stimmungDiagramm(tage, objekt, beschreibung) {
-  const t = (Array.isArray(tage) ? tage : []).filter((x) => x && typeof x === "object" && typeof x.tag === "string").slice(-7);
-  if (!t.length) return null;
-  const zahl = (x, r) => (x && F.istZahl(x[r]) ? x[r] : 0);
-  const kursFeld = objekt === "bitcoin" ? "btc_eur" : "etf_eur";
-  const SW = 340, SH = 132, SL = 8, SR = 8, SO = 10, SU = 20;
-  const n = 7, breite = (SW - SL - SR) / n;
-  const maxZahl = Math.max(1, ...t.map((x) => Math.max(zahl(x[objekt], "stuetzend"), zahl(x[objekt], "belastend"))));
-  const mitte = SO + (SH - SO - SU) / 2, halb = (SH - SO - SU) / 2 - 2;
-  const svg = s("svg", { viewBox: "0 0 " + SW + " " + SH, class: "diagramm stimmung", role: "img", "aria-label": beschreibung || "Stimmung je Tag" });
-  svg.appendChild(s("line", { x1: SL, x2: SW - SR, y1: mitte.toFixed(1), y2: mitte.toFixed(1), class: "null-linie" }));
-  const versatz = n - t.length;                                   // die Tage stehen rechtsbündig – links ist Platz für die kommenden
-  t.forEach((x, i) => {
-    const cx = SL + (versatz + i + 0.5) * breite, bw = Math.min(22, breite * 0.55);
-    const hoch = zahl(x[objekt], "stuetzend") / maxZahl * halb, tief = zahl(x[objekt], "belastend") / maxZahl * halb;
-    if (hoch > 0) svg.appendChild(s("rect", { x: (cx - bw / 2).toFixed(1), y: (mitte - hoch).toFixed(1), width: bw.toFixed(1), height: hoch.toFixed(1), rx: 2, class: "balken-gut" }));
-    if (tief > 0) svg.appendChild(s("rect", { x: (cx - bw / 2).toFixed(1), y: mitte.toFixed(1), width: bw.toFixed(1), height: tief.toFixed(1), rx: 2, class: "balken-schlecht" }));
-    const d = new Date(x.tag + "T12:00:00Z");
-    svg.appendChild(s("text", { x: cx.toFixed(1), y: SH - 5, class: "achse", "text-anchor": "middle" }, isNaN(d) ? "" : wochentagFmt.format(d).replace(".", "")));
-  });
-  const kurse = t.map((x, i) => [i, x[kursFeld]]).filter(([, v]) => F.istZahl(v) && v > 0);
-  if (kurse.length >= 2) {
-    const vMin = Math.min(...kurse.map((k) => k[1])), vMax = Math.max(...kurse.map((k) => k[1]));
-    const spanne = vMax - vMin || vMax * 0.01 || 1;
-    const y = (v) => SO + 4 + (vMax - v) / spanne * (SH - SO - SU - 8);
-    const x = (i) => SL + (versatz + i + 0.5) * breite;
-    svg.appendChild(s("path", { d: kurse.map(([i, v], j) => (j ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(""), class: "linie l-kurs" }));
-    for (const [i, v] of kurse) svg.appendChild(s("circle", { cx: x(i).toFixed(1), cy: y(v).toFixed(1), r: 2.5, class: "kurs-punkt" }));
+export function stimmungBalken(z, beschreibung) {
+  const n = (k) => (z && F.istZahl(z[k]) && z[k] > 0 ? z[k] : 0);
+  const teile = [["stuetzend", "balken-gut"], ["neutral", "balken-neutral"], ["belastend", "balken-schlecht"]];
+  const summe = teile.reduce((a, [k]) => a + n(k), 0);
+  const svg = s("svg", { viewBox: "0 0 100 8", preserveAspectRatio: "none", class: "stimmung-balken", role: "img", "aria-label": beschreibung || "Stimmung" });
+  svg.appendChild(s("rect", { x: 0, y: 0, width: 100, height: 8, rx: 4, class: "balken-leer" }));
+  let x = 0;
+  if (summe) for (const [k, kl] of teile) {
+    const w = n(k) / summe * 100;
+    if (w > 0) svg.appendChild(s("rect", { x: x.toFixed(2), y: 0, width: w.toFixed(2), height: 8, class: kl }));
+    x += w;
   }
   return svg;
 }

@@ -1607,34 +1607,29 @@ function zwoelfStundenTeil(m12, art) {
     info);
 }
 
-/** 1.4.15 (Tom 07.11.2026, Gesamtbild: „Stimmung über 7 Tage“): je Tag die vom Mac eingeordneten Meldungen (stützend nach oben,
- *  belastend nach unten) und die Kurslinie – je für Bitcoin und den Welt-ETF (news.json stimmung). Bis drei Tage beisammen sind,
- *  sagt eine Zeile dazu, dass die Grafik sich aufbaut; darunter immer die Zahlen von heute. */
 const wienTag = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Vienna", year: "numeric", month: "2-digit", day: "2-digit" });
+/** 1.4.16 (Tom 07.11.2026: „waagrechten Anzeigebalken … alles kompakter“, „nur heute aktuell zeigen“): je Bitcoin und Welt-ETF eine
+ *  Zeile – Name, Balken nach Anteil stützend/neutral/belastend der HEUTE eingeordneten Meldungen (news.json stimmung, Wiener Datum),
+ *  die Zahlen daneben. Ist der letzte gebuchte Tag nicht heute: ein Satz statt der Balken. */
 function stimmungTeil(st) {
-  // Fable-Prüfung 07.11.2026: Kurs und Balken über dieselben (höchstens 7) Tage; „Heute“ nur, wenn der letzte Tag wirklich heute ist
-  const tage = liste((ok(st) || {}).tage).filter((x) => istObj(x) && typeof x.tag === "string").slice(-7);
+  const tage = liste((ok(st) || {}).tage).filter((x) => istObj(x) && typeof x.tag === "string");
   if (!tage.length) return null;
-  const heute = tage[tage.length - 1];
-  const istHeute = heute.tag === wienTag.format(new Date());
-  const tagName = istHeute ? "Heute" : (() => { const d = new Date(heute.tag + "T12:00:00Z"); return isNaN(d) ? heute.tag : F.tag(heute.tag + "T12:00:00Z"); })();
-  const zahl = (x, o, r) => (istObj(x[o]) && F.istZahl(x[o][r]) ? x[o][r] : 0);
-  const block = (o, name) => {
-    const svg = D.stimmungDiagramm(tage, o, "Stimmung der Meldungen zu " + name + " je Tag, mit Kurslinie");
-    const k = tage.filter((x) => F.istZahl(x[o === "bitcoin" ? "btc_eur" : "etf_eur"]));
-    const kurs = k.length >= 2 ? (k[k.length - 1][o === "bitcoin" ? "btc_eur" : "etf_eur"] / k[0][o === "bitcoin" ? "btc_eur" : "etf_eur"] - 1) * 100 : null;
-    return h("div", { class: "stimmung-block", id: "stimmung-" + o },
-      h("div", { class: "news-12h-kopf" }, h("span", { class: "klein" }, name),
-        kurs !== null ? h("span", { class: "klein " + F.vorzeichenKlasse(kurs) }, "Kurs " + prozentFest(kurs)) : null),
-      svg,
-      h("p", { class: "klein gedimmt" }, tagName + ": " + zahl(heute, o, "stuetzend") + " stützend · " + zahl(heute, o, "neutral") + " neutral · "
-        + zahl(heute, o, "belastend") + " belastend"));
+  const letzter = tage[tage.length - 1];
+  const kopf = h("div", { class: "stimmung-kopf" }, h("h3", null, "Stimmung heute"),
+    h("span", { class: "klein gedimmt" }, h("span", { class: "punkt gruen" }), " stützend ", h("span", { class: "punkt grau" }), " neutral ",
+      h("span", { class: "punkt rot" }), " belastend"));
+  if (letzter.tag !== wienTag.format(new Date())) {
+    return h("div", { class: "stimmung", id: "news-stimmung" }, kopf, h("p", { class: "klein gedimmt" }, "Heute noch keine Meldungen eingeordnet."));
+  }
+  const zeile = (o, name) => {
+    const z = istObj(letzter[o]) ? letzter[o] : {};
+    const n = (r) => (F.istZahl(z[r]) ? z[r] : 0);
+    return h("div", { class: "stimmung-zeile", id: "stimmung-" + o },
+      h("span", { class: "stimmung-name" }, name),
+      D.stimmungBalken(z, "Stimmung heute zu " + name + ": " + n("stuetzend") + " stützend, " + n("neutral") + " neutral, " + n("belastend") + " belastend"),
+      h("span", { class: "stimmung-zahl klein" }, n("stuetzend") + " · " + n("neutral") + " · " + n("belastend")));
   };
-  return h("div", { class: "stimmung", id: "news-stimmung" },
-    h("h3", null, "Stimmung der Meldungen"),
-    block("bitcoin", "Bitcoin"), block("welt_etf", "Welt-ETF"),
-    h("p", { class: "klein gedimmt" }, h("span", { class: "punkt gruen" }), " stützend  ", h("span", { class: "punkt rot" }), " belastend  · Linie = Kurs"
-      + (tage.length < 3 ? " · Die Grafik baut sich auf – je Tag kommt ein Balken dazu." : "")));
+  return h("div", { class: "stimmung", id: "news-stimmung" }, kopf, zeile("bitcoin", "Bitcoin"), zeile("welt_etf", "Welt-ETF"));
 }
 
 // 1.2.6 (Paket C): Einordnung je Meldung + Gesamtbild + Stand der Bots. Nur bekannte Werte (sonst kein Etikett), alle Texte als
