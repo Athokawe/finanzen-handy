@@ -4,6 +4,14 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Safe-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.18
+
+* **Sechs Reiter.** Der Trend-Bot hat einen eigenen Reiter; die Reiter heißen kurz „Safe“, „Raster“, „Trend“. Der Link „Trend-Seite“
+  entfällt.
+* **Übersicht schlanker.** Mustergeld steht ganz oben als eine Karte – Wert, darunter der Verlauf, darunter die Aufteilung. Danach
+  KI-Antrag (falls offen), Marktphase, Parken/Anhalten, „An die KI“ und die Rubriken. In den Rubriken steht unter „mehr“ nur noch
+  die Verlaufsstatistik und „Aktueller Stand“; Schalter, Knöpfe und Einzelheiten gibt es im jeweiligen Reiter.
+
 ## Neu in 1.4.17
 
 * **Marktbreite.** In der Marktphase eine dritte Zeile: wie viele der großen Coins in 24 h um mindestens 5 % gestiegen (▲) bzw.

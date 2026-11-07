@@ -143,7 +143,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--akzent); box-sha
 .auftrag-zeile.fehlgeschlagen, .auftrag-zeile.verloren { color: var(--rot-hell); font-weight: 600; }
 .auftrag-band .knopf { min-height: 34px; padding: 4px 12px; font-size: 13px; white-space: nowrap; }
 
-.reiter-leiste { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px;
+.reiter-leiste { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px;
   background: color-mix(in srgb, var(--bg) 94%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
   border-top: 1px solid var(--rand); padding: 4px calc(4px + var(--rechts)) calc(4px + var(--unten)) calc(4px + var(--links)); }
 .reiter { background: none; border: 0; color: var(--gedimmt); font: inherit; font-size: 11px; font-weight: 500; display: flex; flex-direction: column;
@@ -509,3 +509,6 @@ svg.stimmung-balken .balken-gut { fill: var(--gruen); }
 svg.stimmung-balken .balken-neutral { fill: #8e8e93; }
 svg.stimmung-balken .balken-schlecht { fill: var(--rot); }
 .stand-zeit { margin-top: 4px; }
+
+/* ---------- 1.4.18 (Sammelliste 4): Mustergeld-Karte mit Verlauf, sechs Reiter ---------- */
+.sg-verlauf { margin: 10px 0 12px; }
