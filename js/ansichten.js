@@ -908,7 +908,7 @@ const SG_KLASSE = { coin: "coin", raster: "raster", trend: "trend", aktien: "akt
 function sgVeraltet(t) {
   return istObj(t) && t.veraltet === true ? h("span", { class: "klein gedimmt sg-veraltet" }, " · letzter Stand") : null;
 }
-function spielgeldKarte(sg) {
+function spielgeldKarte(sg, verlauf) {
   const teile = liste(sg.teile).filter((t) => istObj(t) && F.istZahl(t.wert_eur));
   const je = F.istZahl(sg.je_eur) ? sg.je_eur : 1000;
   const balken = h("div", { class: "anteil-balken", "aria-hidden": "true" }, teile.filter((t) => F.istZahl(t.anteil_prozent) && t.anteil_prozent > 0).map((t) => {
@@ -924,6 +924,8 @@ function spielgeldKarte(sg) {
     // 1.4.9: „+ € 147,50 (+3,69 %) · eingesetzt € 4.000 seit Start“ (grün/rot), darunter die Basis je Bot
     einsatzZeile(sg.gesamt_eur, sg.start_eur, "spielgeld-einsatz", "seit Start · " + basis)
       || h("p", { class: "klein gedimmt" }, basis),
+    // 1.4.18 (Sammelliste 4): der Verlauf steht in derselben Karte zwischen Wert und Aufteilung (ohne eigene Überschrift)
+    verlauf ? h("div", { class: "sg-verlauf", id: verlauf.id }, ...Array.from(verlauf.childNodes).slice(1)) : null,
     balken,
     zeilen(teile.map((t) => [h("span", null, h("span", { class: "punkt " + (SG_KLASSE[t.k] || "euro") }), " " + F.text(t.name)),
       h("span", null, h("span", { class: F.vorzeichenKlasse(t.wert_eur - je) }, F.euro(t.wert_eur) + " · " + plusFest(t.wert_eur - je)), sgVeraltet(t))])),   // 1.4.9: je 1.000 € eingesetzt
@@ -962,48 +964,39 @@ export function uebersicht(Z) {
   // 1.4.14 (Tom 07.11.2026): ganz oben die Marktphase (mit Kursbewegung 12 h und neuen Coins), die Karte „Kursbewegungen“ entfällt,
   // dann die Verlauf-Grafiken – der Rest bleibt in seiner Reihenfolge
   const sg = spielgeldModus(d);                                    // 1.4.1: echt 0 € -> Mustergeld-Ansicht
-  // 1.4.17 (Tom 07.11.2026: „damit rutscht die Marktphase hinter Mustergeld“): zuerst der Verlauf, dann die Marktphase (mit Marktbreite)
-  if (!sg) out.push(gesamtVerlaufKarte(Z, false));
-  if (sg || spielgeldVerlaufDa(Z)) out.push(gesamtVerlaufKarte(Z, true, sg ? "gesamt-verlauf" : "spielgeld-verlauf"));
-  out.push(marktphaseKarte(d.marktphase, Z.news && Z.news.markt_12h, d.bewegungen));
-  if (A.erlaubt("frage")) out.push(kiSchnellKarte());
-  out.push(sg ? spielgeldKarte(sg) : gesamtKarte(d, Z));
+  // 1.4.18 (Tom 07.11.2026, Sammelliste 4): Mustergeld an erster Stelle als EINE Karte – Wert, darunter der Verlauf, darunter die
+  // Aufteilung; mit echtem Geld sinngemäß das Gesamtvermögen, dann sein Verlauf (und der Mustergeld-Verlauf, solange es Punkte hat).
+  // Danach KI-Antrag (nur wenn da), Marktphase, Parken/Anhalten, „An die KI“, dann die Rubriken.
+  if (sg) out.push(spielgeldKarte(sg, gesamtVerlaufKarte(Z, true, "gesamt-verlauf")));
+  else {
+    out.push(gesamtKarte(d, Z), gesamtVerlaufKarte(Z, false));
+    if (spielgeldVerlaufDa(Z)) out.push(gesamtVerlaufKarte(Z, true, "spielgeld-verlauf"));
+  }
   const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert (offen; sonst Ergebnis der letzten 24 h)
   if (ak_) out.push(ak_);
+  out.push(marktphaseKarte(d.marktphase, Z.news && Z.news.markt_12h, d.bewegungen));
   out.push(parkKnoepfe());
+  if (A.erlaubt("frage")) out.push(kiSchnellKarte());
   const kg = kryptoGesamtKarte(d, sg, Z);
   if (kg) out.push(kg);
   // 1.4.15 (Tom 07.11.2026): das Meta-Depot als eigene Rubrik zwischen „Coin-Topf gesamt“ und Safe-Bot, sein Verlauf im „mehr“
   const mr = metaKarte(d.meta_depot, Z);
   if (mr) out.push(mr);
 
+  // 1.4.18 (Tom 07.11.2026, Sammelliste 4): in den Rubrik-Karten steht unter „mehr“ nur noch die Verlaufsstatistik und „Aktueller
+  // Stand“ – alle Knöpfe, Schalter und Einzelheiten (Autopilot-Wahlschalter, Ein/Pause/Aus, Stufe, Ampel, Topf …) nur noch im Reiter
   const k = ok(d.kern_bot);
   if (k) {
     const ki = ok(k.ki);
     const pos = k.geparkt ? "geparkt in EURCV" : k.position ? F.text(k.position) : "–";
-    const stK = autopilotStellung(d).stellung;                     // 1.3: der Safe-Bot läuft mit KI ODER Regeln
-    const wahl = autopilotWahl(d, "autopilot-uebersicht");         // 1.3.14: der Wahlschalter steht in der Safe-Bot-Karte
     const sgCoin = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === "coin") : null;
     out.push(karte(F.text(k.name, "Safe-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
       h("div", { class: "gross", id: "kern-wert" }, F.euro(sgCoin ? sgCoin.wert_eur : k.wert_eur)),
       sgCoin ? einsatzZeile(sgCoin.wert_eur, sgJe(sg), "kern-einsatz") : null,        // 1.4.9: je 1.000 € eingesetzt
       h("p", { class: "klapp-kurz" }, sgCoin ? ["Mustergeld · " + F.text(sgCoin.name), sgVeraltet(sgCoin)] : F.text(k.topf_name, "Coin-Topf") + " · hält " + pos),
-      wahl,
-      wahl ? mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Safe-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
-        + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?") : null,
       mehrTeil("kern", [
-        sgCoin ? rubrikStatistik(Z, "coin", "uebersicht") : null,              // 1.4.17 (Tom 07.11.2026): die Verlaufsstatistik zuerst
-        h("p", { class: "klein gedimmt" }, "Stand " + F.zeit(k.wert_zeit) + (F.istZahl(k.bitcoin_kurs_eur) ? " · Bitcoin " + F.euro(k.bitcoin_kurs_eur) : "")),
-        zeilen([
-          ["Autopilot", STELLUNG_TEXT[stK]],
-          ["Stufe", F.text(k.stufe) + (k.stufe_automatik ? " (Automatik)" : "")],
-          ["Bitcoin-Ampel", ampel(k.ampel)],
-          // 1.4.3 (#14): im Mustergeld nur, wenn echt etwas gehalten wird – dann als „echt“ gekennzeichnet
-          !sgCoin ? ["Hält", pos] : k.position || k.geparkt ? ["Hält (echt)", pos] : null,
-          ki ? ["KI-Urteil", entscheidungText(ki.entscheidung) + (F.istZahl(ki.zuversicht) ? " · " + ki.zuversicht + " % sicher" : "")] : null,
-        ]),
+        sgCoin ? rubrikStatistik(Z, "coin", "uebersicht") : null,              // 1.4.17: die Verlaufsstatistik zuerst
         standKasten(Z, "coin", ki && ki.einfach_erklaert),                    // 1.4.15: „Aktueller Stand“ statt „Einfach erklärt“
-        !sgCoin && ok(d.bilanz) && d.bilanz.text ? h("p", { class: "klein gedimmt" }, d.bilanz.text) : null,   // 1.4.3 (#14): echte Bilanz nicht unter dem Mustergeld
       ]),
     ));
   } else out.push(fehlerKarte("Coin-Topf", d.kern_bot));
@@ -1013,35 +1006,20 @@ export function uebersicht(Z) {
     out.push(karte(F.text(r.name, "Raster-Bot"), statusEtikett(r.status),
       botKurz(r.status, r.topf_eur, r.ergebnis_eur, r.ergebnis_prozent, r.schatten, "raster-wert", sdJe(d, "raster_schatten"), sgTeil(sg, "raster"), sgJe(sg)),
       mehrTeil("raster", [
-        sg ? rubrikStatistik(Z, "raster", "uebersicht") : null,   // 1.4.17: Verlaufsstatistik zuerst (1.4.14: Raster-Bot gegen Bitcoin halten)
-        zeilen([["Topf", F.euro(r.topf_eur)], ergebnisZeile("Ergebnis", r.ergebnis_eur, r.ergebnis_prozent),
-          ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
+        sg ? rubrikStatistik(Z, "raster", "uebersicht") : null,   // 1.4.17: Verlaufsstatistik zuerst (Raster-Bot gegen Bitcoin halten)
         standKasten(Z, "raster"),                                             // 1.4.15
-        zeigtEcht(r.status, r.topf_eur) ? schattenHinweis(r.schatten) : null,
-        kiZeile(r.ki_vorschlag),
-        botKnoepfe(r.status, "surfen_ein", "surfen_pause", "surfen_aus", d.bot_deckel)])));
+      ])));
   } else out.push(fehlerKarte("Raster-Bot", d.raster_bot));
 
   const t = ok(d.trend_bot);
   if (t) {
-    const ma = ok(t.markt_ampel);
+    // 1.4.18: der Trend-Bot hat jetzt einen eigenen Reiter – der Link „Trend-Seite ›“ entfällt
     out.push(karte(F.text(t.name, "Trend-Bot"), statusEtikett(t.status),
       botKurz(t.modus === "echt" ? t.status : "aus", t.topf_eur, t.ergebnis_eur, t.ergebnis_prozent, t.schatten, "trend-wert", sdJe(d, "trend_schatten"), sgTeil(sg, "trend"), sgJe(sg)),
-      h("button", { type: "button", class: "knopf-text seite-link", id: "trend-seite", onclick: () => seiteOeffnen("trend") }, "Trend-Seite ›"),
       mehrTeil("trend", [
-        sg ? rubrikStatistik(Z, "trend", "uebersicht") : null,    // 1.4.17: Verlaufsstatistik zuerst (1.4.14: Trend-Bot gegen Bitcoin halten)
-        zeilen([
-          ["Markt-Ampel", ma ? ampel(ma.gruen ? "gruen" : "rot") : "–"],
-          t.modus === "echt" ? ["Topf", F.euro(t.topf_eur)] : ["Modus", "nur Musterdepot"],
-          t.modus === "echt" ? ergebnisZeile("Ergebnis", t.ergebnis_eur, t.ergebnis_prozent) : null,
-          ["Nächste Umschichtung", F.text(t.naechste_umschichtung)],
-        ]),
-        zeigtEcht(t.modus === "echt" ? t.status : "aus", t.topf_eur) ? schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", "))
-          : ok(t.schatten) && liste(t.schatten.positionen).length ? h("p", { class: "klein gedimmt" }, "Musterdepot hält " + liste(t.schatten.positionen).join(", ")) : null,
-        straffZeile(t.schatten_straff, sdJe(d, "trend_straff")),
+        sg ? rubrikStatistik(Z, "trend", "uebersicht") : null,    // 1.4.17: Verlaufsstatistik zuerst (Trend-Bot gegen Bitcoin halten)
         standKasten(Z, "trend"),                                              // 1.4.15
-        kiZeile(t.ki_vorschlag),
-        botKnoepfe(t.status, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel)])));
+      ])));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
 
   // 1.2.13 (Paket E): nur ein AKTIVER KI-Vorschlag erscheint auch hier (sonst steht die Einschätzung auf der Bot-Seite)
@@ -1095,7 +1073,7 @@ function aktienKarte(d, ak, offen, sg, Z) {
     F.istZahl(ak.reserve_eur) && ak.reserve_eur > 0 ? h("p", { class: "klapp-kurz" }, "dazu Reserve " + F.euro(ak.reserve_eur)) : null,
     // 1.4.3 (#14): im Mustergeld ist die Liste das ECHTE Depot – so benannt
     offen ? [details, pos.length ? zeilen(pos.map((p) => [F.text(p.name, p.symbol), F.euro(p.wert_eur)])) : leer(sgAk ? "Echtes Depot leer." : "Keine Aktien oder ETFs im Depot.")]
-      : mehrTeil("aktien", details));
+      : mehrTeil("aktien", [sgAk && Z ? rubrikStatistik(Z, "aktien", "uebersicht") : null, standKasten(Z, "aktien", akKi && akKi.einfach_erklaert)]));   // 1.4.18: Übersicht nur Statistik + Stand
 }
 
 /** 1.4 (Tom 23.10.2026, Teil 3): eigener Reiter „Aktien“ – die Aktien-Karte offen, darunter die Aktien-Musterdepots */
@@ -1292,7 +1270,8 @@ export function kern(Z) {
   if (lageK) out.push(lageK);
   out.push(karte(F.text(k.name, "Safe-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
     h("div", { class: "mittel" }, F.euro(k.wert_eur)),
-    h("p", { class: "klein gedimmt" }, F.text(k.topf_name, "Coin-Topf") + " · Stand " + F.zeit(k.wert_zeit)),
+    h("p", { class: "klein gedimmt" }, F.text(k.topf_name, "Coin-Topf") + " · Stand " + F.zeit(k.wert_zeit)
+      + (F.istZahl(k.bitcoin_kurs_eur) ? " · Bitcoin " + F.euro(k.bitcoin_kurs_eur) : "")),   // 1.4.18: der Bitcoin-Kurs stand bisher im „mehr“ der Übersicht
     zeilen([
       ["Hält", k.geparkt ? "geparkt in EURCV" : F.text(k.position)],
       ["Stufe", F.text(k.stufe)],
@@ -1303,6 +1282,9 @@ export function kern(Z) {
     ]),
     // 1.3: Wahlschalter „KI · Regeln · Aus“ statt „Safe-Bot ein/aus“ (ältere Cloud ohne die Befehle: die bisherigen Knöpfe)
     autopilotWahl(d, "autopilot-kern") || reihe(k.an ? A.knopf("stopp", "Safe-Bot aus", "gefahr-rand") : A.knopf("start", "Safe-Bot ein", "primaer")),
+    // 1.4.18: die Erklärung der Stellungen kommt mit dem Schalter aus der Übersicht hierher
+    A.erlaubt("autopilot_ki") && A.erlaubt("autopilot_regeln") && A.erlaubt("autopilot_aus") ? mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Safe-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
+      + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?") : null,
     reihe(A.knopf("einstellung", "Stufe ändern", "", { stufe: k.stufe, auto: !!k.stufe_automatik })),
     k.stufe !== "sicher" || k.stufe_automatik
       ? reihe(A.knopf("einstellung", "Bremsen: Stufe → sicher", "gefahr-rand stufe-sicher", { stufe: "sicher", auto: false })) : null,
@@ -1418,8 +1400,7 @@ export function raster(Z) {
       r.verlustdeckel_zeit ? ["Verlustdeckel ausgelöst", F.zeit(r.verlustdeckel_zeit)] : null,
       ["letzter Lauf", F.zeit(r.letzter_lauf)],
     ]),
-    reihe(st !== "an" ? A.knopf("surfen_ein", st === "pausiert" ? "Wieder einschalten" : "Einschalten", "primaer") : A.knopf("surfen_pause", "Pausieren"),
-      st !== "aus" ? A.knopf("surfen_aus", "Ausschalten", "gefahr-rand") : null),
+    botKnoepfe(st, "surfen_ein", "surfen_pause", "surfen_aus", d.bot_deckel),   // 1.4.18: mit dem freien Rest unter dem Deckel (bisher in der Übersicht)
     st !== "aus" ? reihe(A.knopf("surfen_betrag", "Topf ändern"), A.knopf("surfen_zurueck", "Teil zurück")) : null,
     // 1.2.4: direkt zum Trend-Bot (keine Bitcoin-Order) – nur wenn die Cloud den Modus kennt und der Raster-Bot Geld hat
     st !== "aus" ? reihe(A.knopf("bot_umschichten", "Zum Trend-Bot umschichten", "umschichten", { von: "raster" })) : null,
@@ -1467,7 +1448,8 @@ export function trend(Z) {
   if (!d) return [leer("Daten werden geladen …")];
   const t = ok(d.trend_bot);
   if (!t) return [fehlerKarte("Trend-Bot", d.trend_bot)];
-  const out = [h("button", { type: "button", class: "knopf-text seite-zurueck", id: "trend-zurueck", onclick: () => seiteOeffnen("uebersicht") }, "‹ Übersicht")];
+  // 1.4.18 (Tom 07.11.2026): eigener Reiter „Trend“ – kein Knopf „‹ Übersicht“ mehr
+  const out = [];
   const uT = unklarKarte(t.unklare_auftraege, "trend");           // 1.2.18 (M2e): ganz oben, solange etwas offen ist
   if (uT) out.push(uT);
   const lageT = lageKarte(t.lage);
@@ -1492,8 +1474,7 @@ export function trend(Z) {
       t.verlustdeckel_zeit ? ["Verlustdeckel ausgelöst", F.zeit(t.verlustdeckel_zeit)] : null,
       ["letzter Lauf", F.zeit(t.letzter_lauf)],
     ]),
-    reihe(st !== "an" ? A.knopf("trend_ein", st === "pausiert" ? "Wieder einschalten" : "Einschalten", "primaer") : A.knopf("trend_pause", "Pausieren"),
-      st !== "aus" ? A.knopf("trend_aus", "Ausschalten", "gefahr-rand") : null),
+    botKnoepfe(st, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel),      // 1.4.18: mit dem freien Rest unter dem Deckel (bisher in der Übersicht)
     st !== "aus" ? reihe(A.knopf("trend_betrag", "Topf ändern"), A.knopf("trend_zurueck", "Teil zurück")) : null,
     // 1.2.4: direkt zum Raster-Bot (keine Bitcoin-Order) – nur wenn die Cloud den Modus kennt und der Trend-Bot Geld hat
     st !== "aus" ? reihe(A.knopf("bot_umschichten", "Zum Raster-Bot umschichten", "umschichten", { von: "trend" })) : null,
@@ -1504,8 +1485,8 @@ export function trend(Z) {
   if (!tEcht) out.push(trendSchatten(t, sdJe(d, "trend_schatten")));
   const stk = straffKarte(t, sdJe(d, "trend_straff"));                       // 1.2.16: zweites Musterdepot „straff“ direkt darunter
   if (stk) out.push(stk);
-  // Fable-Gesamtprüfung 07.11.2026: out[0] ist hier der Knopf „‹ Übersicht“ – die Statistik kommt danach (und nach unklaren Aufträgen)
-  out.splice(uT ? 2 : 1, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "trend", "reiter") : botStatistik(Z, "trend"), standKasten(Z, "trend")));    // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
+  // 1.4.18: an erster Stelle (nur unklare Aufträge davor) – den Knopf „‹ Übersicht“ gibt es nicht mehr
+  out.splice(uT ? 1 : 0, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "trend", "reiter") : botStatistik(Z, "trend"), standKasten(Z, "trend")));    // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
   const pos = liste(t.positionen);
   out.push(karte("Positionen", null, pos.length ? h("ul", { class: "liste" }, pos.map((p) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(p.coin)), h("span", { class: "zahl" }, F.euro(p.einstand_eur)), coinLink(p.coin)),
