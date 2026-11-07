@@ -264,7 +264,29 @@ function mp12Teil(roh) {
   return h("div", { class: "mp12", id: "mp-12h" },
     h("div", { class: "mp12-zelle", id: "mp12-coins" }, h("div", { class: "mp12-links" }, h("span", { class: "mp12-l" }, "Kryptomarkt"), h("span", { class: "mp12-unter" }, cUnter)), wert(c && c.prozent)),
     h("div", { class: "mp12-zelle", id: "mp12-aktien" }, h("div", { class: "mp12-links" }, h("span", { class: "mp12-l" }, a && a.name ? F.text(a.name) : "Welt-ETF"), h("span", { class: "mp12-unter" }, aUnter)), wert(a && a.prozent)),
+    breiteZeile(m.breite),
     alt ? h("p", { class: "klein gedimmt mp12-alt" }, "Stand " + F.zeit(m.stand)) : null);
+}
+/** 1.4.17 (Tom 07.11.2026, Sammelliste 3: Marktbreite statt der Karte „Kursbewegungen“): wie viele der 250 größten Coins in 24 h um
+ *  mindestens 5 % gestiegen (▲) bzw. gefallen (▼) sind – news.json markt_12h.breite (Mac, markt12.py); null ohne Feld */
+function breiteZeile(roh) {
+  const b = ok(roh);
+  if (!b || !F.istZahl(b.von)) return null;
+  const n = (x) => (F.istZahl(x) ? String(x) : "–");
+  return h("div", { class: "mp12-zelle", id: "mp12-breite" },
+    // Fable-Prüfung 07.11.2026: eine alte Marktbreite (CoinGecko länger nicht lesbar) nennt ihre Zeit statt frisch auszusehen
+    h("div", { class: "mp12-links" }, h("span", { class: "mp12-l" }, "Marktbreite"),
+      h("span", { class: "mp12-unter" }, (F.datum(b.stand) && Date.now() - F.datum(b.stand).getTime() > 90 * 60000 ? "Stand " + F.zeit(b.stand) : "24 h") + " · von " + n(b.von))),
+    h("span", { class: "mp12-wert mp-breite" }, h("span", { class: "plus" }, "▲ " + n(b.auf)), " ", h("span", { class: "minus" }, "▼ " + n(b.ab))));
+}
+/** 1.4.17: im „mehr“ der Marktphase die auffälligsten Coins (je bis zu 5, ab ±5 % in 24 h) */
+function breiteListe(roh) {
+  const b = ok(roh);
+  if (!b) return null;
+  const zeile = (x) => (istObj(x) && F.istZahl(x.prozent) ? [F.text(x.name, x.symbol) + (x.symbol ? " (" + F.text(x.symbol) + ")" : ""), prozentFest(x.prozent), F.vorzeichenKlasse(x.prozent)] : null);
+  const auf = liste(b.top_auf).map(zeile).filter(Boolean), ab = liste(b.top_ab).map(zeile).filter(Boolean);
+  if (!auf.length && !ab.length) return h("p", { class: "klein gedimmt", id: "mp-breite-liste" }, "Kein großer Coin hat sich in 24 h um 5 % oder mehr bewegt.");
+  return h("div", { id: "mp-breite-liste" }, h("p", { class: "klein gedimmt" }, "Stark bewegt in 24 h (ab ±5 %):"), zeilen([...auf, ...ab]));
 }
 /** 1.4.14 (Tom 07.11.2026: „‚Neu bei Bitpanda‘ in die Marktphase, mit dem Vermerk, dass es neue Coins sind“): bis zu drei neu
  *  gelistete Coins der letzten 7 Tage aus handy.json bewegungen (art „neu“) – ersetzt die frühere Karte „Kursbewegungen“ */
@@ -302,6 +324,7 @@ function marktphaseKarte(roh, m12, bw) {
     // Warnung bleibt sichtbar (nicht hinter „mehr“): sie ist der einzige Satz der Karte, der zum Handeln rät
     m && m.trend_bot_investiert === true && typeof m.hinweis === "string" && m.hinweis ? h("p", { class: "mp-hinweis" }, m.hinweis) : null,
     mehrTeil("marktphase", [
+      breiteListe(ok(m12) && m12.breite),                                 // 1.4.17
       kurz && grund ? h("p", { class: "klein mp-grund" }, grund) : null,
       a ? zeilen([
         ["Abstand zur 50-Tage-Linie", mpProzent(a.ma50_prozent) + eurZusatz(l.ma50_eur)],
@@ -851,7 +874,7 @@ function metaVerlaufTeil(md) {
 }
 
 /** 1.3.14: „Coin-Topf gesamt“ – alle Krypto-Töpfe zusammengefasst (Safe-Bot + Raster-Bot + Trend-Bot, Werte aus dem Gesamtvermögen) */
-function kryptoGesamtKarte(d, sg) {
+function kryptoGesamtKarte(d, sg, Z) {
   const g = gesamtTeil(d);
   if (!g && !sg) return null;
   const sgT = (k) => (sg ? liste(sg.teile).find((x) => istObj(x) && x.k === k) : null);
@@ -864,7 +887,9 @@ function kryptoGesamtKarte(d, sg) {
     h("div", { class: "karte-kopf" }, h("h2", null, "Coin-Topf gesamt"), sg ? etikett("Mustergeld", "") : null),
     h("div", { class: "gross", id: "krypto-gesamt-wert" }, F.euro(summe)),
     sg && teile.every(([, v]) => F.istZahl(v)) ? einsatzZeile(summe, teile.length * sgJe(sg), "krypto-gesamt-einsatz") : null,   // 1.4.9: 3 × 1.000 €
-    zeilen(teile.map(([n, v, k]) => [n, F.istZahl(v) ? [F.euro(v), sgVeraltet(sgT(k))] : "–"])));
+    zeilen(teile.map(([n, v, k]) => [n, F.istZahl(v) ? [F.euro(v), sgVeraltet(sgT(k))] : "–"])),
+    // 1.4.17 (Tom 07.11.2026): im „mehr“ vergleicht der Mac die drei Krypto-Bots (news.json aktueller_stand.rubriken.coin_topf)
+    mehrTeil("krypto-gesamt", standKasten(Z, "coin_topf")));
 }
 
 /** 1.4.1 (Tom 23.10.2026): „solange wir nur mit Mustergeld trainieren, das Mustergeld anzeigen“ – je Bot sein Haupt-Musterdepot
@@ -937,15 +962,16 @@ export function uebersicht(Z) {
   // 1.4.14 (Tom 07.11.2026): ganz oben die Marktphase (mit Kursbewegung 12 h und neuen Coins), die Karte „Kursbewegungen“ entfällt,
   // dann die Verlauf-Grafiken – der Rest bleibt in seiner Reihenfolge
   const sg = spielgeldModus(d);                                    // 1.4.1: echt 0 € -> Mustergeld-Ansicht
-  out.push(marktphaseKarte(d.marktphase, Z.news && Z.news.markt_12h, d.bewegungen));
+  // 1.4.17 (Tom 07.11.2026: „damit rutscht die Marktphase hinter Mustergeld“): zuerst der Verlauf, dann die Marktphase (mit Marktbreite)
   if (!sg) out.push(gesamtVerlaufKarte(Z, false));
   if (sg || spielgeldVerlaufDa(Z)) out.push(gesamtVerlaufKarte(Z, true, sg ? "gesamt-verlauf" : "spielgeld-verlauf"));
+  out.push(marktphaseKarte(d.marktphase, Z.news && Z.news.markt_12h, d.bewegungen));
   if (A.erlaubt("frage")) out.push(kiSchnellKarte());
   out.push(sg ? spielgeldKarte(sg) : gesamtKarte(d, Z));
   const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert (offen; sonst Ergebnis der letzten 24 h)
   if (ak_) out.push(ak_);
   out.push(parkKnoepfe());
-  const kg = kryptoGesamtKarte(d, sg);
+  const kg = kryptoGesamtKarte(d, sg, Z);
   if (kg) out.push(kg);
   // 1.4.15 (Tom 07.11.2026): das Meta-Depot als eigene Rubrik zwischen „Coin-Topf gesamt“ und Safe-Bot, sein Verlauf im „mehr“
   const mr = metaKarte(d.meta_depot, Z);
@@ -966,6 +992,7 @@ export function uebersicht(Z) {
       wahl ? mehrTeil("autopilot-stellungen", h("p", { class: "klein gedimmt" }, "KI = der KI-Autopilot steuert Safe-Bot und Aktien (die festen Regeln laufen als Sicherheitsnetz mit) · "
         + "Regeln = der Regel-Autopilot (Notbremse, Gewinnschutz, Welt-ETF, Absturz-Regel) · Aus = alles angehalten, nichts verkauft."), "Was bedeuten die Stellungen?") : null,
       mehrTeil("kern", [
+        sgCoin ? rubrikStatistik(Z, "coin", "uebersicht") : null,              // 1.4.17 (Tom 07.11.2026): die Verlaufsstatistik zuerst
         h("p", { class: "klein gedimmt" }, "Stand " + F.zeit(k.wert_zeit) + (F.istZahl(k.bitcoin_kurs_eur) ? " · Bitcoin " + F.euro(k.bitcoin_kurs_eur) : "")),
         zeilen([
           ["Autopilot", STELLUNG_TEXT[stK]],
@@ -977,7 +1004,6 @@ export function uebersicht(Z) {
         ]),
         standKasten(Z, "coin", ki && ki.einfach_erklaert),                    // 1.4.15: „Aktueller Stand“ statt „Einfach erklärt“
         !sgCoin && ok(d.bilanz) && d.bilanz.text ? h("p", { class: "klein gedimmt" }, d.bilanz.text) : null,   // 1.4.3 (#14): echte Bilanz nicht unter dem Mustergeld
-        sgCoin ? rubrikStatistik(Z, "coin", "uebersicht") : null,              // 1.4.14: Safe-Bot gegen Bitcoin halten
       ]),
     ));
   } else out.push(fehlerKarte("Coin-Topf", d.kern_bot));
@@ -987,12 +1013,12 @@ export function uebersicht(Z) {
     out.push(karte(F.text(r.name, "Raster-Bot"), statusEtikett(r.status),
       botKurz(r.status, r.topf_eur, r.ergebnis_eur, r.ergebnis_prozent, r.schatten, "raster-wert", sdJe(d, "raster_schatten"), sgTeil(sg, "raster"), sgJe(sg)),
       mehrTeil("raster", [
+        sg ? rubrikStatistik(Z, "raster", "uebersicht") : null,   // 1.4.17: Verlaufsstatistik zuerst (1.4.14: Raster-Bot gegen Bitcoin halten)
         zeilen([["Topf", F.euro(r.topf_eur)], ergebnisZeile("Ergebnis", r.ergebnis_eur, r.ergebnis_prozent),
           ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
         standKasten(Z, "raster"),                                             // 1.4.15
         zeigtEcht(r.status, r.topf_eur) ? schattenHinweis(r.schatten) : null,
         kiZeile(r.ki_vorschlag),
-        sg ? rubrikStatistik(Z, "raster", "uebersicht") : null,   // 1.4.14: Raster-Bot gegen Bitcoin halten
         botKnoepfe(r.status, "surfen_ein", "surfen_pause", "surfen_aus", d.bot_deckel)])));
   } else out.push(fehlerKarte("Raster-Bot", d.raster_bot));
 
@@ -1003,6 +1029,7 @@ export function uebersicht(Z) {
       botKurz(t.modus === "echt" ? t.status : "aus", t.topf_eur, t.ergebnis_eur, t.ergebnis_prozent, t.schatten, "trend-wert", sdJe(d, "trend_schatten"), sgTeil(sg, "trend"), sgJe(sg)),
       h("button", { type: "button", class: "knopf-text seite-link", id: "trend-seite", onclick: () => seiteOeffnen("trend") }, "Trend-Seite ›"),
       mehrTeil("trend", [
+        sg ? rubrikStatistik(Z, "trend", "uebersicht") : null,    // 1.4.17: Verlaufsstatistik zuerst (1.4.14: Trend-Bot gegen Bitcoin halten)
         zeilen([
           ["Markt-Ampel", ma ? ampel(ma.gruen ? "gruen" : "rot") : "–"],
           t.modus === "echt" ? ["Topf", F.euro(t.topf_eur)] : ["Modus", "nur Musterdepot"],
@@ -1014,7 +1041,6 @@ export function uebersicht(Z) {
         straffZeile(t.schatten_straff, sdJe(d, "trend_straff")),
         standKasten(Z, "trend"),                                              // 1.4.15
         kiZeile(t.ki_vorschlag),
-        sg ? rubrikStatistik(Z, "trend", "uebersicht") : null,    // 1.4.14: Trend-Bot gegen Bitcoin halten
         botKnoepfe(t.status, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel)])));
   } else out.push(fehlerKarte("Trend-Bot", d.trend_bot));
 
@@ -1042,6 +1068,7 @@ function aktienKarte(d, ak, offen, sg, Z) {
   const sgAk = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === "aktien") : null;   // 1.4.1: Mustergeld statt 0 €
   const akKi = ok(ak.ki);
   const details = [
+    sgAk && Z && !offen ? rubrikStatistik(Z, "aktien", "uebersicht") : null,       // 1.4.17: Verlaufsstatistik zuerst (Aktien gegen Welt-ETF halten)
     zeilen([
       ["Modus", ak.modus === "etf" ? "ETF" : ak.modus === "aktiv" ? "aktiv" : F.text(ak.modus)],
       ["Status", F.text(ak.status)],
@@ -1059,7 +1086,6 @@ function aktienKarte(d, ak, offen, sg, Z) {
     autopilotWahl(d, "autopilot-aktien") || reihe(ak.an ? A.knopf("aktien_stopp", "Autopilot aus") : A.knopf("aktien_start", "Autopilot ein")),
     // 1.3.9: die Lage im selben „mehr“ statt als eigene eingeklappte Karte darunter (ein Aufklappen je Rubrik)
     lageListe(ak.lage, "Lage"),
-    sgAk && Z && !offen ? rubrikStatistik(Z, "aktien", "uebersicht") : null,       // 1.4.14: Aktien gegen Welt-ETF halten
   ];
   const pos = liste(ak.positionen);
   return karte(F.text(ak.name, "Aktien-Autopilot"), statusEtikett(ak.an ? "an" : "aus"),
@@ -1194,8 +1220,8 @@ function metaKarte(md, Z) {
     einsatzZeile(mw, metaStart, "meta-einsatz"),   // 1.4.9: das Meta-Depot gegen seinen Einsatz
     h("p", { class: "klapp-kurz", id: "meta-kurz" }, "Mustergeld · " + v.filter((x) => x.k !== "meta").map((x) => F.text(x.name) + " " + F.euro(x.wert_eur)).join(" · ")),
     mehrTeil("meta-depot", [
+      metaVerlaufTeil(md),                                                   // 1.4.15: Verlauf im „mehr“ (1.4.17: an erster Stelle)
       standKasten(Z, "meta"),                                                // 1.4.15
-      metaVerlaufTeil(md),                                                   // 1.4.15: Verlauf im „mehr“
       zeilen(v.map((x) => [F.text(x.name), (F.istZahl(x.wert_eur) ? plusFest(x.wert_eur - metaStart) + " · " : "") + F.prozent(x.rendite_prozent, 1)
         + " · max. −" + F.zahl(x.max_drawdown_prozent, 1) + " %", F.vorzeichenKlasse(F.istZahl(x.wert_eur) ? x.wert_eur - metaStart : x.rendite_prozent)])),
       h("p", { class: "klein" }, "Jetzt " + F.text(m.phase) + ": " + ["raster", "trend", "schutz"].map((x) => META_NAMEN[x] + " " + (F.istZahl(g[x]) ? g[x] : "–") + " %").join(" · ")
