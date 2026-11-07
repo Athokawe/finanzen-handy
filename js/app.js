@@ -439,6 +439,12 @@ async function laden() {
   }
   if (b.status === "fulfilled") {
     Z.news = demo ? demoZeiten(b.value, versatz) : b.value;
+    // Fable-Gesamtprüfung 07.11.2026: die Stimmung zählt nach Wiener Kalendertag – in der Demo wandert ihr Tag mit
+    if (demo && Z.news && Z.news.stimmung && Array.isArray(Z.news.stimmung.tage)) {
+      const wien = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Vienna", year: "numeric", month: "2-digit", day: "2-digit" });
+      Z.news.stimmung = Object.assign({}, Z.news.stimmung, { tage: Z.news.stimmung.tage.map((t) => (t && /^\d{4}-\d\d-\d\d$/.test(t.tag)
+        ? Object.assign({}, t, { tag: wien.format(new Date(Date.parse(t.tag + "T12:00:00Z") + versatz)) }) : t)) });
+    }
     Z.fehlerNews = null;
   } else {
     // news.json entsteht mit dem ersten Cloud-Lauf (seit 03.11.2026 stündlich, 1.4.6) – das ist kein Token-Fehler (handy.json kam ja an)

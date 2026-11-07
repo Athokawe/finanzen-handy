@@ -21,7 +21,6 @@ function s(tag, attrs, ...kinder) {
 const tagFmt = new Intl.DateTimeFormat("de-AT", { timeZone: "Europe/Vienna", day: "numeric", month: "numeric" });
 const tagJahrFmt = new Intl.DateTimeFormat("de-AT", { timeZone: "Europe/Vienna", day: "numeric", month: "numeric", year: "2-digit" });
 const stundeFmt = new Intl.DateTimeFormat("de-AT", { timeZone: "Europe/Vienna", hour: "2-digit", minute: "2-digit" });
-const wochentagFmt = new Intl.DateTimeFormat("de-AT", { timeZone: "Europe/Vienna", weekday: "short" });
 
 /** Zahl als Achsen-Beschriftung: „1.234 €“, „73.400 €“, „+2,5 %“ */
 function achsenText(v, einheit) {
