@@ -315,15 +315,24 @@ function marktphaseKarte(roh, m12, bw) {
     ? mpProzent(a.ma50_prozent) + " zur 50-Tage-Linie" + (kurs && F.istZahl(kurs.eur) ? " · Kurs " + F.euro(kurs.eur) : "") : null;
   // Gesamtprüfung 19.10.2026 (B28): Zeiten aus „zeit“ (in der Demo mitverschoben, „heute“/„gestern“ wie überall); zeit_text nur als Rückfall
   const stand = m && m.stand ? "Stand " + F.zeit(m.stand) : mpZeit(kurs, "Stand ", "");
+  // 1.4.19 (Tom 07.11.2026): Angst & Gier als kleiner Halbkreis rechts neben dem Phasenwort (news.json markt_12h.angst_gier, Mac)
+  const ag = ok(m12) ? ok(m12.angst_gier) : null;
+  const tacho = ag && F.istZahl(ag.wert) ? h("div", { class: "mp-ag", id: "mp-angst-gier" }, D.angstGierTacho(ag.wert, "Angst und Gier " + ag.wert + " von 100: " + F.text(ag.text)),
+    h("span", { class: "mp-ag-text" }, F.text(ag.text, ""))) : null;
   return h("section", { class: "karte marktphase-karte " + farbe, id: "marktphase" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Marktphase"), stand ? h("span", { class: "klein gedimmt" }, stand) : null),
-    h("div", { class: "mp-phase " + farbe, id: "mp-phase" }, phase),
-    kurz ? h("p", { class: "klein mp-kurz", id: "mp-kurz" }, kurz) : grund ? h("p", { class: "klein mp-grund" }, grund) : null,
+    h("div", { class: "mp-kopfzeile" }, h("div", { class: "mp-links" },
+      h("div", { class: "mp-phase " + farbe, id: "mp-phase" }, phase),
+      kurz ? h("p", { class: "klein mp-kurz", id: "mp-kurz" }, kurz) : grund ? h("p", { class: "klein mp-grund" }, grund) : null), tacho),
     mp12Teil(m12),
     ...neueCoinsTeil(bw),
     // Warnung bleibt sichtbar (nicht hinter „mehr“): sie ist der einzige Satz der Karte, der zum Handeln rät
     m && m.trend_bot_investiert === true && typeof m.hinweis === "string" && m.hinweis ? h("p", { class: "mp-hinweis" }, m.hinweis) : null,
     mehrTeil("marktphase", [
+      // Fable-Prüfung: „heute“ nur, wenn der Wert von heute ist (Mac länger aus: mit Datum)
+      ag && F.istZahl(ag.wert) ? h("p", { class: "klein", id: "mp-ag-mehr" }, "Angst & Gier (Krypto, alternative.me): "
+        + (ag.tag === wienTag.format(new Date()) || !ag.tag ? "heute " : "am " + F.tag(ag.tag + "T12:00:00Z") + " ") + ag.wert + " (" + F.text(ag.text) + ")"
+        + (F.istZahl(ag.gestern) ? " · gestern " + ag.gestern : "") + (F.istZahl(ag.woche) ? " · vor einer Woche " + ag.woche : "")) : null,   // 1.4.19
       breiteListe(ok(m12) && m12.breite),                                 // 1.4.17
       kurz && grund ? h("p", { class: "klein mp-grund" }, grund) : null,
       a ? zeilen([
@@ -1085,7 +1094,9 @@ export function aktien(Z) {
   const sg = spielgeldModus(d);
   // 1.4.14 (Tom 07.11.2026): in den Bot-Reitern zuerst die Statistik
   return [sg ? karte("Statistik", null, rubrikStatistik(Z, "aktien", "reiter")) : null, aktienKarte(d, ak, true, sg, Z),
-    schattenKarte(d.schattendepots, "Aktien-Teil")].filter(Boolean);
+    schattenKarte(d.schattendepots, "Aktien-Teil"),
+    // 1.4.19 (Tom 07.11.2026): „An die KI“ auch ganz unten im Reiter Aktien
+    kiKarte("Frag die KI zu deinen Aktien und zum Welt-ETF – oder sag ihr etwas, das der Autopilot wissen soll: sie merkt es sich als Hinweis. Sie erklärt nur und löst nie selbst eine Order aus.", d)].filter(Boolean);
 }
 
 /** 1.4 (Teil 3): die Trend-Seite hat keinen Reiter mehr – ein Tipp auf die Trend-Karte öffnet sie, „‹ Übersicht“ führt zurück */
@@ -1250,6 +1261,21 @@ function alarmKarte(d) {
 
 /** Karte „An die KI“ (1.2.0, ersetzt „Hinweis an die KI“): öffnet das Eingabe-Blatt; darunter (1.2.2) die Liste „Gemerkte
  *  Hinweise“ mit je „✕“ – nur, wenn handy.json aktive Hinweise nennt (kein allgemeiner Knopf „Hinweis löschen“ mehr) */
+/** 1.4.19 (Tom 07.11.2026, Sammelliste 5): EINE Karte „Lage“ je Bot-Reiter – der Lage-Text der KI (falls da) und die Zustandszeilen */
+function lageGesamtKarte(lage, kiText) {
+  const saetze = liste(lage).filter((x) => typeof x === "string" && x.trim());
+  const text = typeof kiText === "string" && kiText.trim() ? kiText : null;
+  if (!saetze.length && !text) return null;
+  return h("section", { class: "karte lage-gesamt" }, h("div", { class: "karte-kopf" }, h("h2", null, "Lage")),
+    text ? h("p", { class: "lage-ki" }, F.text(text)) : null,
+    saetze.length ? h("ul", { class: "lage-liste" }, saetze.map((t) => h("li", null, F.text(t)))) : null);
+}
+/** 1.4.19: „Aktueller Stand“ als eigene Karte (Reihenfolge der Bot-Reiter: Statistik · Lage · Aktueller Stand · Tools · An die KI) */
+function standKarte(Z, k, rueckfall) {
+  const st = standKasten(Z, k, rueckfall);
+  return st ? h("section", { class: "karte stand-karte", "data-karte": "stand-" + k }, st) : null;
+}
+
 function kiKarte(text, d) {
   if (!A.erlaubt("frage") && !A.erlaubt("hinweis_loeschen")) return null;
   return karte("An die KI", null,
@@ -1266,8 +1292,6 @@ export function kern(Z) {
   const k = ok(d.kern_bot);
   if (!k) return [fehlerKarte("Safe-Bot", d.kern_bot)];
   const out = [];
-  const lageK = lageKarte(k.lage);
-  if (lageK) out.push(lageK);
   out.push(karte(F.text(k.name, "Safe-Bot"), statusEtikett(k.an || k.regelwerk_an ? "an" : "aus"),
     h("div", { class: "mittel" }, F.euro(k.wert_eur)),
     h("p", { class: "klein gedimmt" }, F.text(k.topf_name, "Coin-Topf") + " · Stand " + F.zeit(k.wert_zeit)
@@ -1340,8 +1364,6 @@ export function kern(Z) {
       ["Empfohlene Stufe", F.text(ki.stufe_empfehlung)],
       ["Ergebnis", F.text(ki.status)],
     ]) : leer("Noch kein KI-Urteil."),
-    standKasten(Z, "coin", ki && ki.einfach_erklaert),                        // 1.4.15
-    ki && ki.lage ? erklaert("Lage", ki.lage) : null,
     reihe(A.knopf("einschaetzung", "Frische Einschätzung"), A.knopf("bericht_jetzt", "Bericht jetzt")),
     h("p", { class: "klein gedimmt" }, "Beides kommt per Mail, es wird dabei nie gehandelt."),
   ));
@@ -1350,10 +1372,10 @@ export function kern(Z) {
     h("p", { class: "klein gedimmt" }, "Steuerneutraler Tausch Krypto gegen Krypto direkt bei Bitpanda (Anmeldung dort nötig)."),
     reihe(bitpandaKnopf("Tauschen bei Bitpanda", BITPANDA_SWAP_URL, "primaer"), bitpandaKnopf("Zu Bitpanda")), bitpandaHinweis()));
 
-  // 1.4.14 (Tom 07.11.2026): die Statistik steht im Reiter an erster Stelle – im Mustergeld der Safe-Bot gegen Bitcoin halten
-  out.unshift(spielgeldModus(d) ? karte("Statistik", null, rubrikStatistik(Z, "coin", "reiter"))
+  // 1.4.19 (Tom 07.11.2026, Sammelliste 5): 1) Statistik (+ echte Bilanz) 2) Lage 3) Aktueller Stand 4) die Tools 5) An die KI
+  const tools = out.splice(0);
+  out.push(spielgeldModus(d) ? karte("Statistik", null, rubrikStatistik(Z, "coin", "reiter"))
     : karte("Statistik", null, h("p", { class: "klein gedimmt" }, "Coin-Topf gegen „Bitcoin halten“ in Prozent seit Beginn des Zeitraums – Ein- und Auszahlungen herausgerechnet."), ...coinStatistik(Z)));
-
   const b = ok(d.bilanz);
   if (b) {
     out.push(karte(F.text(b.name, "Safe-Bot gegen „Bitcoin halten“ seit Start"), null,
@@ -1365,8 +1387,9 @@ export function kern(Z) {
         ["Tage seit Start", F.zahl(b.tage_seit_start, 0)],
       ])));
   }
+  out.push(lageGesamtKarte(k.lage, ki && ki.lage), standKarte(Z, "coin", ki && ki.einfach_erklaert), ...tools);
   out.push(kiKarte("Frag die KI zu deinem Stand – oder sag ihr etwas, das der Bot wissen soll (z. B. ein Termin): sie merkt es sich dann als Hinweis. Sie erklärt nur und löst nie selbst eine Order aus.", d));
-  return out;
+  return out.filter(Boolean);
 }
 
 // ------------------------------------------------------------------ Raster-Bot
@@ -1379,10 +1402,9 @@ export function raster(Z) {
   const out = [];
   const uR = unklarKarte(r.unklare_auftraege, "raster");          // 1.2.18 (M2e): ganz oben, solange etwas offen ist
   if (uR) out.push(uR);
-  const lageR = lageKarte(r.lage);
-  if (lageR) out.push(lageR);
-  const vR = vorschlagKarte(r.ki_vorschlag, r, d.bot_deckel);
-  if (vR) out.push(vR);
+  // 1.4.19 (Sammelliste 5): 1) Statistik 2) Lage (+ KI-Einschätzung) 3) Aktueller Stand 4) die Tools 5) An die KI
+  out.push(karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "raster", "reiter") : botStatistik(Z, "raster")),
+    lageGesamtKarte(r.lage), vorschlagKarte(r.ki_vorschlag, r, d.bot_deckel), standKarte(Z, "raster"));
   const st = r.status;
   out.push(karte(F.text(r.name, "Raster-Bot"), statusEtikett(st),
     h("div", { class: "mittel" }, F.euro(r.topf_eur)),
@@ -1410,7 +1432,6 @@ export function raster(Z) {
   // Ohne echtes Geld steht das Musterdepot gleich unter dem Bot, mit echtem Geld nur noch als eine Referenzzeile ganz unten (Nutzer 11.10.2026)
   const rEcht = st !== "aus" || (F.istZahl(r.topf_eur) && r.topf_eur > 0);
   if (!rEcht) out.push(rasterSchatten(r, sdJe(d, "raster_schatten")));
-  out.splice(uR ? 1 : 0, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "raster", "reiter") : botStatistik(Z, "raster"), standKasten(Z, "raster")));   // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
   const coins = liste(r.coins);
   out.push(karte("Coins im Raster", null, coins.length ? h("ul", { class: "liste" }, coins.map((c) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(c.coin)), h("span", { class: "zahl" }, F.euro(c.wert_eur)), coinLink(c.coin)),
@@ -1420,7 +1441,8 @@ export function raster(Z) {
 
   if (rEcht && ok(r.schatten)) out.push(schattenHinweis(r.schatten));
   out.push(...botLinks());
-  return out;
+  out.push(kiKarte("Frag die KI zum Raster-Bot – etwa, warum er gerade keinen Coin handelt – oder sag ihr etwas, das er wissen soll: sie merkt es sich als Hinweis. Sie erklärt nur und löst nie selbst eine Order aus.", d));   // 1.4.19
+  return out.filter(Boolean);
 }
 
 /** 1.4.3 (#11): oben der Vergleich „je 1.000 € seit …“ wie auf der Übersicht, darunter die Rechnung seit Start als Detail */
@@ -1452,15 +1474,15 @@ export function trend(Z) {
   const out = [];
   const uT = unklarKarte(t.unklare_auftraege, "trend");           // 1.2.18 (M2e): ganz oben, solange etwas offen ist
   if (uT) out.push(uT);
-  const lageT = lageKarte(t.lage);
-  if (lageT) out.push(lageT);
-  const vT = vorschlagKarte(t.ki_vorschlag, t, d.bot_deckel);
-  if (vT) out.push(vT);
+  // 1.4.19 (Sammelliste 5): 1) Statistik 2) Lage (+ KI-Einschätzung, Markt-Ampel) 3) Aktueller Stand 4) die Tools 5) An die KI
+  out.push(karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "trend", "reiter") : botStatistik(Z, "trend")),
+    lageGesamtKarte(t.lage), vorschlagKarte(t.ki_vorschlag, t, d.bot_deckel));
   const st = t.status;
   const ma = ok(t.markt_ampel);
   out.push(karte("Markt-Ampel", ma ? ampel(ma.gruen ? "gruen" : "rot") : null,
     ma ? h("p", null, ma.gruen ? "Bitcoin liegt über seiner 50-Tage-Linie – der Trend-Bot darf kaufen." : "Bitcoin liegt unter seiner 50-Tage-Linie – der Trend-Bot hält sich zurück.") : leer("Keine Markt-Ampel."),
-    ma ? zeilen([["Abstand zur 50-Tage-Linie", F.prozent(ma.abstand_prozent), F.vorzeichenKlasse(ma.abstand_prozent)], ["Tag", F.text(ma.tag)]]) : null));
+    ma ? zeilen([["Abstand zur 50-Tage-Linie", F.prozent(ma.abstand_prozent), F.vorzeichenKlasse(ma.abstand_prozent)], ["Tag", F.text(ma.tag)]]) : null),
+    standKarte(Z, "trend"));
 
   out.push(karte(F.text(t.name, "Trend-Bot"), statusEtikett(st),
     t.modus === "echt" ? h("div", { class: "mittel" }, F.euro(t.topf_eur)) : h("p", null, "Läuft gerade nur im Musterdepot (Mustergeld)."),
@@ -1485,8 +1507,6 @@ export function trend(Z) {
   if (!tEcht) out.push(trendSchatten(t, sdJe(d, "trend_schatten")));
   const stk = straffKarte(t, sdJe(d, "trend_straff"));                       // 1.2.16: zweites Musterdepot „straff“ direkt darunter
   if (stk) out.push(stk);
-  // 1.4.18: an erster Stelle (nur unklare Aufträge davor) – den Knopf „‹ Übersicht“ gibt es nicht mehr
-  out.splice(uT ? 1 : 0, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "trend", "reiter") : botStatistik(Z, "trend"), standKasten(Z, "trend")));    // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
   const pos = liste(t.positionen);
   out.push(karte("Positionen", null, pos.length ? h("ul", { class: "liste" }, pos.map((p) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(p.coin)), h("span", { class: "zahl" }, F.euro(p.einstand_eur)), coinLink(p.coin)),
@@ -1501,7 +1521,8 @@ export function trend(Z) {
   out.push(listenKarte("Ereignisse", "trend", "ereignisse", t));
   if (tEcht && ok(t.schatten)) out.push(schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", ")));
   out.push(...botLinks());
-  return out;
+  out.push(kiKarte("Frag die KI zum Trend-Bot – etwa, wann die Ampel wieder grün werden könnte – oder sag ihr etwas, das er wissen soll: sie merkt es sich als Hinweis. Sie erklärt nur und löst nie selbst eine Order aus.", d));   // 1.4.19
+  return out.filter(Boolean);
 }
 
 function trendSchatten(t, sd) {
@@ -1620,15 +1641,20 @@ const wienTag = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Vienna", ye
 /** 1.4.16 (Tom 07.11.2026: „waagrechten Anzeigebalken … alles kompakter“, „nur heute aktuell zeigen“): je Bitcoin und Welt-ETF eine
  *  Zeile – Name, Balken nach Anteil stützend/neutral/belastend der HEUTE eingeordneten Meldungen (news.json stimmung, Wiener Datum),
  *  die Zahlen daneben. Ist der letzte gebuchte Tag nicht heute: ein Satz statt der Balken. */
-function stimmungTeil(st) {
+function stimmungTeil(st, agRoh) {
   const tage = liste((ok(st) || {}).tage).filter((x) => istObj(x) && typeof x.tag === "string");
-  if (!tage.length) return null;
+  // 1.4.19 (Tom 07.11.2026): dazu die Marktstimmung Angst & Gier als eigene Zeile
+  const ag = ok(agRoh);
+  const agZeile = ag && F.istZahl(ag.wert) ? h("div", { class: "stimmung-zeile", id: "stimmung-angst-gier" },
+    h("span", { class: "stimmung-name" }, "Markt"), h("div", { class: "stimmung-ag" }, D.angstGierTacho(ag.wert, "Angst und Gier " + ag.wert)),
+    h("span", { class: "stimmung-zahl klein" }, "Angst & Gier " + ag.wert + " · " + F.text(ag.text, ""))) : null;
+  if (!tage.length) return agZeile ? h("div", { class: "stimmung", id: "news-stimmung" }, h("div", { class: "stimmung-kopf" }, h("h3", null, "Stimmung heute")), agZeile) : null;
   const letzter = tage[tage.length - 1];
   const kopf = h("div", { class: "stimmung-kopf" }, h("h3", null, "Stimmung heute"),
     h("span", { class: "klein gedimmt" }, h("span", { class: "punkt gruen" }), " stützend ", h("span", { class: "punkt grau" }), " neutral ",
       h("span", { class: "punkt rot" }), " belastend"));
   if (letzter.tag !== wienTag.format(new Date())) {
-    return h("div", { class: "stimmung", id: "news-stimmung" }, kopf, h("p", { class: "klein gedimmt" }, "Heute noch keine Meldungen eingeordnet."));
+    return h("div", { class: "stimmung", id: "news-stimmung" }, kopf, h("p", { class: "klein gedimmt" }, "Heute noch keine Meldungen eingeordnet."), agZeile);
   }
   const zeile = (o, name) => {
     const z = istObj(letzter[o]) ? letzter[o] : {};
@@ -1638,7 +1664,7 @@ function stimmungTeil(st) {
       D.stimmungBalken(z, "Stimmung heute zu " + name + ": " + n("stuetzend") + " stützend, " + n("neutral") + " neutral, " + n("belastend") + " belastend"),
       h("span", { class: "stimmung-zahl klein" }, n("stuetzend") + " · " + n("neutral") + " · " + n("belastend")));
   };
-  return h("div", { class: "stimmung", id: "news-stimmung" }, kopf, zeile("bitcoin", "Bitcoin"), zeile("welt_etf", "Welt-ETF"));
+  return h("div", { class: "stimmung", id: "news-stimmung" }, kopf, zeile("bitcoin", "Bitcoin"), zeile("welt_etf", "Welt-ETF"), agZeile);
 }
 
 // 1.2.6 (Paket C): Einordnung je Meldung + Gesamtbild + Stand der Bots. Nur bekannte Werte (sonst kein Etikett), alle Texte als
@@ -1668,7 +1694,7 @@ function einordnungTeil(e) {
     bots ? h("p", { class: "news-bots" }, h("span", { class: "label" }, "Für deine Bots: "), bots) : null);
 }
 
-function gesamtbildKarte(g, lage, extra, stimmung) {
+function gesamtbildKarte(g, lage, extra, stimmung, ag) {
   const zeilen_ = liste(lage).filter((x) => istObj(x) && textOder(x.text));
   const gb = istObj(g) ? g : null;
   const text = gb && textOder(gb.text), bots = gb && textOder(gb.bots);
@@ -1676,7 +1702,7 @@ function gesamtbildKarte(g, lage, extra, stimmung) {
     .filter(([k]) => istObj(gb[k]) && RICHTUNG[gb[k].richtung])
     .map(([k, name]) => richtungEtikett(gb[k].richtung, name + (STAERKE[gb[k].staerke] ? " · " + STAERKE[gb[k].staerke] : ""))) : [];
   const dazu = liste(extra).filter(Boolean);
-  const st = stimmungTeil(stimmung);                                     // 1.4.15
+  const st = stimmungTeil(stimmung, ag);                                 // 1.4.15 (1.4.19: mit Angst & Gier)
   if (!text && !bots && !teile.length && !zeilen_.length && !dazu.length && !st) return null;
   // 1.4 (Tom 23.10.2026, Teil 4): oben die kurze Analyse für Krypto und Aktien, im „mehr“ Wirtschaft und Notenbanken (und der Stand der Bots)
   return h("section", { class: "karte", id: "news-gesamtbild" },
@@ -1856,7 +1882,7 @@ export function news(Z) {
   const einordnung = z ? liste(z.rubriken).filter((r) => istObj(r) && r.id === "einordnung") : [];
   const dasWichtigste = wichtig.length || einordnung.length ? h("div", { class: "news-unterteil", "data-rubrik": "wichtig" }, h("h3", null, "Das Wichtigste"),
     einordnung.map((r) => erklaert(F.text(r.name), r.text)), wichtig.map(meldung)) : null;
-  out.push(gesamtbildKarte(z && z.gesamtbild, n.bot_lage, [dasWichtigste, ...rub.filter((r) => art(r) === "markt").map(unterteil)], n.stimmung));
+  out.push(gesamtbildKarte(z && z.gesamtbild, n.bot_lage, [dasWichtigste, ...rub.filter((r) => art(r) === "markt").map(unterteil)], n.stimmung, ok(n.markt_12h) && n.markt_12h.angst_gier));
   for (const r of rub.filter((x) => art(x) === "krypto")) out.push(rubrikKarte(r.name, r.id, r.s, r.ki, zwoelfStundenTeil(n.markt_12h, "krypto")));
   const aktienRub = rub.filter((x) => art(x) === "aktien");
   const bg = boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge);   // 1.3.3 – seit 1.4 im „mehr“ der Aktien-Karte

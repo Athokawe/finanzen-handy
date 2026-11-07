@@ -512,3 +512,19 @@ svg.stimmung-balken .balken-schlecht { fill: var(--rot); }
 
 /* ---------- 1.4.18 (Sammelliste 4): Mustergeld-Karte mit Verlauf, sechs Reiter ---------- */
 .sg-verlauf { margin: 10px 0 12px; }
+
+/* ---------- 1.4.19 (Sammelliste 5): Angst & Gier, Lage-Karte, Stand-Karte ---------- */
+.mp-kopfzeile { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mp-links { min-width: 0; }
+.mp-ag { display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; margin: -4px 0 0; }
+svg.ag-tacho { width: 76px; height: 44px; display: block; }
+.mp-ag-text { font-size: 11px; color: var(--gedimmt); margin-top: -2px; white-space: nowrap; }
+svg.ag-tacho .ag-bogen { fill: none; stroke-width: 7; stroke-linecap: round; }
+svg.ag-tacho .ag-1 { stroke: #e5484d; } svg.ag-tacho .ag-2 { stroke: #f08c3a; } svg.ag-tacho .ag-3 { stroke: #f5c542; }
+svg.ag-tacho .ag-4 { stroke: #a3d65c; } svg.ag-tacho .ag-5 { stroke: #3fbf7f; }
+svg.ag-tacho .ag-punkt { fill: var(--karte); stroke-width: 3; }
+svg.ag-tacho .ag-zahl { fill: var(--text); font-size: 22px; font-weight: 700; font-family: -apple-system, Inter, "Segoe UI", system-ui, sans-serif; }
+.stimmung-ag svg.ag-tacho { width: 40px; height: 24px; }
+.stimmung-ag svg.ag-tacho .ag-zahl { display: none; }
+.lage-gesamt .lage-ki { margin: 0 0 8px; line-height: 1.4; }
+.stand-karte .erklaert { margin: 0; }

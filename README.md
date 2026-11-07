@@ -4,6 +4,13 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Safe-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.19
+
+* **Angst & Gier.** Der Krypto-Stimmungsindex (0–100, alternative.me – dieselbe Zahl, die die KI liest) als kleiner Halbkreis
+  rechts neben dem Phasenwort der Marktphase; im „mehr“ gestern und vor einer Woche; dazu eine Zeile unter „Stimmung heute“ in den News.
+* **Bot-Reiter aufgeräumt.** Safe, Raster und Trend in derselben Reihenfolge: Statistik · Lage (nur noch einmal) · Aktueller Stand ·
+  die Einstellungen und Listen · „An die KI“. „An die KI“ steht jetzt auch unten in Raster, Trend und Aktien.
+
 ## Neu in 1.4.18
 
 * **Sechs Reiter.** Der Trend-Bot hat einen eigenen Reiter; die Reiter heißen kurz „Safe“, „Raster“, „Trend“. Der Link „Trend-Seite“
