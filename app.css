@@ -496,12 +496,16 @@ details.news-zf[open] > summary .titel::after { content: " ▴"; }
 .news-12h-zahl { font-weight: 700; font-variant-numeric: tabular-nums; }
 .news-12h svg.diagramm { margin-top: 2px; }
 svg.diagramm .linie.l-minus { stroke: var(--rot); } svg.diagramm .marke-punkt.l-minus { stroke: var(--rot); }
-.stimmung { margin: 10px 0 4px; }
-.stimmung h3 { margin: 0 0 6px; font-size: 15px; }
-.stimmung-block { margin: 0 0 8px; }
-.stimmung-block p { margin: 0; }
-svg.stimmung .balken-gut { fill: var(--gruen); opacity: .85; }
-svg.stimmung .balken-schlecht { fill: var(--rot); opacity: .85; }
-svg.stimmung .l-kurs { stroke: var(--text); stroke-width: 1.6; fill: none; }
-svg.stimmung .kurs-punkt { fill: var(--text); }
+/* 1.4.16 (Tom 07.11.2026): Stimmung heute – je Objekt eine Zeile mit waagrechtem Balken */
+.stimmung { margin: 8px 0 2px; }
+.stimmung-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 0 0 4px; }
+.stimmung-kopf h3 { margin: 0; font-size: 15px; }
+.stimmung-zeile { display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 8px; padding: 3px 0; }
+.stimmung-name { font-size: 14px; font-weight: 600; }
+.stimmung-zahl { font-variant-numeric: tabular-nums; color: var(--gedimmt); white-space: nowrap; }
+svg.stimmung-balken { width: 100%; height: 8px; display: block; border-radius: 4px; }
+svg.stimmung-balken .balken-leer { fill: var(--karte2); }
+svg.stimmung-balken .balken-gut { fill: var(--gruen); }
+svg.stimmung-balken .balken-neutral { fill: #8e8e93; }
+svg.stimmung-balken .balken-schlecht { fill: var(--rot); }
 .stand-zeit { margin-top: 4px; }

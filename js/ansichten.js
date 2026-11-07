@@ -1478,7 +1478,8 @@ export function trend(Z) {
   if (!tEcht) out.push(trendSchatten(t, sdJe(d, "trend_schatten")));
   const stk = straffKarte(t, sdJe(d, "trend_straff"));                       // 1.2.16: zweites Musterdepot „straff“ direkt darunter
   if (stk) out.push(stk);
-  out.splice(uT ? 1 : 0, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "trend", "reiter") : botStatistik(Z, "trend"), standKasten(Z, "trend")));    // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
+  // Fable-Gesamtprüfung 07.11.2026: out[0] ist hier der Knopf „‹ Übersicht“ – die Statistik kommt danach (und nach unklaren Aufträgen)
+  out.splice(uT ? 2 : 1, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "trend", "reiter") : botStatistik(Z, "trend"), standKasten(Z, "trend")));    // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
   const pos = liste(t.positionen);
   out.push(karte("Positionen", null, pos.length ? h("ul", { class: "liste" }, pos.map((p) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(p.coin)), h("span", { class: "zahl" }, F.euro(p.einstand_eur)), coinLink(p.coin)),
@@ -1556,6 +1557,7 @@ function straffKarte(t, sd) {
  *  ausführliche Zusammenfassung auf Deutsch aufklappt“): Tipp klappt die Zusammenfassung des Macs auf (news.json je Schlagzeile
  *  zusammenfassung / zf_kurz / zf_grund, Finanz-App news_artikel.py), darunter „Zum Artikel ↗“. Offen bleibt offen, solange die App
  *  offen ist (wie „mehr“). Ohne Link: nur Titel. */
+let zfWarten = "Die Zusammenfassung kommt mit dem nächsten Lauf des Macs (alle 20 Minuten).";   // news() setzt ihn je nach Rechner
 function schlagzeile(s, ort) {
   if (!istObj(s)) return null;
   const unter = [s.quelle, s.aktie && !(String(s.quelle || "").includes(s.aktie)) ? s.aktie : null, s.zeit ? F.vor(s.zeit) : null].filter(Boolean).join(" · ");
@@ -1569,7 +1571,7 @@ function schlagzeile(s, ort) {
     h("summary", null, ...inhalt),
     h("div", { class: "zf-inhalt" },
       zf ? h("p", { class: "zf-text" }, F.text(zf))
-        : h("p", { class: "klein gedimmt" }, typeof s.zf_grund === "string" && s.zf_grund ? F.text(s.zf_grund) : "Die Zusammenfassung kommt mit dem nächsten Lauf des Macs (alle 20 Minuten)."),
+        : h("p", { class: "klein gedimmt" }, typeof s.zf_grund === "string" && s.zf_grund ? F.text(s.zf_grund) : zfWarten),
       zf && s.zf_kurz === true ? h("p", { class: "klein gedimmt" }, "Nur Kurzfassung – der ganze Artikel ist nicht frei lesbar (z. B. Bezahlschranke).") : null,
       aussenLink(s.link, { class: "zf-link" }, "Zum Artikel ↗")));
 }
@@ -1607,34 +1609,29 @@ function zwoelfStundenTeil(m12, art) {
     info);
 }
 
-/** 1.4.15 (Tom 07.11.2026, Gesamtbild: „Stimmung über 7 Tage“): je Tag die vom Mac eingeordneten Meldungen (stützend nach oben,
- *  belastend nach unten) und die Kurslinie – je für Bitcoin und den Welt-ETF (news.json stimmung). Bis drei Tage beisammen sind,
- *  sagt eine Zeile dazu, dass die Grafik sich aufbaut; darunter immer die Zahlen von heute. */
 const wienTag = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Vienna", year: "numeric", month: "2-digit", day: "2-digit" });
+/** 1.4.16 (Tom 07.11.2026: „waagrechten Anzeigebalken … alles kompakter“, „nur heute aktuell zeigen“): je Bitcoin und Welt-ETF eine
+ *  Zeile – Name, Balken nach Anteil stützend/neutral/belastend der HEUTE eingeordneten Meldungen (news.json stimmung, Wiener Datum),
+ *  die Zahlen daneben. Ist der letzte gebuchte Tag nicht heute: ein Satz statt der Balken. */
 function stimmungTeil(st) {
-  // Fable-Prüfung 07.11.2026: Kurs und Balken über dieselben (höchstens 7) Tage; „Heute“ nur, wenn der letzte Tag wirklich heute ist
-  const tage = liste((ok(st) || {}).tage).filter((x) => istObj(x) && typeof x.tag === "string").slice(-7);
+  const tage = liste((ok(st) || {}).tage).filter((x) => istObj(x) && typeof x.tag === "string");
   if (!tage.length) return null;
-  const heute = tage[tage.length - 1];
-  const istHeute = heute.tag === wienTag.format(new Date());
-  const tagName = istHeute ? "Heute" : (() => { const d = new Date(heute.tag + "T12:00:00Z"); return isNaN(d) ? heute.tag : F.tag(heute.tag + "T12:00:00Z"); })();
-  const zahl = (x, o, r) => (istObj(x[o]) && F.istZahl(x[o][r]) ? x[o][r] : 0);
-  const block = (o, name) => {
-    const svg = D.stimmungDiagramm(tage, o, "Stimmung der Meldungen zu " + name + " je Tag, mit Kurslinie");
-    const k = tage.filter((x) => F.istZahl(x[o === "bitcoin" ? "btc_eur" : "etf_eur"]));
-    const kurs = k.length >= 2 ? (k[k.length - 1][o === "bitcoin" ? "btc_eur" : "etf_eur"] / k[0][o === "bitcoin" ? "btc_eur" : "etf_eur"] - 1) * 100 : null;
-    return h("div", { class: "stimmung-block", id: "stimmung-" + o },
-      h("div", { class: "news-12h-kopf" }, h("span", { class: "klein" }, name),
-        kurs !== null ? h("span", { class: "klein " + F.vorzeichenKlasse(kurs) }, "Kurs " + prozentFest(kurs)) : null),
-      svg,
-      h("p", { class: "klein gedimmt" }, tagName + ": " + zahl(heute, o, "stuetzend") + " stützend · " + zahl(heute, o, "neutral") + " neutral · "
-        + zahl(heute, o, "belastend") + " belastend"));
+  const letzter = tage[tage.length - 1];
+  const kopf = h("div", { class: "stimmung-kopf" }, h("h3", null, "Stimmung heute"),
+    h("span", { class: "klein gedimmt" }, h("span", { class: "punkt gruen" }), " stützend ", h("span", { class: "punkt grau" }), " neutral ",
+      h("span", { class: "punkt rot" }), " belastend"));
+  if (letzter.tag !== wienTag.format(new Date())) {
+    return h("div", { class: "stimmung", id: "news-stimmung" }, kopf, h("p", { class: "klein gedimmt" }, "Heute noch keine Meldungen eingeordnet."));
+  }
+  const zeile = (o, name) => {
+    const z = istObj(letzter[o]) ? letzter[o] : {};
+    const n = (r) => (F.istZahl(z[r]) ? z[r] : 0);
+    return h("div", { class: "stimmung-zeile", id: "stimmung-" + o },
+      h("span", { class: "stimmung-name" }, name),
+      D.stimmungBalken(z, "Stimmung heute zu " + name + ": " + n("stuetzend") + " stützend, " + n("neutral") + " neutral, " + n("belastend") + " belastend"),
+      h("span", { class: "stimmung-zahl klein" }, n("stuetzend") + " · " + n("neutral") + " · " + n("belastend")));
   };
-  return h("div", { class: "stimmung", id: "news-stimmung" },
-    h("h3", null, "Stimmung der Meldungen"),
-    block("bitcoin", "Bitcoin"), block("welt_etf", "Welt-ETF"),
-    h("p", { class: "klein gedimmt" }, h("span", { class: "punkt gruen" }), " stützend  ", h("span", { class: "punkt rot" }), " belastend  · Linie = Kurs"
-      + (tage.length < 3 ? " · Die Grafik baut sich auf – je Tag kommt ein Balken dazu." : "")));
+  return h("div", { class: "stimmung", id: "news-stimmung" }, kopf, zeile("bitcoin", "Bitcoin"), zeile("welt_etf", "Welt-ETF"));
 }
 
 // 1.2.6 (Paket C): Einordnung je Meldung + Gesamtbild + Stand der Bots. Nur bekannte Werte (sonst kein Etikett), alle Texte als
@@ -1812,6 +1809,9 @@ export function news(Z) {
   out.push(h("p", { class: "klein gedimmt" }, "Abgerufen " + F.vor(n.zeit) + " (" + F.zeit(n.zeit) + ", " + anlass + ")" + kiZeit + holt + (n.rechner === "mac"     // 1.4.13: seit 05.11.2026 holt der Mac die News alle 20 min (Finanz-App news_mac.py)
     ? ". Der Mac holt alle 20 Minuten neu; die App lädt beim Öffnen nach." : ". Die Cloud holt stündlich neu; die App lädt beim Öffnen nach.")));
   if (n.fehler) out.push(h("p", { class: "fehlerteil" }, F.text(n.fehler)));
+  // Fable-Gesamtprüfung 07.11.2026: hat die Cloud die News geschrieben (Mac aus), kommt keine Zusammenfassung von selbst nach
+  zfWarten = n.rechner === "mac" ? "Die Zusammenfassung kommt mit dem nächsten Lauf des Macs (alle 20 Minuten)."
+    : "Für diese Meldung gibt es noch keine Zusammenfassung – der Mac schreibt sie, sobald er wieder läuft.";
   const z = ok(n.zusammenfassung);
   const meldung = (s) => [schlagzeile(s, "wichtig"), istObj(s) ? einordnungTeil(s.einordnung) : null];
   // 1.3.10 (Tom 19.10.2026: „Wirtschaft & Börse und Notenbanken kommen immer zweimal vor“): EINE Karte je Rubrik – oben der KI-Satz

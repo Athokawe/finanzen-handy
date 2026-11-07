@@ -4,6 +4,11 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Safe-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.16
+
+* **Stimmung kompakt.** Im Gesamtbild der News je Bitcoin und Welt-ETF eine Zeile mit waagrechtem Balken – grün stützend, grau
+  neutral, rot belastend – nach den heute eingeordneten Meldungen, die Zahlen daneben. Kein 7-Tage-Verlauf mehr.
+
 ## Neu in 1.4.15
 
 * **News zum Aufklappen.** Tipp auf eine Schlagzeile öffnet nicht mehr die Website, sondern klappt eine deutsche Zusammenfassung
