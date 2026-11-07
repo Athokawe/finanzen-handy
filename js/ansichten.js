@@ -78,6 +78,18 @@ function erklaert(label, text) {
   return h("div", { class: "erklaert" }, h("span", { class: "label" }, label), h("div", null, text));
 }
 
+/** 1.4.15 (Tom 07.11.2026: „Das ‚Einfach erklärt‘ kommt in allen Rubriken mit spezifischen, zur Rubrik passenden Erklärungen dazu …
+ *  umbenannt auf ‚Aktueller Stand‘“): Text vom Mac (news.json aktueller_stand, Finanz-App rubrik_stand.py, alle 3 h oder bei einer
+ *  Änderung); ohne ihn der bisherige KI-Text der Rubrik (rueckfall), sonst nichts */
+function standKasten(Z, k, rueckfall) {
+  const a = Z && Z.news ? ok(Z.news.aktueller_stand) : null;
+  const r = a && istObj(a.rubriken) ? ok(a.rubriken[k]) : null;
+  const text = r && typeof r.text === "string" && r.text.trim() ? r.text : typeof rueckfall === "string" && rueckfall.trim() ? rueckfall : null;
+  if (!text) return null;
+  return h("div", { class: "erklaert", "data-stand": k }, h("span", { class: "label" }, "Aktueller Stand"), h("div", null, F.text(text)),
+    r && F.datum(r.zeit) ? h("div", { class: "klein gedimmt stand-zeit" }, "Stand " + F.zeit(r.zeit)) : null);
+}
+
 function bitpandaKnopf(text, url, klasse) {
   return aussenLink(url || BITPANDA_URL, { class: "knopf link " + (klasse || "") }, text);
 }
@@ -244,13 +256,14 @@ function mp12Teil(roh) {
   if (!m) return null;
   const c = ok(m.coins), a = ok(m.aktien);
   const wert = (x) => (F.istZahl(x) ? h("span", { class: "mp12-wert " + F.vorzeichenKlasse(x) }, prozentFest(x)) : h("span", { class: "mp12-wert gedimmt" }, "–"));
-  const cUnter = !c ? "nicht lesbar" : c.volle_12h ? "letzte 12 h" : c.seit ? "seit " + F.zeit(c.seit) + " – 12 h noch nicht voll" : "Messung läuft an";
-  const aUnter = !a ? "nicht lesbar" : a.offen ? "letzte 12 h" : String(a.text || "Börse geschlossen").replace(/\s[+−±][\d.,]+\s%$/, "");
+  // 1.4.15 (Tom 07.11.2026: „kompakter gestalten“): Name und kurze Unterzeile links, die Zahl rechts – eine Zeile je Kachel
+  const cUnter = !c ? "nicht lesbar" : c.volle_12h ? "letzte 12 h" : c.seit ? "seit " + F.zeit(c.seit) : "Messung läuft an";
+  const aUnter = !a ? "nicht lesbar" : a.offen ? "letzte 12 h" : String(a.text || "Börse geschlossen").replace(/\s[+−±][\d.,]+\s%$/, "").replace("Börse geschlossen", "Börse zu");
   const sd = F.datum(m.stand);
   const alt = sd && Date.now() - sd.getTime() > 90 * 60000;
   return h("div", { class: "mp12", id: "mp-12h" },
-    h("div", { class: "mp12-zelle", id: "mp12-coins" }, h("span", { class: "mp12-l" }, "Kryptomarkt"), wert(c && c.prozent), h("span", { class: "mp12-unter" }, cUnter)),
-    h("div", { class: "mp12-zelle", id: "mp12-aktien" }, h("span", { class: "mp12-l" }, a && a.name ? F.text(a.name) : "Welt-ETF"), wert(a && a.prozent), h("span", { class: "mp12-unter" }, aUnter)),
+    h("div", { class: "mp12-zelle", id: "mp12-coins" }, h("div", { class: "mp12-links" }, h("span", { class: "mp12-l" }, "Kryptomarkt"), h("span", { class: "mp12-unter" }, cUnter)), wert(c && c.prozent)),
+    h("div", { class: "mp12-zelle", id: "mp12-aktien" }, h("div", { class: "mp12-links" }, h("span", { class: "mp12-l" }, a && a.name ? F.text(a.name) : "Welt-ETF"), h("span", { class: "mp12-unter" }, aUnter)), wert(a && a.prozent)),
     alt ? h("p", { class: "klein gedimmt mp12-alt" }, "Stand " + F.zeit(m.stand)) : null);
 }
 /** 1.4.14 (Tom 07.11.2026: „‚Neu bei Bitpanda‘ in die Marktphase, mit dem Vermerk, dass es neue Coins sind“): bis zu drei neu
@@ -816,14 +829,15 @@ function spielgeldVerlaufDa(Z) {
 
 /** 1.4.8 (Tom 03.11.2026, „die Vermögens-Grafik, auch vom Musterdepot“): Verlauf des Meta-Depots gegen feste Drittelung und Bitcoin
  *  halten – handy.json meta_depot.verlauf (Startpunkt je 1.000 €, Tagesschlüsse, Stand des Laufs); null, solange es keine zwei Punkte gibt */
-function metaVerlaufKarte(md) {
+/** 1.4.15 (Tom 07.11.2026): der Verlauf des Meta-Depots steht im „mehr“ seiner Rubrik-Karte (bis 1.4.14 eigene Karte oben) */
+function metaVerlaufTeil(md) {
   const m = ok(md);
   const punkte = m && m.gestartet ? D.punkteLesen({ punkte: liste(m.verlauf) }) : [];
   if (punkte.length < 2) return null;
   const seitStart = seitStartKennzahl((liste(m.vergleich).find((x) => istObj(x) && x.k === "meta") || {}).wert_eur,
     F.istZahl(m.start_eur) && m.start_eur > 0 ? m.start_eur : 1000);   // 1.4.9
-  return h("section", { class: "karte", id: "meta-verlauf" },
-    h("div", { class: "karte-kopf" }, h("h2", null, "Verlauf · Meta-Depot"), etikett("Mustergeld", "")),
+  return h("div", { class: "rubrik-vergleich", id: "meta-verlauf" },
+    h("p", { class: "klein gedimmt" }, "Verlauf: Meta-Depot gegen feste Drittelung und „Bitcoin halten“, je ab 1.000 €."),
     D.statistik({
       schluessel: "meta-verlauf", punkte, einheit: "eur", vorgabe: "alle", tippHinweis: false,
       beschreibung: "Meta-Depot gegen feste Drittelung und Bitcoin halten, je ab 1.000 € Mustergeld",
@@ -926,8 +940,6 @@ export function uebersicht(Z) {
   out.push(marktphaseKarte(d.marktphase, Z.news && Z.news.markt_12h, d.bewegungen));
   if (!sg) out.push(gesamtVerlaufKarte(Z, false));
   if (sg || spielgeldVerlaufDa(Z)) out.push(gesamtVerlaufKarte(Z, true, sg ? "gesamt-verlauf" : "spielgeld-verlauf"));
-  const mv = metaVerlaufKarte(d.meta_depot);
-  if (mv) out.push(mv);
   if (A.erlaubt("frage")) out.push(kiSchnellKarte());
   out.push(sg ? spielgeldKarte(sg) : gesamtKarte(d, Z));
   const ak_ = antragKarte(d.ki_antraege);                          // 1.3.5: KI-Antrag gleich unter dem Gesamtwert (offen; sonst Ergebnis der letzten 24 h)
@@ -935,6 +947,9 @@ export function uebersicht(Z) {
   out.push(parkKnoepfe());
   const kg = kryptoGesamtKarte(d, sg);
   if (kg) out.push(kg);
+  // 1.4.15 (Tom 07.11.2026): das Meta-Depot als eigene Rubrik zwischen „Coin-Topf gesamt“ und Safe-Bot, sein Verlauf im „mehr“
+  const mr = metaKarte(d.meta_depot, Z);
+  if (mr) out.push(mr);
 
   const k = ok(d.kern_bot);
   if (k) {
@@ -960,7 +975,7 @@ export function uebersicht(Z) {
           !sgCoin ? ["Hält", pos] : k.position || k.geparkt ? ["Hält (echt)", pos] : null,
           ki ? ["KI-Urteil", entscheidungText(ki.entscheidung) + (F.istZahl(ki.zuversicht) ? " · " + ki.zuversicht + " % sicher" : "")] : null,
         ]),
-        ki ? erklaert("Einfach erklärt", ki.einfach_erklaert) : null,
+        standKasten(Z, "coin", ki && ki.einfach_erklaert),                    // 1.4.15: „Aktueller Stand“ statt „Einfach erklärt“
         !sgCoin && ok(d.bilanz) && d.bilanz.text ? h("p", { class: "klein gedimmt" }, d.bilanz.text) : null,   // 1.4.3 (#14): echte Bilanz nicht unter dem Mustergeld
         sgCoin ? rubrikStatistik(Z, "coin", "uebersicht") : null,              // 1.4.14: Safe-Bot gegen Bitcoin halten
       ]),
@@ -974,6 +989,7 @@ export function uebersicht(Z) {
       mehrTeil("raster", [
         zeilen([["Topf", F.euro(r.topf_eur)], ergebnisZeile("Ergebnis", r.ergebnis_eur, r.ergebnis_prozent),
           ["Coins", liste(r.coins).map((c) => c.coin).join(", ") || "–"]]),
+        standKasten(Z, "raster"),                                             // 1.4.15
         zeigtEcht(r.status, r.topf_eur) ? schattenHinweis(r.schatten) : null,
         kiZeile(r.ki_vorschlag),
         sg ? rubrikStatistik(Z, "raster", "uebersicht") : null,   // 1.4.14: Raster-Bot gegen Bitcoin halten
@@ -996,6 +1012,7 @@ export function uebersicht(Z) {
         zeigtEcht(t.modus === "echt" ? t.status : "aus", t.topf_eur) ? schattenHinweis(t.schatten, liste(ok(t.schatten) && t.schatten.positionen).join(", "))
           : ok(t.schatten) && liste(t.schatten.positionen).length ? h("p", { class: "klein gedimmt" }, "Musterdepot hält " + liste(t.schatten.positionen).join(", ")) : null,
         straffZeile(t.schatten_straff, sdJe(d, "trend_straff")),
+        standKasten(Z, "trend"),                                              // 1.4.15
         kiZeile(t.ki_vorschlag),
         sg ? rubrikStatistik(Z, "trend", "uebersicht") : null,    // 1.4.14: Trend-Bot gegen Bitcoin halten
         botKnoepfe(t.status, "trend_ein", "trend_pause", "trend_aus", d.bot_deckel)])));
@@ -1009,8 +1026,6 @@ export function uebersicht(Z) {
 
   const sk = schattenKarte(d.schattendepots);                       // 1.2.17: alle Musterdepots, automatisch verglichen
   if (sk) out.push(sk);
-  const mk = metaKarte(d.meta_depot);                               // 1.4.4: Meta-Musterdepot meta_v1 (eingefrorene Regeln)
-  if (mk) out.push(mk);
 
   // 1.2.12: Aktien & ETFs unter dem Krypto-Teil, direkt vor „Letzte Alarme“ – langfristiges Geld, am wenigsten angeschaut (Nutzer 14.10.2026)
   const ak = ok(d.aktien);
@@ -1037,7 +1052,7 @@ function aktienKarte(d, ak, offen, sg, Z) {
         + (F.istZahl(akKi.zuversicht) ? " · " + akKi.zuversicht + " % sicher" : "") + " (" + F.zeit(akKi.zeit) + ")"] : null,
       akKi ? ["KI-Ziel", aktienKiZiel(akKi.ziel)] : null,
     ]),
-    akKi ? erklaert("KI einfach erklärt", akKi.einfach_erklaert) : null,
+    standKasten(Z, "aktien", akKi && akKi.einfach_erklaert),                  // 1.4.15: „Aktueller Stand“ statt „KI einfach erklärt“
     // 1.2.24: Zeile und Knopf „Gewinnschutz“ entfielen mit dem Gewinnschutz Aktien/ETF (Cloud, 17.10.2026); die Absicherung
     // des Welt-ETF steht in der Lage darunter
     // 1.3: derselbe Wahlschalter wie beim Safe-Bot (ältere Cloud: die bisherigen Knöpfe)
@@ -1163,7 +1178,7 @@ function schattenKarte(sd, nur) {
 /** 1.4.4 (Tom 30.10.2026): Meta-Musterdepot „meta_v1“ – gewichtet Raster, Trend und Schutz je Marktphase; Regeln eingefroren
  *  (docs/META-DEPOT-REGELN.md im Cloud-Repo). Bis zur Auswertung am 31.01.2027 nur Zahlen, kein Urteil. */
 const META_NAMEN = { raster: "Raster", trend: "Trend", schutz: "Schutz" };
-function metaKarte(md) {
+function metaKarte(md, Z) {
   if (fehlerVon(md)) return fehlerKarte("Meta-Depot", md);
   const m = ok(md);
   if (!m) return null;
@@ -1173,10 +1188,14 @@ function metaKarte(md) {
   const k = ok(m.kandidat);
   const u = ok(m.urteil);
   const metaStart = F.istZahl(m.start_eur) && m.start_eur > 0 ? m.start_eur : 1000;   // 1.4.9: je 1.000 € eingesetzt (handy.json meta_depot.start_eur)
+  const mw = (v.find((x) => x.k === "meta") || {}).wert_eur;
   return karte("Meta-Depot", u ? etikett(u.erfolg ? "Erfolg" : "gescheitert", u.erfolg ? "sd-klar-vorne" : "sd-klar-hinten") : etikett(F.text(m.phase), ""),
-    h("p", { class: "klapp-kurz", id: "meta-kurz" }, v.map((x) => F.text(x.name) + " " + F.euro(x.wert_eur)).join(" · ")),
-    einsatzZeile((v.find((x) => x.k === "meta") || {}).wert_eur, metaStart, "meta-einsatz"),   // 1.4.9: das Meta-Depot gegen seinen Einsatz
+    F.istZahl(mw) ? h("div", { class: "mittel", id: "meta-wert" }, F.euro(mw)) : null,        // 1.4.15: Rubrik wie die Bots
+    einsatzZeile(mw, metaStart, "meta-einsatz"),   // 1.4.9: das Meta-Depot gegen seinen Einsatz
+    h("p", { class: "klapp-kurz", id: "meta-kurz" }, "Mustergeld · " + v.filter((x) => x.k !== "meta").map((x) => F.text(x.name) + " " + F.euro(x.wert_eur)).join(" · ")),
     mehrTeil("meta-depot", [
+      standKasten(Z, "meta"),                                                // 1.4.15
+      metaVerlaufTeil(md),                                                   // 1.4.15: Verlauf im „mehr“
       zeilen(v.map((x) => [F.text(x.name), (F.istZahl(x.wert_eur) ? plusFest(x.wert_eur - metaStart) + " · " : "") + F.prozent(x.rendite_prozent, 1)
         + " · max. −" + F.zahl(x.max_drawdown_prozent, 1) + " %", F.vorzeichenKlasse(F.istZahl(x.wert_eur) ? x.wert_eur - metaStart : x.rendite_prozent)])),
       h("p", { class: "klein" }, "Jetzt " + F.text(m.phase) + ": " + ["raster", "trend", "schutz"].map((x) => META_NAMEN[x] + " " + (F.istZahl(g[x]) ? g[x] : "–") + " %").join(" · ")
@@ -1313,7 +1332,7 @@ export function kern(Z) {
       ["Empfohlene Stufe", F.text(ki.stufe_empfehlung)],
       ["Ergebnis", F.text(ki.status)],
     ]) : leer("Noch kein KI-Urteil."),
-    ki ? erklaert("Einfach erklärt", ki.einfach_erklaert) : null,
+    standKasten(Z, "coin", ki && ki.einfach_erklaert),                        // 1.4.15
     ki && ki.lage ? erklaert("Lage", ki.lage) : null,
     reihe(A.knopf("einschaetzung", "Frische Einschätzung"), A.knopf("bericht_jetzt", "Bericht jetzt")),
     h("p", { class: "klein gedimmt" }, "Beides kommt per Mail, es wird dabei nie gehandelt."),
@@ -1384,7 +1403,7 @@ export function raster(Z) {
   // Ohne echtes Geld steht das Musterdepot gleich unter dem Bot, mit echtem Geld nur noch als eine Referenzzeile ganz unten (Nutzer 11.10.2026)
   const rEcht = st !== "aus" || (F.istZahl(r.topf_eur) && r.topf_eur > 0);
   if (!rEcht) out.push(rasterSchatten(r, sdJe(d, "raster_schatten")));
-  out.splice(uR ? 1 : 0, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "raster", "reiter") : botStatistik(Z, "raster")));   // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
+  out.splice(uR ? 1 : 0, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "raster", "reiter") : botStatistik(Z, "raster"), standKasten(Z, "raster")));   // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
   const coins = liste(r.coins);
   out.push(karte("Coins im Raster", null, coins.length ? h("ul", { class: "liste" }, coins.map((c) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(c.coin)), h("span", { class: "zahl" }, F.euro(c.wert_eur)), coinLink(c.coin)),
@@ -1459,7 +1478,7 @@ export function trend(Z) {
   if (!tEcht) out.push(trendSchatten(t, sdJe(d, "trend_schatten")));
   const stk = straffKarte(t, sdJe(d, "trend_straff"));                       // 1.2.16: zweites Musterdepot „straff“ direkt darunter
   if (stk) out.push(stk);
-  out.splice(uT ? 1 : 0, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "trend", "reiter") : botStatistik(Z, "trend")));    // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
+  out.splice(uT ? 1 : 0, 0, karte("Statistik", null, spielgeldModus(d) ? rubrikStatistik(Z, "trend", "reiter") : botStatistik(Z, "trend"), standKasten(Z, "trend")));    // 1.4.14: an erster Stelle (nur unklare Aufträge davor)
   const pos = liste(t.positionen);
   out.push(karte("Positionen", null, pos.length ? h("ul", { class: "liste" }, pos.map((p) => h("li", null,
     h("div", { class: "coin-zeile" }, h("span", { class: "titel" }, F.text(p.coin)), h("span", { class: "zahl" }, F.euro(p.einstand_eur)), coinLink(p.coin)),
@@ -1533,11 +1552,89 @@ function straffKarte(t, sd) {
 
 // ------------------------------------------------------------------ Nachrichten
 
-function schlagzeile(s) {
+/** 1.4.15 (Tom 07.11.2026: „wenn man auf die Überschrift klickt, anstatt dass man auf die Website weitergeleitet wird, eine
+ *  ausführliche Zusammenfassung auf Deutsch aufklappt“): Tipp klappt die Zusammenfassung des Macs auf (news.json je Schlagzeile
+ *  zusammenfassung / zf_kurz / zf_grund, Finanz-App news_artikel.py), darunter „Zum Artikel ↗“. Offen bleibt offen, solange die App
+ *  offen ist (wie „mehr“). Ohne Link: nur Titel. */
+function schlagzeile(s, ort) {
   if (!istObj(s)) return null;
   const unter = [s.quelle, s.aktie && !(String(s.quelle || "").includes(s.aktie)) ? s.aktie : null, s.zeit ? F.vor(s.zeit) : null].filter(Boolean).join(" · ");
   const inhalt = [h("div", { class: "titel" }, F.text(s.titel)), unter ? h("div", { class: "unter" }, unter) : null];
-  return sichereUrl(s.link) ? aussenLink(s.link, { class: "news-link" }, ...inhalt) : h("div", { class: "news-link" }, ...inhalt);
+  if (!sichereUrl(s.link)) return h("div", { class: "news-link" }, ...inhalt);
+  const zf = typeof s.zusammenfassung === "string" && s.zusammenfassung.trim() ? s.zusammenfassung : null;
+  // Fable-Prüfung 07.11.2026: dieselbe Meldung steht oft in „Das Wichtigste“ UND in ihrer Rubrik – je Ort eigener Aufklapp-Zustand
+  const schl = "zf:" + (typeof ort === "string" ? ort + ":" : "") + String(s.titel_original || s.titel || s.link).slice(0, 80);
+  return h("details", { class: "news-link news-zf", "data-klapp": schl, open: klappOffen.has(schl) || null,
+    ontoggle: (ev) => { if (ev.target.open) klappOffen.add(schl); else klappOffen.delete(schl); } },
+    h("summary", null, ...inhalt),
+    h("div", { class: "zf-inhalt" },
+      zf ? h("p", { class: "zf-text" }, F.text(zf))
+        : h("p", { class: "klein gedimmt" }, typeof s.zf_grund === "string" && s.zf_grund ? F.text(s.zf_grund) : "Die Zusammenfassung kommt mit dem nächsten Lauf des Macs (alle 20 Minuten)."),
+      zf && s.zf_kurz === true ? h("p", { class: "klein gedimmt" }, "Nur Kurzfassung – der ganze Artikel ist nicht frei lesbar (z. B. Bezahlschranke).") : null,
+      aussenLink(s.link, { class: "zf-link" }, "Zum Artikel ↗")));
+}
+
+/** 1.4.15 (Tom 07.11.2026: „die Grafiken sollen jeweils die letzten 12 h anzeigen“): kleine Grafik in den News-Karten Krypto und
+ *  Aktien – Kryptomarkt aus markt_12h.verlauf (Messpunkte des Macs alle 20 min, ab dem Bezugspunkt vor 12 h), Welt-ETF aus
+ *  markt_12h.aktien.verlauf (Stundenkurse; Börse zu: der letzte Handelstag). In Prozent seit dem ersten Punkt. null ohne zwei Punkte. */
+function zwoelfStundenTeil(m12, art) {
+  const m = ok(m12);
+  if (!m) return null;
+  const roh = art === "krypto" ? liste(m.verlauf) : liste((ok(m.aktien) || {}).verlauf);
+  let p = roh.filter((x) => Array.isArray(x) && F.datum(x[0]) && F.istZahl(x[1]) && x[1] > 0).map((x) => [F.datum(x[0]), x[1]]).sort((a, b) => a[0] - b[0]);
+  if (art === "krypto" && p.length) {
+    const grenze = p[p.length - 1][0].getTime() - 12 * 3600000;
+    const vor = p.filter((x) => x[0].getTime() <= grenze);
+    p = (vor.length ? [vor[vor.length - 1]] : []).concat(p.filter((x) => x[0].getTime() > grenze));
+  }
+  if (p.length < 2) return null;
+  let werte = D.prozentSeitStart(p);
+  // Welt-ETF: der Bezugskurs (Schluss des Vortags) liegt oft über Nacht zurück – er bleibt die 0-%-Linie, wird aber nicht als lange
+  // flache Strecke gezeichnet
+  if (art !== "krypto" && werte.length > 2 && werte[1][0] - werte[0][0] > 3 * 3600000) werte = werte.slice(1);
+  const klasse = F.istZahl(werte[werte.length - 1][1]) && werte[werte.length - 1][1] < 0 ? "l-haupt l-minus" : "l-haupt";
+  const a = ok(m.aktien) || {};
+  const c = ok(m.coins) || {};
+  const zahl = art === "krypto" ? c.prozent : a.prozent;
+  const unter = art === "krypto" ? (c.volle_12h ? "letzte 12 h" : "seit " + F.zeit(p[0][0].toISOString()))
+    : a.offen ? "letzte 12 h" : String(a.text || "Börse geschlossen").replace(/\s[+−±][\d.,]+\s%$/, "");
+  const info = h("p", { class: "diagramm-info klein gedimmt" }, "");
+  const name = art === "krypto" ? "Kryptomarkt" : F.text(a.name, "Welt-ETF");
+  return h("div", { class: "news-12h", id: "news-12h-" + art },
+    h("div", { class: "news-12h-kopf" }, h("span", { class: "klein" }, name + " · " + unter),
+      F.istZahl(zahl) ? h("span", { class: "news-12h-zahl " + F.vorzeichenKlasse(zahl) }, prozentFest(zahl)) : null),
+    D.svgDiagramm([{ name, klasse, werte }], "prozent", info, name + " in den letzten 12 Stunden", { stunden: true, hoehe: 130 }),
+    info);
+}
+
+/** 1.4.15 (Tom 07.11.2026, Gesamtbild: „Stimmung über 7 Tage“): je Tag die vom Mac eingeordneten Meldungen (stützend nach oben,
+ *  belastend nach unten) und die Kurslinie – je für Bitcoin und den Welt-ETF (news.json stimmung). Bis drei Tage beisammen sind,
+ *  sagt eine Zeile dazu, dass die Grafik sich aufbaut; darunter immer die Zahlen von heute. */
+const wienTag = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Vienna", year: "numeric", month: "2-digit", day: "2-digit" });
+function stimmungTeil(st) {
+  // Fable-Prüfung 07.11.2026: Kurs und Balken über dieselben (höchstens 7) Tage; „Heute“ nur, wenn der letzte Tag wirklich heute ist
+  const tage = liste((ok(st) || {}).tage).filter((x) => istObj(x) && typeof x.tag === "string").slice(-7);
+  if (!tage.length) return null;
+  const heute = tage[tage.length - 1];
+  const istHeute = heute.tag === wienTag.format(new Date());
+  const tagName = istHeute ? "Heute" : (() => { const d = new Date(heute.tag + "T12:00:00Z"); return isNaN(d) ? heute.tag : F.tag(heute.tag + "T12:00:00Z"); })();
+  const zahl = (x, o, r) => (istObj(x[o]) && F.istZahl(x[o][r]) ? x[o][r] : 0);
+  const block = (o, name) => {
+    const svg = D.stimmungDiagramm(tage, o, "Stimmung der Meldungen zu " + name + " je Tag, mit Kurslinie");
+    const k = tage.filter((x) => F.istZahl(x[o === "bitcoin" ? "btc_eur" : "etf_eur"]));
+    const kurs = k.length >= 2 ? (k[k.length - 1][o === "bitcoin" ? "btc_eur" : "etf_eur"] / k[0][o === "bitcoin" ? "btc_eur" : "etf_eur"] - 1) * 100 : null;
+    return h("div", { class: "stimmung-block", id: "stimmung-" + o },
+      h("div", { class: "news-12h-kopf" }, h("span", { class: "klein" }, name),
+        kurs !== null ? h("span", { class: "klein " + F.vorzeichenKlasse(kurs) }, "Kurs " + prozentFest(kurs)) : null),
+      svg,
+      h("p", { class: "klein gedimmt" }, tagName + ": " + zahl(heute, o, "stuetzend") + " stützend · " + zahl(heute, o, "neutral") + " neutral · "
+        + zahl(heute, o, "belastend") + " belastend"));
+  };
+  return h("div", { class: "stimmung", id: "news-stimmung" },
+    h("h3", null, "Stimmung der Meldungen"),
+    block("bitcoin", "Bitcoin"), block("welt_etf", "Welt-ETF"),
+    h("p", { class: "klein gedimmt" }, h("span", { class: "punkt gruen" }), " stützend  ", h("span", { class: "punkt rot" }), " belastend  · Linie = Kurs"
+      + (tage.length < 3 ? " · Die Grafik baut sich auf – je Tag kommt ein Balken dazu." : "")));
 }
 
 // 1.2.6 (Paket C): Einordnung je Meldung + Gesamtbild + Stand der Bots. Nur bekannte Werte (sonst kein Etikett), alle Texte als
@@ -1567,7 +1664,7 @@ function einordnungTeil(e) {
     bots ? h("p", { class: "news-bots" }, h("span", { class: "label" }, "Für deine Bots: "), bots) : null);
 }
 
-function gesamtbildKarte(g, lage, extra) {
+function gesamtbildKarte(g, lage, extra, stimmung) {
   const zeilen_ = liste(lage).filter((x) => istObj(x) && textOder(x.text));
   const gb = istObj(g) ? g : null;
   const text = gb && textOder(gb.text), bots = gb && textOder(gb.bots);
@@ -1575,13 +1672,15 @@ function gesamtbildKarte(g, lage, extra) {
     .filter(([k]) => istObj(gb[k]) && RICHTUNG[gb[k].richtung])
     .map(([k, name]) => richtungEtikett(gb[k].richtung, name + (STAERKE[gb[k].staerke] ? " · " + STAERKE[gb[k].staerke] : ""))) : [];
   const dazu = liste(extra).filter(Boolean);
-  if (!text && !bots && !teile.length && !zeilen_.length && !dazu.length) return null;
+  const st = stimmungTeil(stimmung);                                     // 1.4.15
+  if (!text && !bots && !teile.length && !zeilen_.length && !dazu.length && !st) return null;
   // 1.4 (Tom 23.10.2026, Teil 4): oben die kurze Analyse für Krypto und Aktien, im „mehr“ Wirtschaft und Notenbanken (und der Stand der Bots)
   return h("section", { class: "karte", id: "news-gesamtbild" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Gesamtbild")),
     teile.length ? h("div", { class: "etiketten" }, teile) : null,
     text ? h("p", { class: "gesamt-text" }, text) : null,
     bots ? h("p", { class: "gesamt-bots" }, bots) : null,
+    st,
     mehrTeil("news-gesamtbild", [
       dazu,
       zeilen_.length ? h("div", { class: "bot-lage" }, h("span", { class: "label" }, "Stand deiner Bots"),
@@ -1591,13 +1690,14 @@ function gesamtbildKarte(g, lage, extra) {
 }
 
 /** 1.4 (Teil 4): Karte „Aktien“ der News – neueste Schlagzeile zu deinen Aktien, im „mehr“ die übrigen und die Börsengänge */
-function aktienNewsKarte(rub, bg) {
+function aktienNewsKarte(rub, bg, grafik) {
   const s = rub.flatMap((r) => r.s);
   const ki = rub.map((r) => r.ki).find(Boolean);
   const [kurz, lang] = ki ? textTeilen(F.text(ki.text)) : ["", ""];
   return h("section", { class: "karte", id: "news-aktien" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Aktien"), s.length ? h("span", { class: "klein gedimmt" }, s.length + (s.length === 1 ? " Schlagzeile" : " Schlagzeilen")) : null),
     kurz ? h("p", { class: "rubrik-text" }, etikett("KI", ""), " ", kurz) : null,
+    grafik || null,                                                        // 1.4.15: Welt-ETF 12 h
     s.length ? h("div", null, schlagzeile(s[0])) : (kurz ? null : leer("Keine Schlagzeilen zu deinen Aktien.")),
     mehrTeil("news-aktien", [lang ? h("p", { class: "rubrik-text" }, lang) : null, s.length > 1 ? h("div", null, s.slice(1).map(schlagzeile)) : null, bg],
       "mehr – Börsengänge"));
@@ -1713,20 +1813,21 @@ export function news(Z) {
     ? ". Der Mac holt alle 20 Minuten neu; die App lädt beim Öffnen nach." : ". Die Cloud holt stündlich neu; die App lädt beim Öffnen nach.")));
   if (n.fehler) out.push(h("p", { class: "fehlerteil" }, F.text(n.fehler)));
   const z = ok(n.zusammenfassung);
-  const meldung = (s) => [schlagzeile(s), istObj(s) ? einordnungTeil(s.einordnung) : null];
+  const meldung = (s) => [schlagzeile(s, "wichtig"), istObj(s) ? einordnungTeil(s.einordnung) : null];
   // 1.3.10 (Tom 19.10.2026: „Wirtschaft & Börse und Notenbanken kommen immer zweimal vor“): EINE Karte je Rubrik – oben der KI-Satz
   // (Abzeichen „KI“), darunter die neueste Schlagzeile, der Rest (längerer KI-Text, weitere Schlagzeilen) hinter „mehr“. Zusammengeführt
   // über den Rubrik-Namen (die Kennungen unterscheiden sich: „wirtschaft“ gegen „aktien_wirtschaft“); KI-Rubriken ohne Schlagzeilen hängen an.
   const kiRubriken = z ? liste(z.rubriken).filter((r) => istObj(r) && r.id !== "einordnung") : [];
   const schluessel = (r) => F.text(r.name).trim().toLowerCase();
   const benutzt = new Set();
-  const rubrikKarte = (name, id, s, ki) => {
+  const rubrikKarte = (name, id, s, ki, grafik) => {
     const [kurz, lang] = ki ? textTeilen(F.text(ki.text)) : ["", ""];
     const rechts = s.length ? h("span", { class: "klein gedimmt" }, s.length + (s.length === 1 ? " Schlagzeile" : " Schlagzeilen")) : (ki ? etikett("KI", "") : null);
     const mehr = [lang ? h("p", { class: "rubrik-text" }, lang) : null, s.length > 1 ? h("div", null, s.slice(1).map(schlagzeile)) : null];
     const zusatz = s.length > 1 ? "mehr (" + (s.length - 1) + " weitere)" : "mehr";
     return karte(F.text(name), rechts,
       kurz ? h("p", { class: "rubrik-text" }, s.length ? etikett("KI", "") : null, s.length ? " " : null, kurz) : null,
+      grafik || null,                                                      // 1.4.15: Kryptomarkt 12 h
       s.length ? h("div", null, schlagzeile(s[0])) : (ki ? null : leer("Keine Schlagzeilen.")),
       mehrTeil("news-" + F.text(id, name), mehr, zusatz));
   };
@@ -1748,13 +1849,13 @@ export function news(Z) {
   const einordnung = z ? liste(z.rubriken).filter((r) => istObj(r) && r.id === "einordnung") : [];
   const dasWichtigste = wichtig.length || einordnung.length ? h("div", { class: "news-unterteil", "data-rubrik": "wichtig" }, h("h3", null, "Das Wichtigste"),
     einordnung.map((r) => erklaert(F.text(r.name), r.text)), wichtig.map(meldung)) : null;
-  out.push(gesamtbildKarte(z && z.gesamtbild, n.bot_lage, [dasWichtigste, ...rub.filter((r) => art(r) === "markt").map(unterteil)]));
-  for (const r of rub.filter((x) => art(x) === "krypto")) out.push(rubrikKarte(r.name, r.id, r.s, r.ki));
+  out.push(gesamtbildKarte(z && z.gesamtbild, n.bot_lage, [dasWichtigste, ...rub.filter((r) => art(r) === "markt").map(unterteil)], n.stimmung));
+  for (const r of rub.filter((x) => art(x) === "krypto")) out.push(rubrikKarte(r.name, r.id, r.s, r.ki, zwoelfStundenTeil(n.markt_12h, "krypto")));
   const aktienRub = rub.filter((x) => art(x) === "aktien");
   const bg = boersengaengeKarte(Z.boersengaenge, Z.fehlerBoersengaenge);   // 1.3.3 – seit 1.4 im „mehr“ der Aktien-Karte
   if (bg) { bg.classList.remove("karte"); bg.classList.add("news-unterteil"); }
-  out.push(aktienNewsKarte(aktienRub, bg));
-  out.push(h("p", { class: "klein gedimmt" }, "Schlagzeilen sind fremde Texte; Links öffnen in einem neuen Fenster."));
+  out.push(aktienNewsKarte(aktienRub, bg, zwoelfStundenTeil(n.markt_12h, "aktien")));
+  out.push(h("p", { class: "klein gedimmt" }, "Schlagzeilen sind fremde Texte. Antippen zeigt die Zusammenfassung des Macs, „Zum Artikel“ öffnet die Seite in einem neuen Fenster."));
   return out;
 }
 

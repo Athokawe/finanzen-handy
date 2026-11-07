@@ -9,7 +9,7 @@ const NS = "http://www.w3.org/2000/svg";
 const ZEITRAEUME = [["7", "7 T"], ["30", "30 T"], ["90", "90 T"], ["365", "1 J"], ["alle", "Alles"]];
 const ZEITRAUM = {};                      // gewählter Zeitraum je Diagramm (nur im Arbeitsspeicher)
 const FOKUS = {};                         // 1.4.14: in der Legende gewählte Linie je Diagramm (nur im Arbeitsspeicher)
-const W = 340, H = 180, L = 52, R = 10, O = 12, U = 24;
+const W = 340, H_STANDARD = 180, L = 52, R = 10, O = 12, U = 24;
 
 function s(tag, attrs, ...kinder) {
   const el = document.createElementNS(NS, tag);
@@ -20,6 +20,8 @@ function s(tag, attrs, ...kinder) {
 
 const tagFmt = new Intl.DateTimeFormat("de-AT", { timeZone: "Europe/Vienna", day: "numeric", month: "numeric" });
 const tagJahrFmt = new Intl.DateTimeFormat("de-AT", { timeZone: "Europe/Vienna", day: "numeric", month: "numeric", year: "2-digit" });
+const stundeFmt = new Intl.DateTimeFormat("de-AT", { timeZone: "Europe/Vienna", hour: "2-digit", minute: "2-digit" });
+const wochentagFmt = new Intl.DateTimeFormat("de-AT", { timeZone: "Europe/Vienna", weekday: "short" });
 
 /** Zahl als Achsen-Beschriftung: „1.234 €“, „73.400 €“, „+2,5 %“ */
 function achsenText(v, einheit) {
@@ -123,7 +125,8 @@ function naechster(werte, t) {
  * SVG-Diagramm. serien: [{name, klasse, werte: [[Date, Zahl]]}] (die erste ist die Hauptlinie). einheit: "eur" | "prozent".
  * info: Element, in dem beim Antippen Datum und Werte stehen.
  */
-export function svgDiagramm(serien, einheit, info, beschreibung) {
+export function svgDiagramm(serien, einheit, info, beschreibung, opt) {
+  const H = opt && opt.hoehe ? opt.hoehe : H_STANDARD;      // 1.4.15: die 12-h-Grafiken der News sind niedriger
   const alle = serien.flatMap((r) => r.werte);
   const tMin = Math.min(...alle.map((w) => w[0].getTime())), tMax = Math.max(...alle.map((w) => w[0].getTime()));
   let vMin = Math.min(...alle.map((w) => w[1])), vMax = Math.max(...alle.map((w) => w[1]));
@@ -146,7 +149,8 @@ export function svgDiagramm(serien, einheit, info, beschreibung) {
   if (einheit === "prozent" && vMin < 0 && vMax > 0) {
     svg.appendChild(s("line", { x1: L, x2: W - R, y1: y(0).toFixed(1), y2: y(0).toFixed(1), class: "null-linie" }));
   }
-  const fmt = tMax - tMin > 300 * 86400000 ? tagJahrFmt : tagFmt;
+  // 1.4.15: 12-h-Grafiken der News beschriften die Achse mit Uhrzeiten
+  const fmt = opt && opt.stunden ? stundeFmt : tMax - tMin > 300 * 86400000 ? tagJahrFmt : tagFmt;
   const xs = [[tMin, "start"], [(tMin + tMax) / 2, "middle"], [tMax, "end"]];
   for (const [t, anker] of xs) {
     svg.appendChild(s("text", { x: x(t).toFixed(1), y: H - 6, class: "achse", "text-anchor": anker }, fmt.format(new Date(t))));
@@ -270,4 +274,42 @@ export function euroKennzahlen(werte, label) {
     ["Höchst", F.euro(k.hoch[1]) + " · " + F.tag(k.hoch[0].toISOString())],
     ["Tiefst", F.euro(k.tief[1]) + " · " + F.tag(k.tief[0].toISOString())],
   ];
+}
+
+/**
+ * 1.4.15 (Tom 07.11.2026, Gesamtbild der News: „Stimmung über 7 Tage“): je Tag ein Balken – stützende Meldungen nach oben (grün),
+ * belastende nach unten (rot) –, darüber die Kurslinie (Bitcoin bzw. Welt-ETF, frei skaliert, Prozent seit dem ersten Tag am Ende).
+ * tage: news.json stimmung.tage [{tag, bitcoin: {stuetzend, neutral, belastend}, welt_etf: {…}, btc_eur, etf_eur}], objekt
+ * "bitcoin" | "welt_etf". Nur SVG-Attribute und Klassen (CSP). null ohne Tage.
+ */
+export function stimmungDiagramm(tage, objekt, beschreibung) {
+  const t = (Array.isArray(tage) ? tage : []).filter((x) => x && typeof x === "object" && typeof x.tag === "string").slice(-7);
+  if (!t.length) return null;
+  const zahl = (x, r) => (x && F.istZahl(x[r]) ? x[r] : 0);
+  const kursFeld = objekt === "bitcoin" ? "btc_eur" : "etf_eur";
+  const SW = 340, SH = 132, SL = 8, SR = 8, SO = 10, SU = 20;
+  const n = 7, breite = (SW - SL - SR) / n;
+  const maxZahl = Math.max(1, ...t.map((x) => Math.max(zahl(x[objekt], "stuetzend"), zahl(x[objekt], "belastend"))));
+  const mitte = SO + (SH - SO - SU) / 2, halb = (SH - SO - SU) / 2 - 2;
+  const svg = s("svg", { viewBox: "0 0 " + SW + " " + SH, class: "diagramm stimmung", role: "img", "aria-label": beschreibung || "Stimmung je Tag" });
+  svg.appendChild(s("line", { x1: SL, x2: SW - SR, y1: mitte.toFixed(1), y2: mitte.toFixed(1), class: "null-linie" }));
+  const versatz = n - t.length;                                   // die Tage stehen rechtsbündig – links ist Platz für die kommenden
+  t.forEach((x, i) => {
+    const cx = SL + (versatz + i + 0.5) * breite, bw = Math.min(22, breite * 0.55);
+    const hoch = zahl(x[objekt], "stuetzend") / maxZahl * halb, tief = zahl(x[objekt], "belastend") / maxZahl * halb;
+    if (hoch > 0) svg.appendChild(s("rect", { x: (cx - bw / 2).toFixed(1), y: (mitte - hoch).toFixed(1), width: bw.toFixed(1), height: hoch.toFixed(1), rx: 2, class: "balken-gut" }));
+    if (tief > 0) svg.appendChild(s("rect", { x: (cx - bw / 2).toFixed(1), y: mitte.toFixed(1), width: bw.toFixed(1), height: tief.toFixed(1), rx: 2, class: "balken-schlecht" }));
+    const d = new Date(x.tag + "T12:00:00Z");
+    svg.appendChild(s("text", { x: cx.toFixed(1), y: SH - 5, class: "achse", "text-anchor": "middle" }, isNaN(d) ? "" : wochentagFmt.format(d).replace(".", "")));
+  });
+  const kurse = t.map((x, i) => [i, x[kursFeld]]).filter(([, v]) => F.istZahl(v) && v > 0);
+  if (kurse.length >= 2) {
+    const vMin = Math.min(...kurse.map((k) => k[1])), vMax = Math.max(...kurse.map((k) => k[1]));
+    const spanne = vMax - vMin || vMax * 0.01 || 1;
+    const y = (v) => SO + 4 + (vMax - v) / spanne * (SH - SO - SU - 8);
+    const x = (i) => SL + (versatz + i + 0.5) * breite;
+    svg.appendChild(s("path", { d: kurse.map(([i, v], j) => (j ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(""), class: "linie l-kurs" }));
+    for (const [i, v] of kurse) svg.appendChild(s("circle", { cx: x(i).toFixed(1), cy: y(v).toFixed(1), r: 2.5, class: "kurs-punkt" }));
+  }
+  return svg;
 }

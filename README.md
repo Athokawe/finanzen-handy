@@ -1,8 +1,22 @@
 # Finanzen – Handy-Ansicht
 
-Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Coin-Bot, Coin-Topf, Raster-Bot, Trend-Bot,
+Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Safe-Bot, Coin-Topf, Raster-Bot, Trend-Bot,
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
+
+## Neu in 1.4.15
+
+* **News zum Aufklappen.** Tipp auf eine Schlagzeile öffnet nicht mehr die Website, sondern klappt eine deutsche Zusammenfassung
+  auf (4–6 Sätze, geschrieben vom Mac alle 20 Minuten), darunter „Zum Artikel ↗“. Steht der Artikel hinter einer Bezahlschranke,
+  steht „Nur Kurzfassung“ dabei.
+* **12-Stunden-Grafiken.** In den News-Karten Krypto und Aktien je eine kleine Grafik der letzten 12 Stunden – Kryptomarkt bzw.
+  Welt-ETF (bei geschlossener Börse der letzte Handelstag).
+* **Stimmung über 7 Tage.** Im Gesamtbild je Tag die Meldungen zu Bitcoin und zum Welt-ETF – stützende nach oben, belastende nach
+  unten – mit der Kurslinie darüber. Die Grafik baut sich Tag für Tag auf.
+* **Marktphase kompakter.** Die zwei 12-h-Zahlen stehen je in einer Zeile.
+* **Meta-Depot als Rubrik.** Eigene Karte zwischen „Coin-Topf gesamt“ und Safe-Bot, der Verlauf steht im „mehr“ (die Karte oben entfällt).
+* **Aktueller Stand.** Jede Rubrik (Safe-Bot, Raster-Bot, Trend-Bot, Aktien, Meta-Depot) erklärt im „mehr“ in 3–4 Sätzen ihren
+  Stand – geschrieben vom Mac, statt „Einfach erklärt“.
 
 ## Neu in 1.4.14
 
