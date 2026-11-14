@@ -1719,9 +1719,17 @@ function gesamtbildKarte(g, lage, extra, stimmung, ag) {
       dazu.length ? "mehr – Wirtschaft und Notenbanken" : "mehr – Stand deiner Bots"));
 }
 
-/** 1.4 (Teil 4): Karte „Aktien“ der News – neueste Schlagzeile zu deinen Aktien, im „mehr“ die übrigen und die Börsengänge */
+/** 1.4.20 (Tom 14.11.2026: „die neuesten News als erstes … zeitlich absteigend bis zu den Ältesten“): Schlagzeilen nach ihrer Zeit,
+ *  neueste zuerst; ohne lesbare Zeit ans Ende, bei gleicher Zeit bleibt die Reihenfolge. Neue Liste, die alte bleibt unverändert. */
+function neuesteZuerst(liste) {
+  const t = (s) => { const d = istObj(s) ? F.datum(s.zeit) : null; return d ? d.getTime() : -Infinity; };
+  return liste.map((s, i) => [s, t(s), i]).sort((a, b) => (b[1] === a[1] ? a[2] - b[2] : b[1] - a[1])).map((x) => x[0]);
+}
+
+/** 1.4 (Teil 4): Karte „Aktien“ der News – oben die neueste Schlagzeile aus Aktien, Wall Street & Welt und deinen Aktien (1.4.20: nach
+ *  Zeit, nicht mehr nach Rubrik), im „mehr“ die übrigen und die Börsengänge */
 function aktienNewsKarte(rub, bg, grafik) {
-  const s = rub.flatMap((r) => r.s);
+  const s = neuesteZuerst(rub.flatMap((r) => r.s));          // 1.4.20: Aktien, Wall Street & Welt und deine Aktien gemeinsam nach Zeit
   const ki = rub.map((r) => r.ki).find(Boolean);
   const [kurz, lang] = ki ? textTeilen(F.text(ki.text)) : ["", ""];
   return h("section", { class: "karte", id: "news-aktien" },
@@ -1871,14 +1879,14 @@ export function news(Z) {
     if (!istObj(r)) continue;
     const ki = kiRubriken.find((k) => schluessel(k) === schluessel(r) || F.text(k.id) === F.text(r.id));
     if (ki) benutzt.add(ki);
-    rub.push({ id: F.text(r.id), name: r.name, s: liste(r.schlagzeilen), ki });
+    rub.push({ id: F.text(r.id), name: r.name, s: neuesteZuerst(liste(r.schlagzeilen)), ki });   // 1.4.20: neueste zuerst
   }
   for (const k of kiRubriken) if (!benutzt.has(k)) rub.push({ id: F.text(k.id), name: k.name, s: [], ki: k });
   const art = (r) => (/krypto/i.test(r.id) ? "krypto" : /aktie/i.test(r.id) && !/wirtschaft/i.test(r.id) ? "aktien" : "markt");
   const unterteil = (r) => h("div", { class: "news-unterteil", "data-rubrik": r.id }, h("h3", null, F.text(r.name)),
     r.ki ? h("p", { class: "rubrik-text" }, etikett("KI", ""), " ", F.text(r.ki.text)) : null,
     r.s.length ? h("div", null, r.s.map(schlagzeile)) : null);
-  const wichtig = z ? liste(z.wichtigste) : [];
+  const wichtig = z ? neuesteZuerst(liste(z.wichtigste)) : [];   // 1.4.20: neueste zuerst
   const einordnung = z ? liste(z.rubriken).filter((r) => istObj(r) && r.id === "einordnung") : [];
   const dasWichtigste = wichtig.length || einordnung.length ? h("div", { class: "news-unterteil", "data-rubrik": "wichtig" }, h("h3", null, "Das Wichtigste"),
     einordnung.map((r) => erklaert(F.text(r.name), r.text)), wichtig.map(meldung)) : null;
