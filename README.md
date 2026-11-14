@@ -4,6 +4,12 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Safe-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.20
+
+* **News nach Zeit.** In jeder News-Karte steht die neueste Schlagzeile oben, darunter absteigend bis zur ältesten – auch in der
+  Aktien-Karte, die Aktien, Wall Street & Welt und deine Aktien zusammenführt, und bei „Das Wichtigste“. Bisher standen sie nach
+  Quelle geordnet.
+
 ## Neu in 1.4.19
 
 * **Angst & Gier.** Der Krypto-Stimmungsindex (0–100, alternative.me – dieselbe Zahl, die die KI liest) als kleiner Halbkreis
