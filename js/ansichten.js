@@ -35,7 +35,12 @@ function mehrTeil(schluessel, inhalt, zuText) {
   const kinder = (Array.isArray(inhalt) ? inhalt : [inhalt]).flat(Infinity).filter(Boolean);
   if (!kinder.length) return null;
   return h("details", { class: "klapp-mehr", "data-klapp": schluessel, open: klappOffen.has(schluessel) || null,
-    ontoggle: (ev) => { if (ev.target.open) klappOffen.add(schluessel); else klappOffen.delete(schluessel); } },
+    ontoggle: (ev) => {
+      if (ev.target.open) klappOffen.add(schluessel); else klappOffen.delete(schluessel);
+      // 1.4.21: der Rest eines KI-Texts steht direkt unter seinem ersten Satz (kiRest), geht aber mit diesem „mehr“ auf und zu
+      const karteEl = ev.target.closest("section");
+      if (karteEl) karteEl.querySelectorAll(".ki-rest").forEach((el) => { if (el.dataset.klappRest === schluessel) el.hidden = !ev.target.open; });
+    } },
     h("summary", null, h("span", { class: "wenn-zu" }, zuText || "mehr"), h("span", { class: "wenn-offen" }, "weniger")),
     h("div", { class: "klapp-inhalt" }, kinder));
 }
@@ -1735,18 +1740,49 @@ function aktienNewsKarte(rub, bg, grafik) {
   return h("section", { class: "karte", id: "news-aktien" },
     h("div", { class: "karte-kopf" }, h("h2", null, "Aktien"), s.length ? h("span", { class: "klein gedimmt" }, s.length + (s.length === 1 ? " Schlagzeile" : " Schlagzeilen")) : null),
     kurz ? h("p", { class: "rubrik-text" }, etikett("KI", ""), " ", kurz) : null,
+    kiRest("news-aktien", lang),                                           // 1.4.21: Rest des KI-Texts direkt unter dem ersten Satz
     grafik || null,                                                        // 1.4.15: Welt-ETF 12 h
     s.length ? h("div", null, schlagzeile(s[0])) : (kurz ? null : leer("Keine Schlagzeilen zu deinen Aktien.")),
-    mehrTeil("news-aktien", [lang ? h("p", { class: "rubrik-text" }, lang) : null, s.length > 1 ? h("div", null, s.slice(1).map(schlagzeile)) : null, bg],
-      "mehr – Börsengänge"));
+    mehrTeil("news-aktien", [s.length > 1 ? h("div", null, s.slice(1).map(schlagzeile)) : null, bg, lang && s.length <= 1 && !bg ? kiRestPlatz() : null],
+      bg ? "mehr – Börsengänge" : "mehr"));
 }
 
-/** 1.2.19: ein KI-Text in [erster Satz, Rest] – kurze Texte (bis 160 Zeichen) bleiben ganz (Rest null) */
+/** 1.4.21 (Tom 18.11.2026: „die News beginnt ganz oben, dann folgt Statistik, dann eine Headline einer anderen News, dann erst kommt
+ *  der Rest der ganz oben angekündigten News“): Der Rest eines KI-Texts steht direkt unter seinem ersten Satz, sichtbar, solange das
+ *  „mehr“ der Karte offen ist (mehrTeil schaltet ihn mit). */
+function kiRest(schluessel, lang) {
+  if (!lang) return null;
+  return h("p", { class: "rubrik-text ki-rest", "data-klapp-rest": schluessel, hidden: klappOffen.has(schluessel) ? null : true }, lang);
+}
+// Hat das „mehr“ sonst nichts zu zeigen, braucht es trotzdem einen Inhalt, damit es für den KI-Rest erscheint (unsichtbar).
+function kiRestPlatz() {
+  return h("span", { hidden: true });
+}
+
+// Abkürzungen, nach denen der Punkt keinen Satz beendet (1.4.21: „über zwei Prozent bzw. rund 550 Punkte“ brach nach „bzw.“)
+const ABKUERZUNGEN = new Set(["bzw", "z", "b", "u", "a", "ca", "rd", "mio", "mrd", "bio", "nr", "etc", "inkl", "exkl", "vs", "dr",
+  "prof", "st", "usw", "evtl", "ggf", "vgl", "mind", "zzgl", "abzgl", "jan", "feb", "apr", "jun", "jul", "aug", "sep",
+  "sept", "okt", "nov", "dez", "co", "corp", "inc", "ltd", "mr", "ms", "s", "d", "h", "i", "e", "r", "v", "chr"]);
+
+/** 1.2.19: ein KI-Text in [erster Satz, Rest] – kurze Texte (bis 160 Zeichen) bleiben ganz (Rest null). 1.4.21: kein Schnitt nach
+ *  Abkürzungen („bzw.“, „z. B.“, „Mio.“), Zahlen („17. November“) oder wenn das nächste Wort klein beginnt. */
 function textTeilen(t) {
   const s = String(t || "");
   if (s.length <= 160) return [s, null];
-  const m = /^(.{40,}?[.!?])\s+(.+)$/s.exec(s);
-  return m ? [m[1], m[2]] : [s, null];
+  const re = /[.!?]["“”»«)]?\s+/g;
+  let m;
+  while ((m = re.exec(s))) {
+    const ende = m.index + m[0].trimEnd().length;
+    if (ende < 40) continue;
+    const rest = s.slice(m.index + m[0].length);
+    if (!rest || !/^([\p{Lu}\p{N}„"«»‚“'$€(–]|\p{Ll}+\p{Lu})/u.test(rest)) continue;   // „iPhone“, „eBay“ zählen als Satzanfang          // „bzw. rund“: klein weiter -> kein Satzende
+    if (s[m.index] === ".") {
+      const wort = /([\p{L}\p{N}]+)$/u.exec(s.slice(0, m.index));
+      if (wort && (ABKUERZUNGEN.has(wort[1].toLowerCase()) || /^\d{1,2}$/.test(wort[1]))) continue;
+    }
+    return [s.slice(0, ende), rest];
+  }
+  return [s, null];
 }
 
 // ------------------------------------------------------------------ Börsengänge (1.3.3, Finanz-App boersengaenge.py -> cloud/boersengaenge.json)
@@ -1864,13 +1900,15 @@ export function news(Z) {
   const rubrikKarte = (name, id, s, ki, grafik) => {
     const [kurz, lang] = ki ? textTeilen(F.text(ki.text)) : ["", ""];
     const rechts = s.length ? h("span", { class: "klein gedimmt" }, s.length + (s.length === 1 ? " Schlagzeile" : " Schlagzeilen")) : (ki ? etikett("KI", "") : null);
-    const mehr = [lang ? h("p", { class: "rubrik-text" }, lang) : null, s.length > 1 ? h("div", null, s.slice(1).map(schlagzeile)) : null];
+    const schl = "news-" + F.text(id, name);
+    const mehr = [s.length > 1 ? h("div", null, s.slice(1).map(schlagzeile)) : null, lang && s.length <= 1 ? kiRestPlatz() : null];
     const zusatz = s.length > 1 ? "mehr (" + (s.length - 1) + " weitere)" : "mehr";
     return karte(F.text(name), rechts,
       kurz ? h("p", { class: "rubrik-text" }, s.length ? etikett("KI", "") : null, s.length ? " " : null, kurz) : null,
+      kiRest(schl, lang),                                                  // 1.4.21: Rest des KI-Texts direkt unter dem ersten Satz
       grafik || null,                                                      // 1.4.15: Kryptomarkt 12 h
       s.length ? h("div", null, schlagzeile(s[0])) : (ki ? null : leer("Keine Schlagzeilen.")),
-      mehrTeil("news-" + F.text(id, name), mehr, zusatz));
+      mehrTeil(schl, mehr, zusatz));
   };
   // 1.4 (Tom 23.10.2026, Teil 4): kompakt – Gesamtbild (im „mehr“ Wirtschaft und Notenbanken), Krypto im Detail, Aktien im Detail
   // (im „mehr“ die Börsengänge). Rubriken sammeln: Schlagzeilen + KI-Text je Rubrik (zusammengeführt wie bisher über den Namen)

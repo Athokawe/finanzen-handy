@@ -4,6 +4,11 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Safe-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.21
+
+* **KI-Text am Stück.** Bei „mehr“ geht der Rest des KI-Texts direkt unter seinem ersten Satz auf, nicht mehr erst unter
+  Diagramm und Schlagzeile. Der erste Satz endet auch nicht mehr mitten im Satz nach Abkürzungen wie „bzw.“, „z. B.“ oder „Mio.“.
+
 ## Neu in 1.4.20
 
 * **News nach Zeit.** In jeder News-Karte steht die neueste Schlagzeile oben, darunter absteigend bis zur ältesten – auch in der
