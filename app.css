@@ -463,6 +463,10 @@ svg.diagramm .marke-punkt.l-aktien { stroke: #2f86e8; }
 .legende-strich.l-gesamt { border-top-color: #f2f2f7; } .legende-strich.l-coin { border-top-color: #2ec4a0; }
 .legende-strich.l-trend { border-top: 3px dashed #d4b8ff; } .legende-strich.l-raster { border-top-color: #e3a33b; }
 .legende-strich.l-aktien { border-top-color: #2f86e8; }
+/* 1.4.23: Beobachtung „Anthropic (ANT) halten“ – eigene Farbe */
+svg.diagramm .l-ant { stroke: #d97757; stroke-width: 1.8; opacity: 1; }
+svg.diagramm .marke-punkt.l-ant { stroke: #d97757; }
+.legende-strich.l-ant { border-top-color: #d97757; }
 /* ---------- 1.4.14 (Tom 07.11.2026): Legende antippbar – Tipp zeigt nur diese Linie samt Vergleich, „Alle“ zeigt wieder alle ---------- */
 .legende-fokus .legende-knopf { background: none; border: 1px solid transparent; border-radius: 999px; padding: 3px 9px 3px 7px; margin: -3px 0;
   color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }

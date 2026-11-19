@@ -4,6 +4,11 @@ Web-App (PWA) fürs iPhone zur privaten Finanz-App: Gesamtvermögen, Safe-Bot, C
 Aktien-Autopilot und Nachrichten auf einen Blick, mit Statistik-Diagrammen – plus die wichtigsten Schalter („Alles parken“,
 „Nur anhalten“, Bots ein/aus, Stufe), Fragen „An die KI“, Alarme löschen und Mitteilungen (Web-Push).
 
+## Neu in 1.4.23
+
+* **Diagramm „Anthropic (ANT)“.** Im Reiter Aktien direkt unter der Statistik: der Beobachtungsposten gegen „Welt-ETF halten“
+  in Prozent, mit „Seit Start“ und denselben Zeiträumen. Die Punkte kommen ab dem 19.11.2026 aus der Cloud, an Börsentagen stündlich mit frischem Kurs.
+
 ## Neu in 1.4.22
 
 * **Beobachtung „Anthropic (ANT) halten“.** Im Reiter Aktien unter „Musterdepots“: 1.000 € Mustergeld ab dem Bitpanda-Startkurs

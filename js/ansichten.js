@@ -555,9 +555,15 @@ const RUBRIKEN = {
   trend: { name: "Trend-Bot", klasse: "l-trend", feld: "spielgeld_trend_eur", vgl: "Bitcoin halten", vglFeld: "bitcoin_kurs_eur" },
   aktien: { name: "Aktien", klasse: "l-aktien", feld: "spielgeld_aktien_eur", vgl: "Welt-ETF halten", vglFeld: "spielgeld_aktien_halten_eur" },
 };
+// 1.4.23 (Tom 19.11.2026): Beobachtung „Anthropic (ANT) halten“ als eigenes Diagramm im Reiter Aktien – bewusst NICHT in RUBRIKEN
+// (die Mustergeld-Gesamtkarte zeichnet je Rubrik eine Linie; ANT gehört nicht zum Mustergeld der Bots). Verlauf: ant_eur/ant_welt_eur.
+const BEOBACHTUNG = {
+  ant: { name: "Anthropic (ANT)", klasse: "l-ant", feld: "ant_eur", vgl: "Welt-ETF halten", vglFeld: "ant_welt_eur", kennung: "ant_halten" },
+};
+const rubrik = (k) => RUBRIKEN[k] || BEOBACHTUNG[k];
 /** [Teil, Vergleich] einer Rubrik für die Punkte p (Prozent seit dem ersten Punkt des Teils im Zeitraum) */
 function rubrikPaar(p, k) {
-  const r = RUBRIKEN[k];
+  const r = rubrik(k);
   const pk = p.filter((x) => F.istZahl(x[r.feld]));
   const haupt = D.prozentSeitStart(D.reihe(pk, r.feld));
   const vRoh = D.reihe(pk, r.vglFeld).filter(([, v]) => v > 0);
@@ -574,13 +580,15 @@ function ppText(x) {
 }
 /** Kennzahlen einer Rubrik: seit Start (Mustergeld je 1.000 €), gegen den Vergleich im Zeitraum, Veränderung/Höchst/Tiefst in Euro */
 function rubrikKennzahl(Z, p, k, serien) {
-  const r = RUBRIKEN[k];
+  const r = rubrik(k);
   const sg = ok((Z.handy || {}).spielgeld);
-  const teil = sg ? liste(sg.teile).find((x) => istObj(x) && x.k === k) : null;
+  const teil = r.kennung ? null : sg ? liste(sg.teile).find((x) => istObj(x) && x.k === k) : null;
+  // Beobachtung: „Seit Start“ aus dem Musterdepot-Eintrag (1.000 € eingesetzt), nicht aus dem Mustergeld der Bots
+  const beob = r.kennung ? liste((ok((Z.handy || {}).schattendepots) || {}).liste).find((x) => istObj(x) && x.kennung === r.kennung) : null;
   const a = serien[0] ? serien[0].werte : [], b = serien[1] ? serien[1].werte : [];
   const ae = a.length ? a[a.length - 1][1] : null, be = b.length ? b[b.length - 1][1] : null;
   return [
-    ...(teil ? seitStartKennzahl(teil.wert_eur, sgJe(sg)) : []),
+    ...(teil ? seitStartKennzahl(teil.wert_eur, sgJe(sg)) : beob ? seitStartKennzahl(beob.wert_eur, F.istZahl(beob.start_wert) ? beob.start_wert : 1000) : []),
     F.istZahl(ae) && F.istZahl(be) ? ["gegen „" + r.vgl + "“ im Zeitraum", ppText(ae - be), F.vorzeichenKlasse(ae - be)] : null,
     ...D.euroKennzahlen(D.reihe(p.filter((x) => F.istZahl(x[r.feld])), r.feld)),
   ];
@@ -589,7 +597,11 @@ function rubrikKennzahl(Z, p, k, serien) {
 function rubrikStatistik(Z, k, wo) {
   const hinweis = verlaufHinweis(Z);
   if (hinweis) return hinweis;
-  const r = RUBRIKEN[k];
+  const r = rubrik(k);
+  // 1.4.23: eine neue Beobachtung hat anfangs keine eigenen Punkte – ehrlicher Hinweis statt „längeren Zeitraum wählen“
+  if (r.kennung && D.punkteLesen(Z.verlauf).filter((x) => F.istZahl(x[r.feld])).length < 2) {
+    return h("p", { class: "leer statistik-leer" }, "Das Diagramm beginnt mit den nächsten Cloud-Läufen – höchstens ein Punkt je Stunde.");
+  }
   return h("div", { class: "rubrik-statistik", "data-rubrik": k },
     h("p", { class: "klein gedimmt" }, r.name + " gegen „" + r.vgl + "“ in Prozent seit Beginn des Zeitraums."),
     D.statistik({
@@ -1098,7 +1110,10 @@ export function aktien(Z) {
   if (!ak) return [fehlerKarte("Aktien-Autopilot", d.aktien)];
   const sg = spielgeldModus(d);
   // 1.4.14 (Tom 07.11.2026): in den Bot-Reitern zuerst die Statistik
-  return [sg ? karte("Statistik", null, rubrikStatistik(Z, "aktien", "reiter")) : null, aktienKarte(d, ak, true, sg, Z),
+  // 1.4.23 (Tom 19.11.2026): Beobachtung „Anthropic (ANT) halten“ direkt unter der Statistik – nur, wenn die Cloud den Posten führt
+  const ant = liste((ok(d.schattendepots) || {}).liste).some((x) => istObj(x) && x.kennung === "ant_halten");
+  return [sg ? karte("Statistik", null, rubrikStatistik(Z, "aktien", "reiter")) : null,
+    ant ? karte("Anthropic (ANT)", null, rubrikStatistik(Z, "ant", "reiter")) : null, aktienKarte(d, ak, true, sg, Z),
     schattenKarte(d.schattendepots, "Aktien-Teil"),
     // 1.4.19 (Tom 07.11.2026): „An die KI“ auch ganz unten im Reiter Aktien
     kiKarte("Frag die KI zu deinen Aktien und zum Welt-ETF – oder sag ihr etwas, das der Autopilot wissen soll: sie merkt es sich als Hinweis. Sie erklärt nur und löst nie selbst eine Order aus.", d)].filter(Boolean);
