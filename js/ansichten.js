@@ -1131,7 +1131,9 @@ const SD_GRUPPEN = [
     ["coin_leiter", "„Bitcoin halten“ vs. „Regeln“"], ["coin_einfach", "„Regeln“ vs. „Rückkauf einfach“"],
     ["coin_alt_neu", "„Regeln alt“ vs. „Regeln neu“"], ["trend_straff", "„Trend“ vs. „Trend straff“"],
     ["swing_schatten", "„Bitcoin halten“ vs. „Swing-Trading (RSI)“"], ["sparplan_schatten", "„Einmalanlage“ vs. „Sparplan“"]]],
-  ["Aktien-Teil", [["etf_faber", "Welt-ETF: „Faber 12“ gegen „Halten“"], ["aktien_rotation", "Momentum-Rotation"]]],
+  // 1.4.22 (Tom 19.11.2026): Beobachtung „Anthropic halten“ – 1.000 € Mustergeld ab Handelsbeginn, kein Bot
+  ["Aktien-Teil", [["etf_faber", "Welt-ETF: „Faber 12“ gegen „Halten“"], ["aktien_rotation", "Momentum-Rotation"],
+    ["ant_halten", "„Welt-ETF halten“ vs. „Anthropic (ANT) halten“"]]],
 ];
 const SD_NAME = new Map(SD_GRUPPEN.flatMap(([, l]) => l));
 function sdGruppen(eintraege, nur) {
